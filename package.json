@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "format:staged": "lint-staged",
     "install:hooks": "git config core.hooksPath .githooks || true && git update-index --add --chmod=+x .githooks/pre-commit || true",
-    "postinstall": "npm run install:hooks"
+    "postinstall": "npm run install:hooks",
+    "typecheck": "tsc -b --noEmit"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -25,19 +26,19 @@
     ]
   },
   "dependencies": {
-    "@react-three/drei": "^9.114.6",
-    "@react-three/fiber": "^8.17.10",
-    "leva": "^0.9.35",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "three": "^0.168.0"
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
+    "leva": "^0.10.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "three": "^0.182.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
-    "@vitejs/plugin-react": "^4.3.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
@@ -47,7 +48,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7"
   }
 }
