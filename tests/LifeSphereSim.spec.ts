@@ -51,4 +51,23 @@ describe('LifeSphereSim', () => {
     expect(sim.getCell(2, 1)).toBe(0);
     expect(sim.getCell(2, 3)).toBe(0);
   });
+
+  it('correctly positions cells based on planetRadius and cellLift', () => {
+    const sim = new LifeSphereSim({
+      latCells: 10,
+      lonCells: 10,
+      planetRadius: 5,
+      cellLift: 0.1,
+      rules: { birth: [], survive: [] },
+    });
+
+    // Check random cell position magnitude
+    // It should be radius + lift = 5.1
+    const p = sim.positions[0];
+    expect(p.length()).toBeCloseTo(5.1, 4);
+
+    // Check another cell
+    const p2 = sim.positions[50];
+    expect(p2.length()).toBeCloseTo(5.1, 4);
+  });
 });

@@ -52,69 +52,71 @@ type PlanetLifeControls = {
 export function PlanetLife() {
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const params = useControls(() => {
-    const patternOptions = [...BUILTIN_PATTERN_NAMES, 'Custom ASCII', 'Random Disk'];
-    return {
-      Simulation: folder(
-        {
-          running: true,
-          tickMs: { value: 120, min: 10, max: 1500, step: 1 },
-          latCells: { value: 48, min: 8, max: 140, step: 1 },
-          lonCells: { value: 96, min: 8, max: 240, step: 1 },
-          birthDigits: { value: '3' },
-          surviveDigits: { value: '23' },
-          randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
-        },
-        { collapsed: false },
-      ),
+  const patternOptions = useMemo(
+    () => [...BUILTIN_PATTERN_NAMES, 'Custom ASCII', 'Random Disk'],
+    [],
+  );
 
-      Rendering: folder(
-        {
-          planetRadius: { value: 2.6, min: 1.2, max: 6, step: 0.05 },
-          planetWireframe: false,
-          planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
-          cellRenderMode: {
-            value: 'Texture' as const,
-            options: ['Texture', 'Dots', 'Both'] as const,
-          },
-          cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
-          cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
-          cellLift: { value: 0.04, min: 0, max: 0.25, step: 0.005 },
-          cellColor: '#ff4fd8',
-        },
-        { collapsed: true },
-      ),
+  const params = useControls({
+    Simulation: folder(
+      {
+        running: true,
+        tickMs: { value: 120, min: 10, max: 1500, step: 1 },
+        latCells: { value: 48, min: 8, max: 140, step: 1 },
+        lonCells: { value: 96, min: 8, max: 240, step: 1 },
+        birthDigits: { value: '3' },
+        surviveDigits: { value: '23' },
+        randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
+      },
+      { collapsed: false },
+    ),
 
-      Meteors: folder(
-        {
-          meteorSpeed: { value: 10, min: 1, max: 40, step: 0.5 },
-          meteorRadius: { value: 0.08, min: 0.02, max: 0.3, step: 0.01 },
-          meteorCooldownMs: { value: 120, min: 0, max: 1000, step: 10 },
+    Rendering: folder(
+      {
+        planetRadius: { value: 2.6, min: 1.2, max: 6, step: 0.05 },
+        planetWireframe: false,
+        planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
+        cellRenderMode: {
+          value: 'Texture' as const,
+          options: ['Texture', 'Dots', 'Both'] as const,
         },
-        { collapsed: true },
-      ),
+        cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
+        cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
+        cellLift: { value: 0.04, min: 0, max: 0.25, step: 0.005 },
+        cellColor: '#ff4fd8',
+      },
+      { collapsed: true },
+    ),
 
-      Seeding: folder(
-        {
-          seedMode: {
-            value: 'set' as const,
-            options: ['set', 'toggle', 'clear', 'random'] as const,
-          },
-          seedPattern: { value: 'Glider', options: patternOptions },
-          seedScale: { value: 1, min: 1, max: 8, step: 1 },
-          seedJitter: { value: 0, min: 0, max: 6, step: 1 },
-          seedProbability: { value: 0.7, min: 0, max: 1, step: 0.01 },
-          customPattern: {
-            value: `
+    Meteors: folder(
+      {
+        meteorSpeed: { value: 10, min: 1, max: 40, step: 0.5 },
+        meteorRadius: { value: 0.08, min: 0.02, max: 0.3, step: 0.01 },
+        meteorCooldownMs: { value: 120, min: 0, max: 1000, step: 10 },
+      },
+      { collapsed: true },
+    ),
+
+    Seeding: folder(
+      {
+        seedMode: {
+          value: 'set' as const,
+          options: ['set', 'toggle', 'clear', 'random'] as const,
+        },
+        seedPattern: { value: 'Glider', options: patternOptions },
+        seedScale: { value: 1, min: 1, max: 8, step: 1 },
+        seedJitter: { value: 0, min: 0, max: 6, step: 1 },
+        seedProbability: { value: 0.7, min: 0, max: 1, step: 0.01 },
+        customPattern: {
+          value: `
 ..O..
 ...O.
 .OOO.
 `.trim(),
-          },
         },
-        { collapsed: false },
-      ),
-    };
+      },
+      { collapsed: false },
+    ),
   }) as unknown as PlanetLifeControls;
 
   const {
@@ -431,7 +433,7 @@ export function PlanetLife() {
       {/* Life overlay (equirectangular DataTexture mapped onto the sphere UVs) */}
       {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && (
         <mesh scale={1.0008} raycast={() => null}>
-          <sphereGeometry args={[planetRadius + 1, 64, 64]} />
+          <sphereGeometry args={[planetRadius, 64, 64]} />
           <meshBasicMaterial
             map={lifeTex.tex}
             transparent
