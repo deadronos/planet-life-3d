@@ -2,11 +2,34 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { Leva } from 'leva';
 import { PlanetLife } from './components/PlanetLife';
+import { Overlay } from './components/Overlay';
+
+const levaTheme = {
+  colors: {
+    elevation1: 'rgba(13, 17, 28, 0.8)',
+    elevation2: '#1a1f2e',
+    elevation3: '#2d3345',
+    accent1: '#6366f1',
+    accent2: '#818cf8',
+    accent3: '#a5b4fc',
+    highlight1: '#94a3b8',
+    highlight2: '#cbd5e1',
+    highlight3: '#f8fafc',
+  },
+  fonts: {
+    mono: "'Rajdhani', monospace",
+    sans: "'Rajdhani', sans-serif",
+  },
+  sizes: {
+    rootWidth: '340px',
+  },
+};
 
 export default function App() {
   return (
     <>
-      <Leva collapsed={false} />
+      <Overlay />
+      <Leva collapsed={false} theme={levaTheme} />
       <Canvas camera={{ position: [0, 0, 8], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={0.75} />
