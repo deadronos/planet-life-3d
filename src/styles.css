@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+
 html,
 body,
 #root {
@@ -5,12 +7,63 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  background-color: #05060a;
+  font-family: 'Rajdhani', sans-serif;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.overlay-panel {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title-card {
+  background: rgba(13, 17, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1.5rem 2rem;
+  border-radius: 4px;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+}
+
+.title-card:hover {
+  transform: translateX(4px);
+}
+
+.title-card h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+.title-card p {
+  margin: 0.5rem 0 0;
+  font-size: 1.1rem;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Leva tweaks if needed via CSS, though theme prop is better */
+.leva-c-bXlA-ibHfrNq-fill-true {
+  background-color: #6366f1 !important;
 }
