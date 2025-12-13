@@ -240,6 +240,25 @@ export function PlanetLife() {
     tex.needsUpdate = true;
   }, [lifeTex, cellRgb8]);
 
+  const debugTexture = useCallback(() => {
+    const { data, tex, w, h } = lifeTex;
+    // Draw cross
+    for (let la = 0; la < h; la++) {
+      for (let lo = 0; lo < w; lo++) {
+        const di = (la * w + lo) * 4;
+        // Equator (la ~ h/2) or Meridian (lo ~ w/2)
+        if (Math.abs(la - h / 2) < 2 || Math.abs(lo - w / 2) < 2) {
+          data[di + 0] = 255; // R
+          data[di + 1] = 0; // G
+          data[di + 2] = 255; // B
+          data[di + 3] = 255; // A
+        }
+      }
+    }
+    tex.needsUpdate = true;
+    console.log('[PlanetLife] Debug pattern drawn on texture');
+  }, [lifeTex]);
+
   const currentPatternOffsets = useMemo(() => {
     if (seedPattern === 'Custom ASCII') return parseAsciiPattern(customPattern);
     if (seedPattern === 'Random Disk') return []; // generated at impact
@@ -302,10 +321,10 @@ export function PlanetLife() {
       Randomize: button(() => randomize()),
       Clear: button(() => clear()),
       StepOnce: button(() => stepOnce()),
+      DebugTexture: button(() => debugTexture()),
     }),
-    [randomize, clear, stepOnce],
+    [randomize, clear, stepOnce, debugTexture],
   );
-
   // (Re)create sim when grid or planet sizing changes
   useEffect(() => {
     simRef.current = new LifeSphereSim({
@@ -455,7 +474,7 @@ export function PlanetLife() {
 
       {/* Life overlay (equirectangular DataTexture mapped onto the sphere UVs) */}
       {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && (
-        <mesh scale={1.0008} raycast={() => null}>
+        <mesh scale={1.01} raycast={() => null}>
           <sphereGeometry args={[planetRadius, 64, 64]} />
           <meshBasicMaterial
             map={lifeTex.tex}
