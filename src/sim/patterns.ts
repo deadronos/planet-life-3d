@@ -3,13 +3,29 @@ export type Offset = readonly [dLat: number, dLon: number];
 const LIVE_CHARS = new Set(['O', 'o', 'X', 'x', '#', '1', '@']);
 
 export function parseAsciiPattern(ascii: string): Offset[] {
-  const lines = ascii
+  let lines = ascii
     .replace(/\r/g, '')
     .split('\n')
-    .map((l) => l.replace(/\s+$/g, '')) // trim line end
-    .filter((l) => l.trim().length > 0);
+    .filter((l) => l.trim().length > 0); // remove fully empty lines
 
   if (lines.length === 0) return [];
+
+  // Dedent: find min leading whitespace
+  let minIndent = Infinity;
+  for (const line of lines) {
+    const match = line.match(/^(\s*)/);
+    if (match) {
+      const indent = match[1].length;
+      if (indent < minIndent) minIndent = indent;
+    }
+  }
+
+  if (minIndent > 0 && minIndent !== Infinity) {
+    lines = lines.map((l) => l.substring(minIndent));
+  }
+
+  // Right trim
+  lines = lines.map((l) => l.replace(/\s+$/g, ''));
 
   const height = lines.length;
   const width = Math.max(...lines.map((l) => l.length));
