@@ -9,7 +9,7 @@ const prettierRecommended = require('eslint-plugin-prettier/recommended');
 module.exports = [
   // Global ignore patterns (replaces .eslintignore)
   {
-    ignores: ['node_modules/**', 'dist/**', 'build/**', 'public/**', '.vscode/**'],
+    ignores: ['node_modules/**', 'dist/**', 'build/**', 'public/**', '.vscode/**', 'vitest.config.*'],
   },
 
   // TypeScript recommended rules (flat)
