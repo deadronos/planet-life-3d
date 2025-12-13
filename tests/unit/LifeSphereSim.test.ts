@@ -205,7 +205,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: offsets as Offset[],
+        offsets: offsets as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -222,7 +222,7 @@ describe('LifeSphereSim', () => {
       const point = new THREE.Vector3(10, 0, 0);
       sim.seedAtPoint({
         point,
-        offsets: offsets as Offset[],
+        offsets: offsets as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -240,7 +240,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'clear',
         scale: 1,
         jitter: 0,
@@ -254,7 +254,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'toggle',
         scale: 1,
         jitter: 0,
@@ -265,7 +265,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'toggle',
         scale: 1,
         jitter: 0,
@@ -280,7 +280,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'random',
         scale: 1,
         jitter: 0,
@@ -294,7 +294,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 6, // different cell
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'random',
         scale: 1,
         jitter: 0,
@@ -315,7 +315,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 2,
@@ -335,7 +335,7 @@ describe('LifeSphereSim', () => {
       const point = new THREE.Vector3(0, 10, 0); // North Pole (Y+)
       sim.seedAtPoint({
         point,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -354,7 +354,7 @@ describe('LifeSphereSim', () => {
       const point = new THREE.Vector3(0, -10, 0); // South Pole (Y-)
       sim.seedAtPoint({
         point,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -373,7 +373,7 @@ describe('LifeSphereSim', () => {
       const point = new THREE.Vector3(0, 0, 10); // Equator (Z+)
       sim.seedAtPoint({
         point,
-        offsets: [[0, 0]] as Offset[],
+        offsets: [[0, 0]] as unknown as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
