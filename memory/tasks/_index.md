@@ -14,5 +14,3 @@
 - [TASK001] Create memory bank - Created core memory files and tasks
 
 ## Abandoned
-
-
