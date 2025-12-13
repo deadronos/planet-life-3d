@@ -408,6 +408,13 @@ export function PlanetLife() {
 
   const onMeteorImpact = useCallback(
     (id: string, impactPoint: THREE.Vector3) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[PlanetLife] onMeteorImpact id=${id} point=${impactPoint
+          .toArray()
+          .map((v) => v.toFixed(2))
+          .join(',')}`,
+      );
       seedAtPoint(impactPoint);
       setMeteors((list) => list.filter((m) => m.id !== id));
     },

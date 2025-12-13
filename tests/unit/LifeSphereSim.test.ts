@@ -320,5 +320,59 @@ describe('LifeSphereSim', () => {
       sim.forEachAlive(() => count++);
       expect(count).toBeGreaterThan(0);
     });
+
+    it('should seed correctly at North Pole', () => {
+      const point = new THREE.Vector3(0, 10, 0); // North Pole (Y+)
+      sim.seedAtPoint({
+        point,
+        offsets: [[0, 0]] as Offset[],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+      });
+      // Should map to high latitude
+      const { lat } = sim.pointToCell(point);
+      expect(lat).toBe(sim.latCells - 1);
+
+      let count = 0;
+      sim.forEachAlive(() => count++);
+      expect(count).toBeGreaterThan(0);
+    });
+
+    it('should seed correctly at South Pole', () => {
+      const point = new THREE.Vector3(0, -10, 0); // South Pole (Y-)
+      sim.seedAtPoint({
+        point,
+        offsets: [[0, 0]] as Offset[],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+      });
+      // Should map to low latitude
+      const { lat } = sim.pointToCell(point);
+      expect(lat).toBe(0);
+
+      let count = 0;
+      sim.forEachAlive(() => count++);
+      expect(count).toBeGreaterThan(0);
+    });
+
+    it('should seed correctly at Equator', () => {
+      const point = new THREE.Vector3(0, 0, 10); // Equator (Z+)
+      sim.seedAtPoint({
+        point,
+        offsets: [[0, 0]] as Offset[],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+      });
+
+      let count = 0;
+      sim.forEachAlive(() => count++);
+      expect(count).toBeGreaterThan(0);
+    });
   });
 });
