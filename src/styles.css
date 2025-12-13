@@ -63,7 +63,66 @@ body,
   text-transform: uppercase;
 }
 
+.onboarding-hint {
+  background: rgba(13, 17, 28, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  border-left: 3px solid #818cf8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  transition: transform 0.3s ease;
+}
+
+.onboarding-hint:hover {
+  transform: translateX(2px);
+}
+
 /* Leva tweaks if needed via CSS, though theme prop is better */
 .leva-c-bXlA-ibHfrNq-fill-true {
   background-color: #6366f1 !important;
+}
+
+.hud-stats {
+  background: rgba(13, 17, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  min-width: 140px;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hud-row:last-child {
+  margin-bottom: 0;
+}
+
+.hud-label {
+  color: #94a3b8;
+  margin-right: 1rem;
+}
+
+.hud-value {
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Rajdhani', monospace;
 }
