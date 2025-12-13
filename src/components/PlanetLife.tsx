@@ -77,7 +77,7 @@ export function PlanetLife() {
         planetWireframe: false,
         planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
         cellRenderMode: {
-          value: 'Texture' as const,
+          value: 'Both' as const,
           options: ['Texture', 'Dots', 'Both'] as const,
         },
         cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
@@ -211,6 +211,7 @@ export function PlanetLife() {
     const { data, tex, w, h } = lifeTex;
     const [r, g, b] = cellRgb8;
 
+    let aliveCount = 0;
     // Map sim lat index 0 (south pole) to texture v=0 (bottom).
     // DataTexture (flipY=false) maps row 0 to V=0.
     for (let la = 0; la < h; la++) {
@@ -220,6 +221,7 @@ export function PlanetLife() {
         const alive = grid[srcRow + lo] === 1;
         const di = (dstRow + lo) * 4;
         if (alive) {
+          aliveCount++;
           data[di + 0] = r;
           data[di + 1] = g;
           data[di + 2] = b;
@@ -228,6 +230,11 @@ export function PlanetLife() {
           data[di + 3] = 0;
         }
       }
+    }
+
+    if (aliveCount > 0 && Math.random() < 0.01) {
+      // eslint-disable-next-line no-console
+      console.log(`[PlanetLife] updateTexture: alive=${aliveCount}`);
     }
 
     tex.needsUpdate = true;
