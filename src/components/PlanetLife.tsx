@@ -219,7 +219,11 @@ export function PlanetLife() {
       const dstRow = la * w;
       for (let lo = 0; lo < w; lo++) {
         const alive = grid[srcRow + lo] === 1;
-        const di = (dstRow + lo) * 4;
+        // Three.js SphereGeometry UVs run opposite to our generic Lon mapping.
+        // Our Sim: u=0.25 -> -90 deg. Three.js u=0.25 -> +90 deg.
+        // So we map Sim column `lo` to Texture column `w - 1 - lo`.
+        const dstLo = w - 1 - lo;
+        const di = (dstRow + dstLo) * 4;
         if (alive) {
           aliveCount++;
           data[di + 0] = r;
