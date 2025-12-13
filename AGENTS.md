@@ -76,3 +76,5 @@ Other resources
 - `README.md` for binary start instructions and UX notes
 
 If you are a non-human agent: follow workspace instruction files first, then this `AGENTS.md`, to make automated changes. If anything is unclear, open a PR with a small change and a short explanation to get human feedback.
+
+Deployment note: a new tag push starting with `v` (for example, `v1.2.3`) triggers the workflow `.github/workflows/deploy-pages.yml` to build and deploy the `dist` site to GitHub Pages.
