@@ -3,6 +3,10 @@
 A 3D Conway-style cellular automaton that runs on a lat/lon grid wrapped onto a planet.
 Click the planet to shoot a meteor. On impact it seeds the grid using a configurable pattern.
 
+## Demo Screenshot
+
+![screenshot](image.png)
+
 ## Run
 
 ```bash
