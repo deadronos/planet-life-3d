@@ -3,6 +3,10 @@
 A 3D Conway-style cellular automaton that runs on a lat/lon grid wrapped onto a planet.
 Click the planet to shoot a meteor. On impact it seeds the grid using a configurable pattern.
 
+## Demo Screenshot
+
+![screenshot](image.png)
+
 ## Run
 
 ```bash
@@ -31,3 +35,14 @@ This repo uses lint-staged to automatically format and lint staged files before 
 - To format staged files manually, run `npm run format:staged`.
 
 If you prefer not to use the hook, unset your local git hooks path with `git config --unset core.hooksPath`.
+
+## Deployment
+
+The site is deployed to GitHub Pages when a new tag starting with `v` is pushed (for example `v1.0.0`). The Actions workflow `\.github/workflows/deploy-pages.yml` builds the project and deploys the `dist` output using Node.js 20.x and the official GitHub Actions for Pages (`actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v4`).
+
+To test the build locally before tagging, run:
+
+```bash
+npm install
+npm run build
+```
