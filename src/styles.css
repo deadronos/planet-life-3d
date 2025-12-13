@@ -63,6 +63,27 @@ body,
   text-transform: uppercase;
 }
 
+.onboarding-hint {
+  background: rgba(13, 17, 28, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  border-left: 3px solid #818cf8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  transition: transform 0.3s ease;
+}
+
+.onboarding-hint:hover {
+  transform: translateX(2px);
+}
+
 /* Leva tweaks if needed via CSS, though theme prop is better */
 .leva-c-bXlA-ibHfrNq-fill-true {
   background-color: #6366f1 !important;
