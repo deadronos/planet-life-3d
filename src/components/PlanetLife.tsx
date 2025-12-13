@@ -83,7 +83,7 @@ export function PlanetLife() {
         cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
         cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
         cellLift: { value: 0.04, min: 0, max: 0.25, step: 0.005 },
-        cellColor: '#ff4fd8',
+        cellColor: '#3dd54c',
       },
       { collapsed: true },
     ),
