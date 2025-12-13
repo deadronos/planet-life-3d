@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { LifeSphereSim, parseRuleDigits } from '../../src/sim/LifeSphereSim';
 import type { Rules } from '../../src/sim/LifeSphereSim';
+import type { Offset } from '../../src/sim/patterns';
 
 // Standard Game of Life Rules: B3/S23
 const GOL_RULES: Rules = {
@@ -194,7 +195,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: offsets as any,
+        offsets: offsets as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -211,7 +212,7 @@ describe('LifeSphereSim', () => {
       const point = new THREE.Vector3(10, 0, 0);
       sim.seedAtPoint({
         point,
-        offsets: offsets as any,
+        offsets: offsets as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 0,
@@ -229,7 +230,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'clear',
         scale: 1,
         jitter: 0,
@@ -243,7 +244,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'toggle',
         scale: 1,
         jitter: 0,
@@ -254,7 +255,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'toggle',
         scale: 1,
         jitter: 0,
@@ -269,7 +270,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'random',
         scale: 1,
         jitter: 0,
@@ -283,7 +284,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 6, // different cell
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'random',
         scale: 1,
         jitter: 0,
@@ -304,7 +305,7 @@ describe('LifeSphereSim', () => {
       sim.seedAtCell({
         lat: 5,
         lon: 5,
-        offsets: [[0, 0]] as any,
+        offsets: [[0, 0]] as Offset[],
         mode: 'set',
         scale: 1,
         jitter: 2,

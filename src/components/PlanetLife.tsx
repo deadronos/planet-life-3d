@@ -182,7 +182,9 @@ export function PlanetLife() {
     tex.flipY = false;
     // colorSpace is the modern three.js name; tolerate older builds.
     try {
-      (tex as any).colorSpace = (THREE as any).SRGBColorSpace;
+      (tex as unknown as Record<string, unknown>)['colorSpace'] = (
+        THREE as unknown as Record<string, unknown>
+      )['SRGBColorSpace'];
     } catch {
       /* noop */
     }
@@ -379,10 +381,14 @@ export function PlanetLife() {
       lastShotMsRef.current = now;
 
       const point = e.point.clone();
-      const cam = e.camera as THREE.Camera;
-      const origin = (cam as any).position
-        ? ((cam as any).position.clone() as THREE.Vector3)
-        : new THREE.Vector3(0, 0, 8);
+      const cam = e.camera;
+      let origin: THREE.Vector3;
+      if (cam && typeof cam === 'object' && 'position' in cam) {
+        const camWithPosition = cam as { position: { clone: () => THREE.Vector3 } };
+        origin = camWithPosition.position.clone();
+      } else {
+        origin = new THREE.Vector3(0, 0, 8);
+      }
 
       const direction = point.clone().sub(origin).normalize();
 
