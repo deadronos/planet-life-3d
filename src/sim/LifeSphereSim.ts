@@ -50,6 +50,12 @@ export class LifeSphereSim {
   private next: Uint8Array;
   private rules: Rules;
 
+  // Stats
+  generation = 0;
+  population = 0;
+  birthsLastTick = 0;
+  deathsLastTick = 0;
+
   // Precomputed surface positions (radius + lift), and normals
   readonly normals: THREE.Vector3[];
   readonly positions: THREE.Vector3[];
@@ -135,6 +141,10 @@ export class LifeSphereSim {
     const W = this.lonCells;
     const { birth, survive } = this.rules;
 
+    let births = 0;
+    let deaths = 0;
+    let pop = 0;
+
     for (let la = 0; la < L; la++) {
       const row = la * W;
       for (let lo = 0; lo < W; lo++) {
@@ -152,9 +162,20 @@ export class LifeSphereSim {
 
         const idx = row + lo;
         const alive = this.grid[idx] === 1;
-        this.next[idx] = alive ? (survive[neighbors] ? 1 : 0) : birth[neighbors] ? 1 : 0;
+        const nextAlive = alive ? (survive[neighbors] ? 1 : 0) : birth[neighbors] ? 1 : 0;
+
+        if (!alive && nextAlive) births++;
+        if (alive && !nextAlive) deaths++;
+        if (nextAlive) pop++;
+
+        this.next[idx] = nextAlive;
       }
     }
+
+    this.birthsLastTick = births;
+    this.deathsLastTick = deaths;
+    this.population = pop;
+    this.generation++;
 
     // swap
     const tmp = this.grid;

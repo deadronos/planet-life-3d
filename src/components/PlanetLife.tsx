@@ -10,6 +10,7 @@ import {
 } from '../sim/patterns';
 import { Meteor, type MeteorSpec } from './Meteor';
 import { ImpactRing, type ImpactSpec } from './ImpactRing';
+import { useUIStore } from '../store/useUIStore';
 
 function uid(prefix = 'id') {
   return `${prefix}-${Math.random().toString(16).slice(2)}-${Date.now().toString(16)}`;
@@ -345,6 +346,15 @@ export function PlanetLife() {
       const sim = simRef.current;
       if (!sim) return;
       sim.step();
+
+      // Update UI stats
+      useUIStore.getState().setStats({
+        generation: sim.generation,
+        population: sim.population,
+        birthsLastTick: sim.birthsLastTick,
+        deathsLastTick: sim.deathsLastTick,
+      });
+
       updateInstances();
     }, tickMs);
     return () => window.clearInterval(id);

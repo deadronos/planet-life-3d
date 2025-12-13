@@ -88,3 +88,41 @@ body,
 .leva-c-bXlA-ibHfrNq-fill-true {
   background-color: #6366f1 !important;
 }
+
+.hud-stats {
+  background: rgba(13, 17, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  min-width: 140px;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hud-row:last-child {
+  margin-bottom: 0;
+}
+
+.hud-label {
+  color: #94a3b8;
+  margin-right: 1rem;
+}
+
+.hud-value {
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Rajdhani', monospace;
+}
