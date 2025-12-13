@@ -18,6 +18,33 @@ function safeInt(v: unknown, fallback: number, lo: number, hi: number): number {
   return f < lo ? lo : f > hi ? hi : f
 }
 
+type PlanetLifeControls = {
+  running: boolean
+  tickMs: number
+  latCells: number
+  lonCells: number
+  birthDigits: string
+  surviveDigits: string
+  randomDensity: number
+  planetRadius: number
+  planetWireframe: boolean
+  planetRoughness: number
+  cellRenderMode: 'Texture' | 'Dots' | 'Both'
+  cellOverlayOpacity: number
+  cellRadius: number
+  cellLift: number
+  cellColor: string
+  meteorSpeed: number
+  meteorRadius: number
+  meteorCooldownMs: number
+  seedMode: 'set' | 'toggle' | 'clear' | 'random'
+  seedPattern: string
+  seedScale: number
+  seedJitter: number
+  seedProbability: number
+  customPattern: string
+}
+
 export function PlanetLife() {
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
@@ -78,7 +105,7 @@ export function PlanetLife() {
         { collapsed: false }
       )
     }
-  })
+  }) as unknown as PlanetLifeControls
 
   const {
     running,
@@ -175,10 +202,10 @@ export function PlanetLife() {
     const [r, g, b] = cellRgb8
 
     // Map sim lat index 0 (south pole) to texture v=0 (bottom).
-    // We flip rows when writing to avoid depending on flipY behavior.
+    // DataTexture (flipY=false) maps row 0 to V=0.
     for (let la = 0; la < h; la++) {
       const srcRow = la * w
-      const dstRow = (h - 1 - la) * w
+      const dstRow = la * w
       for (let lo = 0; lo < w; lo++) {
         const alive = grid[srcRow + lo] === 1
         const di = (dstRow + lo) * 4
