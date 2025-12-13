@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { LifeSphereSim, parseRuleDigits } from '../../src/sim/LifeSphereSim';
+import { getBuiltinPatternOffsets } from '../../src/sim/patterns';
 import type { Rules } from '../../src/sim/LifeSphereSim';
 import type { Offset } from '../../src/sim/patterns';
 
@@ -11,6 +12,15 @@ const GOL_RULES: Rules = {
 };
 
 describe('LifeSphereSim', () => {
+  describe('Pattern Parsing', () => {
+    it('should parse Glider pattern correctly', () => {
+      const offsets = getBuiltinPatternOffsets('Glider');
+      expect(offsets.length).toBeGreaterThan(0);
+      // Glider is 5 cells
+      expect(offsets.length).toBe(5);
+    });
+  });
+
   describe('parseRuleDigits', () => {
     it('should parse "3" correctly for birth', () => {
       const res = parseRuleDigits('3');

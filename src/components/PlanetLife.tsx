@@ -337,6 +337,9 @@ export function PlanetLife() {
 
       const offsets = seedPattern === 'Random Disk' ? randomDiskOffsets() : currentPatternOffsets;
 
+      // eslint-disable-next-line no-console
+      console.log(`[PlanetLife] seedAtPoint pattern=${seedPattern} offsets=${offsets.length}`);
+
       sim.seedAtPoint({
         point,
         offsets,

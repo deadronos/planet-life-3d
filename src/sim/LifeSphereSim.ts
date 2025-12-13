@@ -192,6 +192,12 @@ export class LifeSphereSim {
     const jitter = Math.max(0, Math.floor(params.jitter));
     const p = Math.max(0, Math.min(1, params.probability));
 
+    // eslint-disable-next-line no-console
+    console.log(
+      `[LifeSphereSim] seedAtCell: mode=${params.mode} offsets=${params.offsets.length} scale=${scale} p=${p} jitter=${jitter}`,
+    );
+
+    let affected = 0;
     for (const [dLa0, dLo0] of params.offsets) {
       let dLa = dLa0 * scale;
       let dLo = dLo0 * scale;
@@ -219,8 +225,10 @@ export class LifeSphereSim {
           this.grid[idx] = rng() < p ? 1 : 0;
           break;
       }
+      affected++;
     }
-    // console.log('[LifeSphereSim] seedAtCell finished. Affected cells:', affected);
+    // eslint-disable-next-line no-console
+    console.log(`[LifeSphereSim] seedAtCell finished. Affected cells: ${affected}`);
   }
 
   /** Convenience: seed using a world impact point (e.g., meteor hit). */
