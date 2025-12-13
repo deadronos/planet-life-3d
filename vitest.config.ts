@@ -4,7 +4,8 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
+    setupFiles: './tests/setup.ts',
     include: [
       'tests/**/*.spec.ts',
       'tests/**/*.test.ts',
@@ -16,6 +17,7 @@ export default defineConfig({
       reporter: ['text', 'html'],
     },
   },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
