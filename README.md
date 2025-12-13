@@ -15,3 +15,19 @@ npm run dev
 - Orbit with mouse (right drag to pan, wheel zoom).
 - Click the planet to fire a meteor at the clicked spot.
 - Tune grid/rules/speed/meteor + seeding parameters via the Leva UI.
+
+## Testing
+
+- Run the test suite: `npm run test`
+- Run in watch mode: `npm run test:watch`
+- Open the Vitest UI: `npm run test:ui`
+
+## Pre-commit hook (automatic formatting)
+
+This repo uses lint-staged to automatically format and lint staged files before commit. A lightweight git hook lives in `.githooks/pre-commit` and runs `npm run format:staged` for JS/TS and other file types.
+
+- Run `npm install` to install dependencies and configure the hook (the `postinstall` script runs `npm run install:hooks`).
+- To install hooks manually, run `npm run install:hooks`.
+- To format staged files manually, run `npm run format:staged`.
+
+If you prefer not to use the hook, unset your local git hooks path with `git config --unset core.hooksPath`.

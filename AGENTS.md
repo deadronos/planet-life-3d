@@ -44,9 +44,10 @@ Where to modify logic safely
 
 Testing & validation
 
-- There is no automated test harness in the repo. For TypeScript verification, run `npm run build` (which runs `tsc -b`).
-- Recommended unit tests (Vitest): `LifeSphereSim.step()`, `LifeSphereSim.pointToCell()`, `parseAsciiPattern()`.
-  - Example test setup (optional): `npm i -D vitest @testing-library/react jsdom` then add a `test` script.
+- The repo now uses Vitest for automated testing. Tests live under the `tests/` folder, and cover pure logic such as `LifeSphereSim.step()`, `LifeSphereSim.pointToCell()`, and `parseAsciiPattern()`.
+- E2E (browser) tests should live under `tests/e2e` and use `@playwright/test` (Playwright) for real-browser testing of canvas and UI flows.
+- Run the test suite: `npm run test`. Run in watch mode with `npm run test:watch` or open the Vitest UI with `npm run test:ui`.
+- For TypeScript verification, `npm run build` still runs the authoritative type-check (`tsc -b`).
 
 Common build issues
 
