@@ -1,0 +1,154 @@
+# .gitignore - Node + TypeScript + Vite + React project
+# Generated for planet-life-3d on 2025-12-13
+
+# Node
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# Build directories
+dist/
+build/
+out/
+public/build/
+
+# Vite cache (inside project or inside node_modules)
+.vite/
+node_modules/.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Bundler caches
+.cache/
+.parcel-cache/
+.rpt2_cache/
+.esbuild/
+
+# Testing / coverage
+coverage/
+.nyc_output/
+jest.coverage/
+.vitest/
+.playwright/
+test-results/
+**/test-results/
+
+# Environment files (do not commit secrets) — allow sample templates
+.env*
+!.env.example
+
+# OS generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+.netbeans/
+
+# JetBrains IDEs
+*.iml
+*.iws
+.idea/**/workspace.xml
+.idea/**/workspace.xml*
+
+# npm / package manager
+.packages
+.npm/
+.npmrc
+# Note: lock files (package-lock.json, yarn.lock, pnpm-lock.yaml) are usually committed.
+
+# Yarn (v1/v2/berry) caches
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+.pnpm-debug.log*
+.pnpm-store/
+
+# Bun
+bun.lockb
+
+# Misc build artifacts and temp files
+*.tgz
+*.zip
+*.tar.gz
+*.gzip
+*.7z
+*.log
+.tmp/
+temp/
+
+# Binary and generated files
+*.exe
+*.dll
+*.so
+*.dylib
+*.wasm
+
+# Certificate / key files
+*.key
+*.pem
+*.p12
+*.crt
+
+# Deployment / hosting / caches
+.vercel/
+.netlify/
+.deploy/
+.surge/
+
+# Storybook
+storybook-static/
+node_modules/.cache/storybook
+
+# IDE & editor local history and caches
+.history/
+.cache/
+
+# MacOS Finder (and other system files)
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows image file caches
+ehthumbs.db
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+Dockerfile.*.local
+
+# Git ignored but useful files for local dev
+.env.local
+
+# Keep a short entry for project-specific large/unversioned files
+# Examples: build artifacts, game assets, render caches, etc.
+assets/baked/
+assets/exports/
+
+# Optional: Add any large binary assets you produce locally
+# *.fbx
+# *.glb
+# *.gltf
+# *.obj
+# *.bin
+
+# End of file
