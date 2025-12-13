@@ -185,6 +185,7 @@ export class LifeSphereSim {
     jitter: number;
     probability: number;
     rng?: () => number;
+    debug?: boolean;
   }) {
     // console.log('[LifeSphereSim] seedAtCell', { lat: params.lat, lon: params.lon, mode: params.mode, offsets: params.offsets.length });
     const rng = params.rng ?? Math.random;
@@ -192,10 +193,12 @@ export class LifeSphereSim {
     const jitter = Math.max(0, Math.floor(params.jitter));
     const p = Math.max(0, Math.min(1, params.probability));
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `[LifeSphereSim] seedAtCell: mode=${params.mode} offsets=${params.offsets.length} scale=${scale} p=${p} jitter=${jitter}`,
-    );
+    if (params.debug) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[LifeSphereSim] seedAtCell: mode=${params.mode} offsets=${params.offsets.length} scale=${scale} p=${p} jitter=${jitter}`,
+      );
+    }
 
     let affected = 0;
     for (const [dLa0, dLo0] of params.offsets) {
@@ -227,8 +230,10 @@ export class LifeSphereSim {
       }
       affected++;
     }
-    // eslint-disable-next-line no-console
-    console.log(`[LifeSphereSim] seedAtCell finished. Affected cells: ${affected}`);
+    if (params.debug) {
+      // eslint-disable-next-line no-console
+      console.log(`[LifeSphereSim] seedAtCell finished. Affected cells: ${affected}`);
+    }
   }
 
   /** Convenience: seed using a world impact point (e.g., meteor hit). */
@@ -240,15 +245,18 @@ export class LifeSphereSim {
     jitter: number;
     probability: number;
     rng?: () => number;
+    debug?: boolean;
   }) {
     const { lat, lon } = this.pointToCell(params.point);
-    // eslint-disable-next-line no-console
-    console.log(
-      `[LifeSphereSim] seedAtPoint: point=${params.point
-        .toArray()
-        .map((v) => v.toFixed(2))
-        .join(',')} -> cell=[${lat}, ${lon}]`,
-    );
+    if (params.debug) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[LifeSphereSim] seedAtPoint: point=${params.point
+          .toArray()
+          .map((v) => v.toFixed(2))
+          .join(',')} -> cell=[${lat}, ${lon}]`,
+      );
+    }
     this.seedAtCell({ ...params, lat, lon });
   }
 

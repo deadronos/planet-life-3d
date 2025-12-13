@@ -77,7 +77,7 @@ export function PlanetLife() {
         planetWireframe: false,
         planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
         cellRenderMode: {
-          value: 'Both' as const,
+          value: 'Texture' as const,
           options: ['Texture', 'Dots', 'Both'] as const,
         },
         cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
@@ -117,7 +117,14 @@ export function PlanetLife() {
       },
       { collapsed: false },
     ),
-  }) as unknown as PlanetLifeControls;
+
+    Debug: folder(
+      {
+        debugLogs: false,
+      },
+      { collapsed: true },
+    ),
+  }) as unknown as PlanetLifeControls & { debugLogs: boolean };
 
   const {
     running,
@@ -149,6 +156,8 @@ export function PlanetLife() {
     seedJitter,
     seedProbability,
     customPattern,
+
+    debugLogs,
   } = params;
 
   const rules = useMemo(() => {
@@ -236,32 +245,13 @@ export function PlanetLife() {
       }
     }
 
-    if (aliveCount > 0 && Math.random() < 0.01) {
+    if (aliveCount > 0 && debugLogs && Math.random() < 0.01) {
       // eslint-disable-next-line no-console
       console.log(`[PlanetLife] updateTexture: alive=${aliveCount}`);
     }
 
     tex.needsUpdate = true;
-  }, [lifeTex, cellRgb8]);
-
-  const debugTexture = useCallback(() => {
-    const { data, tex, w, h } = lifeTex;
-    // Draw cross
-    for (let la = 0; la < h; la++) {
-      for (let lo = 0; lo < w; lo++) {
-        const di = (la * w + lo) * 4;
-        // Equator (la ~ h/2) or Meridian (lo ~ w/2)
-        if (Math.abs(la - h / 2) < 2 || Math.abs(lo - w / 2) < 2) {
-          data[di + 0] = 255; // R
-          data[di + 1] = 0; // G
-          data[di + 2] = 255; // B
-          data[di + 3] = 255; // A
-        }
-      }
-    }
-    tex.needsUpdate = true;
-    console.log('[PlanetLife] Debug pattern drawn on texture');
-  }, [lifeTex]);
+  }, [lifeTex, cellRgb8, debugLogs]);
 
   const currentPatternOffsets = useMemo(() => {
     if (seedPattern === 'Custom ASCII') return parseAsciiPattern(customPattern);
@@ -325,10 +315,10 @@ export function PlanetLife() {
       Randomize: button(() => randomize()),
       Clear: button(() => clear()),
       StepOnce: button(() => stepOnce()),
-      DebugTexture: button(() => debugTexture()),
     }),
-    [randomize, clear, stepOnce, debugTexture],
+    [randomize, clear, stepOnce],
   );
+
   // (Re)create sim when grid or planet sizing changes
   useEffect(() => {
     simRef.current = new LifeSphereSim({
@@ -367,8 +357,10 @@ export function PlanetLife() {
 
       const offsets = seedPattern === 'Random Disk' ? randomDiskOffsets() : currentPatternOffsets;
 
-      // eslint-disable-next-line no-console
-      console.log(`[PlanetLife] seedAtPoint pattern=${seedPattern} offsets=${offsets.length}`);
+      if (debugLogs) {
+        // eslint-disable-next-line no-console
+        console.log(`[PlanetLife] seedAtPoint pattern=${seedPattern} offsets=${offsets.length}`);
+      }
 
       sim.seedAtPoint({
         point,
@@ -377,6 +369,7 @@ export function PlanetLife() {
         scale: seedScale,
         jitter: seedJitter,
         probability: seedProbability,
+        debug: debugLogs,
       });
       updateInstances();
 
@@ -402,6 +395,7 @@ export function PlanetLife() {
       seedJitter,
       seedProbability,
       updateInstances,
+      debugLogs,
     ],
   );
 
@@ -441,17 +435,19 @@ export function PlanetLife() {
 
   const onMeteorImpact = useCallback(
     (id: string, impactPoint: THREE.Vector3) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[PlanetLife] onMeteorImpact id=${id} point=${impactPoint
-          .toArray()
-          .map((v) => v.toFixed(2))
-          .join(',')}`,
-      );
+      if (debugLogs) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[PlanetLife] onMeteorImpact id=${id} point=${impactPoint
+            .toArray()
+            .map((v) => v.toFixed(2))
+            .join(',')}`,
+        );
+      }
       seedAtPoint(impactPoint);
       setMeteors((list) => list.filter((m) => m.id !== id));
     },
-    [seedAtPoint],
+    [seedAtPoint, debugLogs],
   );
 
   // prune impact rings
