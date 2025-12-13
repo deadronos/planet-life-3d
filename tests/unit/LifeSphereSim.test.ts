@@ -371,8 +371,38 @@ describe('LifeSphereSim', () => {
       });
 
       let count = 0;
+
       sim.forEachAlive(() => count++);
+
       expect(count).toBeGreaterThan(0);
+    });
+
+    it('correctly positions cells based on planetRadius and cellLift', () => {
+      const simWithLift = new LifeSphereSim({
+        latCells: 10,
+
+        lonCells: 10,
+
+        planetRadius: 5,
+
+        cellLift: 0.1,
+
+        rules: GOL_RULES,
+      });
+
+      // Check random cell position magnitude
+
+      // It should be radius + lift = 5.1
+
+      const p = simWithLift.positions[0];
+
+      expect(p.length()).toBeCloseTo(5.1, 4);
+
+      // Check another cell
+
+      const p2 = simWithLift.positions[50];
+
+      expect(p2.length()).toBeCloseTo(5.1, 4);
     });
   });
 });
