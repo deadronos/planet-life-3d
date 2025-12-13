@@ -2,7 +2,7 @@
 // Pre-commit hook (runs lint-staged). This file is intentionally minimal
 // Use `npm run install:hooks` or `npm install` to set `.githooks` as Git hooks path.
 
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 
 function run(cmd) {
   const proc = spawn(cmd, { stdio: 'inherit', shell: true });
