@@ -156,6 +156,7 @@ mcp_context7_get-library-docs({
        topic: "your-topic"
      })
      ```
+
 4. **Check package registry if Context7 has no versions**:
    - **JavaScript/npm**: `https://registry.npmjs.org/{package}/latest`
    - **Python/PyPI**: `https://pypi.org/pypi/{package}/json`
