@@ -33,3 +33,4 @@
 - Precompute `positions` and `normals` in `LifeSphereSim`.
 - TASK001: Added the memory bank files and initial tasks to the `memory/` folder.
 - TASK005: Modularized `PlanetLife.tsx` into `src/components/planetLife/` modules; lint + typecheck validated.
+- Refactor: Clustered simulation functions and extracted `useMeteorSystem` / `useSimulationSeeder` hooks.
