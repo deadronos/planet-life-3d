@@ -8,6 +8,9 @@ export type MeteorSpec = {
   direction: THREE.Vector3; // normalized
   speed: number;
   radius: number;
+  trailLength: number;
+  trailWidth: number;
+  emissiveIntensity: number;
 };
 
 export function Meteor(props: {
@@ -15,8 +18,11 @@ export function Meteor(props: {
   planetRadius: number;
   onImpact: (id: string, impactPoint: THREE.Vector3) => void;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null!);
+  const groupRef = useRef<THREE.Group>(null!);
+  const headMatRef = useRef<THREE.MeshStandardMaterial>(null!);
+  const trailRef = useRef<THREE.Mesh>(null!);
   const impactedRef = useRef(false);
+  const trailQuat = useMemo(() => new THREE.Quaternion(), []);
 
   const state = useMemo(() => {
     return {
@@ -28,7 +34,18 @@ export function Meteor(props: {
   useFrame((_, dt) => {
     if (impactedRef.current) return;
     state.pos.addScaledVector(state.dir, props.spec.speed * dt);
-    meshRef.current.position.copy(state.pos);
+
+    trailQuat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), state.dir);
+    groupRef.current.position.copy(state.pos);
+    groupRef.current.quaternion.copy(trailQuat);
+
+    trailRef.current.position.set(0, -props.spec.trailLength * 0.5, 0);
+    trailRef.current.scale.set(
+      props.spec.trailWidth,
+      props.spec.trailLength,
+      props.spec.trailWidth,
+    );
+    headMatRef.current.emissiveIntensity = props.spec.emissiveIntensity;
 
     // impact when meteor reaches the planet surface (simple sphere collision)
     const dist = state.pos.length();
@@ -40,14 +57,29 @@ export function Meteor(props: {
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[props.spec.radius, 16, 16]} />
-      <meshStandardMaterial
-        emissive={'#ffcc66'}
-        emissiveIntensity={2}
-        roughness={0.2}
-        metalness={0.1}
-      />
-    </mesh>
+    <group ref={groupRef}>
+      <mesh>
+        <sphereGeometry args={[props.spec.radius, 16, 16]} />
+        <meshStandardMaterial
+          ref={headMatRef}
+          color={'#ffd68a'}
+          emissive={'#ffcc66'}
+          emissiveIntensity={props.spec.emissiveIntensity}
+          roughness={0.2}
+          metalness={0.1}
+        />
+      </mesh>
+      <mesh ref={trailRef}>
+        <coneGeometry args={[props.spec.trailWidth, 1, 14, 1, true]} />
+        <meshBasicMaterial
+          color={'#ffbb55'}
+          transparent
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
   );
 }

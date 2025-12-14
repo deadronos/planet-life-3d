@@ -9,7 +9,6 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
 
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 
 vi.mock('@react-three/fiber', (_importOriginal) => {
   return {
@@ -46,6 +45,9 @@ describe('Meteor', () => {
       direction: new THREE.Vector3(-1, 0, 0),
       speed: 1,
       radius: 0.5,
+      trailLength: 0.6,
+      trailWidth: 0.1,
+      emissiveIntensity: 1.2,
     };
 
     const { container } = render(<Meteor spec={spec} planetRadius={5} onImpact={() => {}} />);

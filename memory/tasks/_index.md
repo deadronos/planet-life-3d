@@ -11,6 +11,7 @@
 
 ## Completed
 
+- [TASK004] Visual Upgrades (atmosphere, palettes, meteor VFX)
 - [TASK001] Create memory bank - Created core memory files and tasks
 
 ## Abandoned
