@@ -14,7 +14,13 @@
   - `DistantMoons.tsx` — Two small moons with independent orbital paths
   - `SunLensFlare.tsx` — Sprite-based lens flare effect following directional light
   - `SpaceEnvironment.tsx` — Wrapper composing all environment elements
-- `App.tsx` now uses `SpaceEnvironment` instead of the basic `Stars` component.
+- **Planet Visuals (2025-12-14)**: Overhauled `planetMaterial.ts` with custom GLSL shader:
+  - World-space lighting to align day/night terminator with the sun.
+  - "Sunset" terminator band and atmospheric rim glow.
+  - 3D Simplex noise for surface micro-variation.
+  - Cell anchoring grid pattern to align with simulation cells.
+  - Specular highlights on the ocean for better depth.
+- `App.tsx` now uses `SpaceEnvironment` and a cinematic camera position `[-1, -4, -12]`.
 - TASK005 completed: `src/components/PlanetLife.tsx` was refactored into a composition layer.
 - Refactor (Clustering): Simulation logic clustered into `src/sim/rules.ts` and `src/sim/utils.ts`.
 - Refactor (Hooks): `useMeteorSystem` and `useSimulationSeeder` extracted from `PlanetLife.tsx`.

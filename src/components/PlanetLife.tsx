@@ -14,7 +14,11 @@ import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { safeInt } from './planetLife/utils';
 
-export function PlanetLife() {
+export function PlanetLife({
+  lightPosition = [6, 6, 8],
+}: {
+  lightPosition?: [number, number, number];
+}) {
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
   const params = usePlanetLifeControls();
@@ -123,6 +127,9 @@ export function PlanetLife() {
     terminatorBoost,
     planetRoughness,
     planetWireframe,
+    latCells: safeLatCells,
+    lonCells: safeLonCells,
+    lightPosition,
   });
 
   const { simRef, updateInstances, clear, randomize, stepOnce } = usePlanetLifeSim({
