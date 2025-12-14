@@ -10,6 +10,7 @@ import { useLifeTexture } from './planetLife/lifeTexture';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
 import { useSimulationSeeder } from './planetLife/useSimulationSeeder';
+import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { safeInt } from './planetLife/utils';
 
@@ -81,8 +82,26 @@ export function PlanetLife() {
 
   const cellsRef = useRef<THREE.InstancedMesh | null>(null);
 
-  const safeLatCells = useMemo(() => safeInt(latCells, 48, 8, 256), [latCells]);
-  const safeLonCells = useMemo(() => safeInt(lonCells, 96, 8, 512), [lonCells]);
+  const safeLatCells = useMemo(
+    () =>
+      safeInt(
+        latCells,
+        SIM_DEFAULTS.latCells,
+        SIM_CONSTRAINTS.latCells.min,
+        SIM_CONSTRAINTS.latCells.max,
+      ),
+    [latCells],
+  );
+  const safeLonCells = useMemo(
+    () =>
+      safeInt(
+        lonCells,
+        SIM_DEFAULTS.lonCells,
+        SIM_CONSTRAINTS.lonCells.min,
+        SIM_CONSTRAINTS.lonCells.max,
+      ),
+    [lonCells],
+  );
   const maxInstances = useMemo(() => safeLatCells * safeLonCells, [safeLatCells, safeLonCells]);
 
   const lifeTex = useLifeTexture({ lonCells: safeLonCells, latCells: safeLatCells });

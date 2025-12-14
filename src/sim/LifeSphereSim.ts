@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { clampInt, safeFloat, safeInt } from './utils';
@@ -49,8 +50,18 @@ export class LifeSphereSim {
   }) {
     // Defensive: UI controllers can temporarily produce NaN/undefined during edits.
     // Clamp to keep memory usage sane and avoid RangeError: Invalid array length.
-    this.latCells = safeInt(opts.latCells, 48, 4, 256);
-    this.lonCells = safeInt(opts.lonCells, 96, 4, 512);
+    this.latCells = safeInt(
+      opts.latCells,
+      SIM_DEFAULTS.latCells,
+      SIM_CONSTRAINTS.latCells.min,
+      SIM_CONSTRAINTS.latCells.max,
+    );
+    this.lonCells = safeInt(
+      opts.lonCells,
+      SIM_DEFAULTS.lonCells,
+      SIM_CONSTRAINTS.lonCells.min,
+      SIM_CONSTRAINTS.lonCells.max,
+    );
     this.cellCount = this.latCells * this.lonCells;
 
     this.grid = new Uint8Array(this.cellCount);
@@ -64,8 +75,18 @@ export class LifeSphereSim {
     this.normals = new Array<THREE.Vector3>(this.cellCount);
     this.positions = new Array<THREE.Vector3>(this.cellCount);
 
-    const R = safeFloat(opts.planetRadius, 2.6, 0.1, 100);
-    const lift = safeFloat(opts.cellLift, 0.04, 0, 10);
+    const R = safeFloat(
+      opts.planetRadius,
+      SIM_DEFAULTS.planetRadius,
+      SIM_CONSTRAINTS.planetRadius.min,
+      SIM_CONSTRAINTS.planetRadius.max,
+    );
+    const lift = safeFloat(
+      opts.cellLift,
+      SIM_DEFAULTS.cellLift,
+      SIM_CONSTRAINTS.cellLift.min,
+      SIM_CONSTRAINTS.cellLift.max,
+    );
     // Lat: [-pi/2 .. +pi/2], Lon: [-pi .. +pi]
     for (let la = 0; la < this.latCells; la++) {
       const v = la / (this.latCells - 1);
