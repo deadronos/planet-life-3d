@@ -28,6 +28,11 @@ vi.mock('@react-three/drei', () => ({
   Stars: () => null,
 }));
 
+// Mock SpaceEnvironment
+vi.mock('../../src/components/environment', () => ({
+  SpaceEnvironment: () => null,
+}));
+
 // Mock Canvas to avoid rendering 3D elements that cause warnings in JSDOM
 vi.mock('@react-three/fiber', () => ({
   Canvas: () => null,

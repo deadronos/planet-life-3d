@@ -5,6 +5,7 @@
 - Core sim implemented in `LifeSphereSim` with `step()`, `forEachAlive()`, seeding, and `pointToCell()` mapping.
 - `PlanetLife` renders both `Texture` overlay and instanced `Dots` mode; meteors and impact rings are implemented.
 - Post-TASK005 modular structure is in place: `src/components/PlanetLife.tsx` composes hooks from `src/components/planetLife/`.
+- **Space environment**: Procedural nebula skybox, distant sun with glow/corona, two orbiting moons, and sun lens flare (`src/components/environment/`).
 - UI: Leva controls exist for quick iteration of rules, grid sizing, meteor settings, and seeding.
 - Unit and component tests are present using Vitest; run them with `npm run test`.
 - Performance quick wins applied: conditional overlay texture updates, dynamic instancing buffer usage, and reduced per-frame allocations in `Meteor`.
@@ -29,6 +30,7 @@
 
 ## Recent Completed Items
 
+- **2025-12-14: Environment enhancements** — Added procedural nebula skybox (GLSL FBM), distant sun with glow shader, two orbiting moons, and sprite-based lens flare. Components live in `src/components/environment/`.
 - Unit and component tests were added to `tests/unit` and `tests/component` and are runnable via Vitest.
 - `Meteor` and `ImpactRing` appear to be implemented and integrated into `PlanetLife`.
 - Precompute `positions` and `normals` in `LifeSphereSim`.
