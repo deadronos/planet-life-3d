@@ -30,6 +30,7 @@
 
 ## Recent Completed Items
 
+- **2025-12-14: Planet Visual Overhaul** — Custom shader with terminator shading, atmosphere glow, surface noise, and grid. Fixed lighting coordinate space.
 - **2025-12-14: Environment enhancements** — Added procedural nebula skybox (GLSL FBM), distant sun with glow shader, two orbiting moons, and sprite-based lens flare. Components live in `src/components/environment/`.
 - Unit and component tests were added to `tests/unit` and `tests/component` and are runnable via Vitest.
 - `Meteor` and `ImpactRing` appear to be implemented and integrated into `PlanetLife`.

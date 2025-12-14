@@ -13,6 +13,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - Rendering & UI (composition): `src/components/PlanetLife.tsx`
 - Rendering & UI (private modules): `src/components/planetLife/*`
 - **Environment (space background)**: `src/components/environment/*`
+- **Planet Visuals**: `src/components/planetLife/planetMaterial.ts` (custom shader with noise, atmosphere, and grid)
 - Interactions: `src/components/Meteor.tsx`, `src/components/ImpactRing.tsx`
 - App entry: `src/App.tsx`, `src/main.tsx`
 - UI state: `src/store/useUIStore.ts`
@@ -51,7 +52,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - `src/components/planetLife/useMeteorSystem.ts`: meteor spawning, impacts, and visual rings.
 - `src/components/planetLife/useSimulationSeeder.ts`: pattern selection and seeding execution.
 - `src/components/planetLife/lifeTexture.ts`: `useLifeTexture()` and `writeLifeTexture()`.
-- `src/components/planetLife/planetMaterial.ts`: `usePlanetMaterial()`.
+- `src/components/planetLife/planetMaterial.ts`: `usePlanetMaterial()`. Implements a `ShaderMaterial` with World Space lighting (fixing terminator rotation), Simplex noise for surface variation, customizable colors, and a procedural grid overlay.
 - `src/components/planetLife/cellColor.ts`: `useCellColorResolver()`.
 - `src/components/planetLife/controls.ts`: `usePlanetLifeControls()`.
 - `src/components/planetLife/utils.ts`: `uid()`, re-exports `safeInt()`.
@@ -61,6 +62,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 Space environment components providing an immersive background:
 
 - `SpaceEnvironment.tsx`: Wrapper composing all environment elements; receives `lightPosition` prop from `App.tsx`.
+- `App.tsx`: Sets `Canvas` camera to `[-1, -4, -12]` for a cinematic opening view. Passes `LIGHT_POSITION` to all children.
 - `NebulaSkybox.tsx`: Large inverted sphere (radius 150, `BackSide`) with GLSL shader using FBM simplex noise for animated purple/blue/pink nebula clouds.
 - `DistantSun.tsx`: Yellowish star with glow shader (fresnel-based) and corona layers; positioned at 10× the light direction (default: `[60, 60, 80]`), size 12 units.
 - `DistantMoons.tsx`: Two spheres with independent orbital speeds (0.02, 0.015 rad/s) and tilts; distances 55 and 70 units.
