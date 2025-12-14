@@ -23,6 +23,7 @@ export function Meteor(props: {
   const trailRef = useRef<THREE.Mesh>(null!);
   const impactedRef = useRef(false);
   const trailQuat = useMemo(() => new THREE.Quaternion(), []);
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   const state = useMemo(() => {
     return {
@@ -35,7 +36,7 @@ export function Meteor(props: {
     if (impactedRef.current) return;
     state.pos.addScaledVector(state.dir, props.spec.speed * dt);
 
-    trailQuat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), state.dir);
+    trailQuat.setFromUnitVectors(up, state.dir);
     groupRef.current.position.copy(state.pos);
     groupRef.current.quaternion.copy(trailQuat);
 
@@ -48,8 +49,8 @@ export function Meteor(props: {
     headMatRef.current.emissiveIntensity = props.spec.emissiveIntensity;
 
     // impact when meteor reaches the planet surface (simple sphere collision)
-    const dist = state.pos.length();
-    if (dist <= props.planetRadius + props.spec.radius) {
+    const r = props.planetRadius + props.spec.radius;
+    if (state.pos.lengthSq() <= r * r) {
       impactedRef.current = true;
       const impact = state.pos.clone().normalize().multiplyScalar(props.planetRadius);
       props.onImpact(props.spec.id, impact);

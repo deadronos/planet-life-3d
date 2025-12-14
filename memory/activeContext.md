@@ -24,6 +24,14 @@
 - Unit and component tests were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
 - Quality gates validated after modularization: `npm run test`, `npm run lint`, `npm run typecheck`.
 
+## Performance improvements (quick wins)
+
+- `usePlanetLifeSim` now skips `DataTexture` writes when `cellRenderMode` is `Dots` (avoids full RGBA rewrite + GPU upload each tick when overlay is hidden).
+- Instanced mesh buffers are marked with `THREE.DynamicDrawUsage` to better match frequent per-tick updates.
+- `Meteor` avoids per-frame temporary allocations and uses squared-distance collision checks.
+
+Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
+
 ## Next steps
 
 - Add a CI workflow to run `npm ci`, `npm run build`, and `npm run test`.
