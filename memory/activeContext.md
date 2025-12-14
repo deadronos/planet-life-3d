@@ -9,13 +9,17 @@
 ## Recent changes
 
 - TASK005 completed: `src/components/PlanetLife.tsx` was refactored into a composition layer.
+- Refactor (Clustering): Simulation logic clustered into `src/sim/rules.ts` and `src/sim/utils.ts`.
+- Refactor (Hooks): `useMeteorSystem` and `useSimulationSeeder` extracted from `PlanetLife.tsx`.
 - New private modules were added under `src/components/planetLife/`:
   - `controls.ts` (Leva schema + types)
   - `cellColor.ts` (color mode resolver)
   - `lifeTexture.ts` (`DataTexture` lifecycle + `writeLifeTexture` mapping)
   - `planetMaterial.ts` (`ShaderMaterial` creation)
   - `usePlanetLifeSim.ts` (sim lifecycle + tick loop + render sync)
-  - `utils.ts` (`uid`, `safeInt`)
+  - `useMeteorSystem.ts` (meteor/impact logic)
+  - `useSimulationSeeder.ts` (seeding logic)
+  - `utils.ts` (`uid`, re-exports `safeInt`)
 - `Meteor` and `ImpactRing` components provide interactive visual feedback when the planet is clicked.
 - Unit and component tests were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
 - Quality gates validated after modularization: `npm run test`, `npm run lint`, `npm run typecheck`.

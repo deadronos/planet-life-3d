@@ -7,6 +7,7 @@
 - `LifeSphereSim` is the single source of truth for the grid state; it is not a React component and is deliberately testable and pure.
 - `src/components/PlanetLife.tsx` is a composition layer that wires together controls, resources, sim lifecycle, and interaction VFX.
 - `src/components/planetLife/` contains the private hooks/helpers that implement the heavy lifting.
+- Simulation logic is modular: core (`LifeSphereSim`), rules (`rules.ts`), and utils (`utils.ts`).
 
 ## Key patterns
 
@@ -25,6 +26,8 @@
 - `usePlanetLifeSim()` — owns sim creation/recreation, tick loop, and render sync (texture + instanced mesh).
 - `useLifeTexture()` + `writeLifeTexture()` — owns `DataTexture` lifecycle and preserves the lon-flip texture mapping.
 - `usePlanetMaterial()` — creates the planet `ShaderMaterial`.
+- `useMeteorSystem()` — encapsulates meteor spawning, state management, and visual impact effects.
+- `useSimulationSeeder()` — handles pattern selection (ASCII/procedural) and executes `seedAtPoint()`.
 - Seeding modes include 'set', 'clear', 'toggle', and 'random'. `seedPattern` options include builtin ASCII patterns, 'Custom ASCII', and 'Random Disk' (a generated circular seed scaled by `seedScale`).
 - `LifeSphereSim.pointToCell()` — mapping a 3D point (impact point) to grid cell coordinates.
 

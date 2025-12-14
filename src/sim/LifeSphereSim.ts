@@ -1,45 +1,9 @@
 import * as THREE from 'three';
 import type { Offset } from './patterns';
+import type { Rules } from './rules';
+import { clampInt, safeFloat, safeInt } from './utils';
 
 export type SeedMode = 'set' | 'toggle' | 'clear' | 'random';
-
-export type Rules = {
-  birth: boolean[]; // length 9, indexed by neighbor count
-  survive: boolean[]; // length 9
-};
-
-/**
- * Parses rule digits like "3" or "23" into a boolean lookup table indexed by neighbor count [0..8].
- *
- * Defensive: some UI libs can momentarily hand back numbers/undefined while editing.
- */
-export function parseRuleDigits(digits: unknown): boolean[] {
-  let s = '';
-  if (typeof digits === 'string') s = digits;
-  else if (typeof digits === 'number' && Number.isFinite(digits)) s = String(digits);
-  const arr = Array.from({ length: 9 }, () => false);
-  for (const ch of s) {
-    const n = ch.charCodeAt(0) - 48;
-    if (n >= 0 && n <= 8) arr[n] = true;
-  }
-  return arr;
-}
-
-function clampInt(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
-}
-
-function safeInt(v: unknown, fallback: number, lo: number, hi: number): number {
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(n)) return fallback;
-  return clampInt(Math.floor(n), lo, hi);
-}
-
-function safeFloat(v: unknown, fallback: number, lo: number, hi: number): number {
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.min(hi, Math.max(lo, n));
-}
 
 export class LifeSphereSim {
   readonly latCells: number;
