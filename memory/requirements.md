@@ -15,3 +15,4 @@
 6. WHEN cell state changes over time, THE SYSTEM SHALL offer a visualizer mode that encodes age or neighbor stress via color gradients [Acceptance: switching the mode re-colors alive cells without breaking simulation updates].
 
 7. WHEN a meteor impacts the planet, THE SYSTEM SHALL render a streak, a flash, and an expanding ring with user-tunable styling [Acceptance: clicking the planet shows the streak in flight and both flash + ring on impact].
+5. WHEN the user selects 'Random Disk', THE SYSTEM SHALL generate a disk-shaped seeding area scaled by `seedScale` and apply it at the impact point [Acceptance: seeded cells count and distribution approximate a disk shape].

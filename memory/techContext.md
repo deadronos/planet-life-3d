@@ -24,7 +24,8 @@
 
 **CI/Testing**
 
-- Recommendation: Add a GitHub Actions workflow that runs `npm ci` + `npm run build` and any future test runner.
+- Vitest is used for tests; run `npm run test` locally and `npm run test:coverage` for coverage. Tests live in `tests/` with unit tests under `tests/unit` and component tests in `tests/component`.
+- Recommendation: Add a GitHub Actions workflow to run `npm ci`, `npm run build`, and `npm run test` on push/PR to gate changes.
 - TypeScript: `tsc -b` is run by `npm run build` and is the authoritative check for typing issues.
 
 **Development notes**

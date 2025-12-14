@@ -2,7 +2,7 @@
 
 **Status:** Pending
 **Added:** 2025-12-13
-**Updated:** 2025-12-13
+**Updated:** 2025-12-14
 
 ## Original Request
 
@@ -17,3 +17,4 @@ Add a GitHub Actions workflow to run `npm ci`, `npm run build` and run unit test
 ## Notes
 
 - Keep the workflow minimal to start; avoid running unnecessary steps.
+- Note: Vitest is present and current tests are runnable locally using `npm run test`; include `npm run test` as a job step.
