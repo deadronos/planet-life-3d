@@ -44,10 +44,12 @@
 ## Performance improvements (quick wins)
 
 - `usePlanetLifeSim` now skips `DataTexture` writes when `cellRenderMode` is `Dots` (avoids full RGBA rewrite + GPU upload each tick when overlay is hidden).
+- `usePlanetLifeSim` tick loop now uses a self-scheduling `setTimeout` to avoid interval backlog when ticks run slower than `tickMs`.
 - Instanced mesh buffers are marked with `THREE.DynamicDrawUsage` to better match frequent per-tick updates.
 - `Meteor` avoids per-frame temporary allocations and uses squared-distance collision checks.
+- Added a reproducible simulation benchmark harness: `npm run bench` (Vitest Bench).
 
-Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
+Validated: `npm run test`, `npm run lint`, `npm run typecheck`, `npm run bench`.
 
 ## Next steps
 

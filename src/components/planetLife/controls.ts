@@ -56,6 +56,9 @@ export type PlanetLifeControls = {
   seedJitter: number;
   seedProbability: number;
   customPattern: string;
+
+  // Debug/experiments
+  workerSim: boolean;
 };
 
 export type PlanetLifeControlsWithDebug = PlanetLifeControls & { debugLogs: boolean };
@@ -208,6 +211,10 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     Debug: folder(
       {
         debugLogs: false,
+
+        // Experimental: offload simulation ticking to a Web Worker.
+        // Rendering still happens on the main thread.
+        workerSim: false,
       },
       { collapsed: true },
     ),

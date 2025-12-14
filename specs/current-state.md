@@ -23,7 +23,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - React 19 (currently 19.2.x), TypeScript 5, Vite 7
 - three.js and @react-three/fiber
 - leva (control panel)
-- Vitest (unit/component tests), Playwright guidance present for e2e
+- Vitest (unit/component tests) + Vitest Bench (`npm run bench`), Playwright guidance present for e2e
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - Texture overlay: equirectangular `THREE.DataTexture` sized `lonCells × latCells` mapped to the planet UVs. The write loop lives in `writeLifeTexture()` and reverses the longitude column (`dstLo = w - 1 - lo`) to align sim indexing and three.js UV orientation.
 - Instanced dots: Alive cells are rendered via an `InstancedMesh` sphere geometry; only alive instances are written each update.
 - Sync strategy: `usePlanetLifeSim().updateInstances()` updates the DataTexture only when the overlay is actually visible (`cellRenderMode` is `Texture` or `Both`) and updates the instanced mesh (if present). `tex.needsUpdate` and `instanceMatrix.needsUpdate` are set precisely.
-- Tick loop: `setInterval` driven by `tickMs` when `running=true` inside `usePlanetLifeSim()`. After `sim.step()`, stores stats to `useUIStore` and triggers render sync.
+- Tick loop: a self-scheduling `setTimeout` loop driven by `tickMs` when `running=true` inside `usePlanetLifeSim()`. The next tick is scheduled from “now” to avoid interval backlog if ticks are slower than `tickMs`.
 
 #### PlanetLife module boundaries
 

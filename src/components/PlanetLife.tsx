@@ -75,6 +75,7 @@ export function PlanetLife({
     customPattern,
 
     debugLogs,
+    workerSim,
   } = params;
 
   const rules = useMemo(() => {
@@ -132,7 +133,13 @@ export function PlanetLife({
     lightPosition,
   });
 
-  const { simRef, updateInstances, clear, randomize, stepOnce } = usePlanetLifeSim({
+  const {
+    updateInstances,
+    clear,
+    randomize,
+    stepOnce,
+    seedAtPoint: seedAtPointImpl,
+  } = usePlanetLifeSim({
     running,
     tickMs,
     safeLatCells,
@@ -142,6 +149,7 @@ export function PlanetLife({
     cellRenderMode,
     rules,
     randomDensity,
+    workerSim,
     lifeTex,
     dummy,
     cellsRef,
@@ -151,7 +159,7 @@ export function PlanetLife({
   });
 
   const { seedAtPoint } = useSimulationSeeder({
-    simRef,
+    seedAtPointImpl,
     updateInstances,
     seedPattern,
     seedScale,
