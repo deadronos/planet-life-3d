@@ -10,6 +10,13 @@
 
 ## Completed
 
+- [TASK013] Add pre-commit hooks & lint-staged - Adds pre-commit linting and `lint-staged` hooks
+- [TASK012] Add GitHub Pages deployment workflow - Adds `deploy-pages.yml` for tag-based deployment
+- [TASK011] Switch default render mode to `Both` and add texture stats logging
+- [TASK010] Simulation & rendering performance improvements - Conditional texture writes, reduced allocations
+- [TASK009] Refactor `LifeSphereSim` to reduce duplication and standardize constants
+- [TASK008] Add Overlay HUD, onboarding hint, and hotkey `h` - Adds HUD and onboarding UX improvements with tests
+- [TASK007] Add Space Environment (nebula, sun, moons, lens flare) - Adds environment components
 - [TASK006] Add rule presets and color themes - Adds rule presets, color themes, and expanded patterns
 - [TASK005] Refactor PlanetLife into smaller modules
 - [TASK004] Visual Upgrades (atmosphere, palettes, meteor VFX)

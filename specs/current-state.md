@@ -121,6 +121,7 @@ Space environment components providing an immersive background:
 
 - Simulation: `running`, `tickMs`, `latCells`, `lonCells`, `birthDigits`, `surviveDigits`, `rulePreset` (default: `Conway`), `randomDensity`
 - Rendering: `planetRadius`, `planetWireframe`, `planetRoughness`, `cellRenderMode` (`Texture | Dots | Both`), `cellOverlayOpacity`, `cellRadius`, `cellLift`, `cellColor`
+  - Note: default `cellRenderMode` is now `Both` to provide immediate visual feedback on first load (overlay + dots).
 - Upgrades / Themes: `theme` (default: `Default`) plus palette values (`cellColor`, `atmosphereColor`, `heatLowColor`, `heatMidColor`, `heatHighColor`, `impactRingColor`)
 - Meteors: `meteorSpeed`, `meteorRadius`, `meteorCooldownMs`
 - Seeding: `seedMode`, `seedPattern`, `seedScale`, `seedJitter`, `seedProbability`, `customPattern`
