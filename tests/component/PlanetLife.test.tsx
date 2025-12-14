@@ -9,7 +9,6 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
 
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 
 // Mock Leva controls
 vi.mock('leva', () => {
@@ -24,12 +23,33 @@ vi.mock('leva', () => {
         if (isValueObject(val)) return val.value;
         return val;
       };
+
+      const isPlainObject = (v: unknown): v is Record<string, unknown> => {
+        return typeof v === 'object' && v !== null && !Array.isArray(v);
+      };
+
+      const flattenSchema = (obj: Record<string, unknown>) => {
+        for (const key of Object.keys(obj)) {
+          const val = obj[key];
+          if (isValueObject(val)) {
+            result[key] = val.value;
+            continue;
+          }
+          if (isPlainObject(val)) {
+            // `folder()` returns a nested schema object; flatten it into the top-level result.
+            // This matches how the component destructures the control values.
+            flattenSchema(val);
+            continue;
+          }
+          result[key] = val;
+        }
+      };
+
       if (typeof s === 'function') {
         return { Randomize: () => {}, Clear: () => {}, StepOnce: () => {} };
       }
       if (typeof s === 'object' && s !== null) {
-        for (const key of Object.keys(s))
-          result[key] = getValue((s as Record<string, unknown>)[key]);
+        flattenSchema(s as Record<string, unknown>);
       }
       return result;
     },
@@ -81,10 +101,9 @@ describe('PlanetLife', () => {
     const spheres = container.querySelectorAll('sphereGeometry');
     expect(spheres.length).toBeGreaterThanOrEqual(1);
 
-    expect(container.querySelector('meshStandardMaterial')).toBeInTheDocument();
-
-    // Overlay uses meshBasicMaterial
-    // It might be rendered if mock returns default 'Texture'
-    // expect(container.querySelector('meshBasicMaterial')).toBeInTheDocument();
+    // Default render mode is Texture, so we expect the overlay material.
+    // (meshStandardMaterial is only present when Dots/Both mode renders the instanced mesh.)
+    expect(container.querySelector('meshBasicMaterial')).toBeInTheDocument();
+    expect(container.querySelector('instancedMesh')).not.toBeInTheDocument();
   });
 });

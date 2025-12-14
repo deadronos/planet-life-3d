@@ -377,19 +377,27 @@ export function PlanetLife() {
   }, []);
 
   useEffect(() => {
-    planetMaterial.uniforms.uRimColor.value.set(atmosphereColor);
-    planetMaterial.uniforms.uRimIntensity.value = rimIntensity;
-    planetMaterial.uniforms.uRimPower.value = rimPower;
-    planetMaterial.uniforms.uTerminatorSharpness.value = terminatorSharpness;
-    planetMaterial.uniforms.uTerminatorBoost.value = terminatorBoost;
-    planetMaterial.uniforms.uLightDir.value.copy(rimLightDir);
-    planetMaterial.uniforms.uAmbientFloor.value = THREE.MathUtils.clamp(
-      planetRoughness * 0.65,
-      0.05,
-      0.95,
-    );
-    planetMaterial.uniforms.uDayColor.value.set('#1a1f2a');
-    planetMaterial.uniforms.uNightColor.value.set('#0c0e15');
+    const u = planetMaterial.uniforms as unknown as {
+      uDayColor: { value: THREE.Color };
+      uNightColor: { value: THREE.Color };
+      uRimColor: { value: THREE.Color };
+      uLightDir: { value: THREE.Vector3 };
+      uRimPower: { value: number };
+      uRimIntensity: { value: number };
+      uTerminatorSharpness: { value: number };
+      uTerminatorBoost: { value: number };
+      uAmbientFloor: { value: number };
+    };
+
+    u.uRimColor.value.set(atmosphereColor);
+    u.uRimIntensity.value = rimIntensity;
+    u.uRimPower.value = rimPower;
+    u.uTerminatorSharpness.value = terminatorSharpness;
+    u.uTerminatorBoost.value = terminatorBoost;
+    u.uLightDir.value.copy(rimLightDir);
+    u.uAmbientFloor.value = THREE.MathUtils.clamp(planetRoughness * 0.65, 0.05, 0.95);
+    u.uDayColor.value.set('#1a1f2a');
+    u.uNightColor.value.set('#0c0e15');
     planetMaterial.wireframe = planetWireframe;
   }, [
     planetMaterial,
