@@ -48,6 +48,10 @@ export class LifeSphereSim {
 
   private grid: Uint8Array;
   private next: Uint8Array;
+  private age: Uint8Array;
+  private ageNext: Uint8Array;
+  private neighborHeat: Uint8Array;
+  private neighborHeatNext: Uint8Array;
   private rules: Rules;
 
   // Stats
@@ -75,6 +79,10 @@ export class LifeSphereSim {
 
     this.grid = new Uint8Array(this.cellCount);
     this.next = new Uint8Array(this.cellCount);
+    this.age = new Uint8Array(this.cellCount);
+    this.ageNext = new Uint8Array(this.cellCount);
+    this.neighborHeat = new Uint8Array(this.cellCount);
+    this.neighborHeatNext = new Uint8Array(this.cellCount);
     this.rules = opts.rules;
 
     this.normals = new Array<THREE.Vector3>(this.cellCount);
@@ -120,18 +128,28 @@ export class LifeSphereSim {
   setCell(lat: number, lon: number, value: 0 | 1) {
     const la = clampInt(lat, 0, this.latCells - 1);
     const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
-    this.grid[la * this.lonCells + lo] = value;
+    const idx = la * this.lonCells + lo;
+    this.grid[idx] = value;
+    this.age[idx] = value ? 1 : 0;
+    this.neighborHeat[idx] = 0;
   }
 
   clear() {
     this.grid.fill(0);
     this.next.fill(0);
+    this.age.fill(0);
+    this.ageNext.fill(0);
+    this.neighborHeat.fill(0);
+    this.neighborHeatNext.fill(0);
   }
 
   randomize(density: number, rng = Math.random) {
     const p = Math.max(0, Math.min(1, density));
     for (let i = 0; i < this.cellCount; i++) {
-      this.grid[i] = rng() < p ? 1 : 0;
+      const alive = rng() < p ? 1 : 0;
+      this.grid[i] = alive;
+      this.age[i] = alive ? 1 : 0;
+      this.neighborHeat[i] = 0;
     }
   }
 
@@ -169,6 +187,8 @@ export class LifeSphereSim {
         if (nextAlive) pop++;
 
         this.next[idx] = nextAlive;
+        this.ageNext[idx] = nextAlive ? Math.min(255, (alive ? this.age[idx] : 0) + 1) : 0;
+        this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
       }
     }
 
@@ -178,9 +198,17 @@ export class LifeSphereSim {
     this.generation++;
 
     // swap
-    const tmp = this.grid;
+    let tmp = this.grid;
     this.grid = this.next;
     this.next = tmp;
+
+    tmp = this.age;
+    this.age = this.ageNext;
+    this.ageNext = tmp;
+
+    tmp = this.neighborHeat;
+    this.neighborHeat = this.neighborHeatNext;
+    this.neighborHeatNext = tmp;
   }
 
   /** Map a world point on/near the planet to the nearest [lat, lon] cell index */
@@ -249,6 +277,9 @@ export class LifeSphereSim {
           this.grid[idx] = rng() < p ? 1 : 0;
           break;
       }
+      const alive = this.grid[idx] === 1;
+      this.age[idx] = alive ? 1 : 0;
+      this.neighborHeat[idx] = 0;
       affected++;
     }
     if (params.debug) {
@@ -291,5 +322,15 @@ export class LifeSphereSim {
   /** Read-only view of the grid (0/1 per cell). Useful for texture-based rendering. */
   getGridView(): Uint8Array {
     return this.grid;
+  }
+
+  /** Read-only view of ages (frames alive, clamped to 255) */
+  getAgeView(): Uint8Array {
+    return this.age;
+  }
+
+  /** Read-only view of neighbor counts for alive cells (0..8) */
+  getNeighborHeatView(): Uint8Array {
+    return this.neighborHeat;
   }
 }
