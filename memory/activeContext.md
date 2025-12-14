@@ -34,7 +34,10 @@
   - `useMeteorSystem.ts` (meteor/impact logic)
   - `useSimulationSeeder.ts` (seeding logic)
   - `utils.ts` (`uid`, re-exports `safeInt`)
+- `Overlay` component added to show HUD stats and a small onboarding hint; it uses `useUIStore` and writes/reads the `onboardingHintShown` localStorage flag to show the hint only once (See TASK008).
+- Added a small hotkey `h` to toggle the Leva panel for faster iteration and debugging.
 - `Meteor` and `ImpactRing` components provide interactive visual feedback when the planet is clicked.
+- `Unit and component tests` were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
 - Unit and component tests were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
 - Quality gates validated after modularization: `npm run test`, `npm run lint`, `npm run typecheck`.
 
