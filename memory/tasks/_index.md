@@ -7,6 +7,7 @@
 ## Pending
 
 - [TASK003] Add CI with build + tests
+- [TASK005] Refactor PlanetLife into smaller modules
 
 ## Completed
 
