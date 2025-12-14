@@ -1,14 +1,14 @@
 # Planet Life 3D — Current Implementation Spec
 
 Date: 2025-12-14  
-Branch: refactor  
+Branch: performance  
 Scope: Describes the current architecture, behaviors, data flow, and interfaces implemented in the repository.
 
 ## Overview
 
 Planet Life 3D is a single-page React + TypeScript application that renders a spherical cellular automata simulation (Conway-like rules) using three.js and @react-three/fiber. The simulation grid is defined over latitude/longitude on a sphere, updated on a configurable interval, and visualized via either a texture overlay or instanced dot mesh.
 
- - Core simulation: `src/sim/LifeSphereSim.ts`, `src/sim/rules.ts`, `src/sim/utils.ts`
+- Core simulation: `src/sim/LifeSphereSim.ts`, `src/sim/rules.ts`, `src/sim/utils.ts`
 - Patterns and ASCII parsing: `src/sim/patterns.ts`
 - Rendering & UI (composition): `src/components/PlanetLife.tsx`
 - Rendering & UI (private modules): `src/components/planetLife/*`
@@ -41,7 +41,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - Control panel (`leva`): defined in `src/components/planetLife/controls.ts` via `usePlanetLifeControls()`.
 - Texture overlay: equirectangular `THREE.DataTexture` sized `lonCells × latCells` mapped to the planet UVs. The write loop lives in `writeLifeTexture()` and reverses the longitude column (`dstLo = w - 1 - lo`) to align sim indexing and three.js UV orientation.
 - Instanced dots: Alive cells are rendered via an `InstancedMesh` sphere geometry; only alive instances are written each update.
-- Sync strategy: `usePlanetLifeSim().updateInstances()` always updates the texture (so overlay remains in sync) and the instanced mesh (if present). `tex.needsUpdate` and `instanceMatrix.needsUpdate` are set precisely.
+- Sync strategy: `usePlanetLifeSim().updateInstances()` updates the DataTexture only when the overlay is actually visible (`cellRenderMode` is `Texture` or `Both`) and updates the instanced mesh (if present). `tex.needsUpdate` and `instanceMatrix.needsUpdate` are set precisely.
 - Tick loop: `setInterval` driven by `tickMs` when `running=true` inside `usePlanetLifeSim()`. After `sim.step()`, stores stats to `useUIStore` and triggers render sync.
 
 #### PlanetLife module boundaries
@@ -123,6 +123,9 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 - `Uint8Array` buffers and precomputed `positions`/`normals` reduce per-tick overhead.
 - Texture and instance updates are batched during `updateInstances()`.
+- Texture writes (full RGBA buffer fill + GPU upload) are skipped when `cellRenderMode` is `Dots`.
+- Instanced mesh updates use `THREE.DynamicDrawUsage` for instance matrices/colors to better match the frequent update pattern.
+- Meteor update loop avoids per-frame temporary allocations and uses squared-distance collision checks.
 - Instanced mesh renders only alive cells (`mesh.count` set dynamically).
 
 ## Testing & Validation
