@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { button, useControls } from 'leva';
-import type { ThreeEvent } from '@react-three/fiber';
-import { parseRuleDigits } from '../sim/LifeSphereSim';
-import { getBuiltinPatternOffsets, parseAsciiPattern } from '../sim/patterns';
-import { Meteor, type MeteorSpec } from './Meteor';
-import { ImpactRing, type ImpactSpec } from './ImpactRing';
+import { parseRuleDigits } from '../sim/rules';
+import { Meteor } from './Meteor';
+import { ImpactRing } from './ImpactRing';
 import { usePlanetLifeControls } from './planetLife/controls';
 import { useCellColorResolver } from './planetLife/cellColor';
 import { useLifeTexture } from './planetLife/lifeTexture';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
-import { safeInt, uid } from './planetLife/utils';
+import { useSimulationSeeder } from './planetLife/useSimulationSeeder';
+import { useMeteorSystem } from './planetLife/useMeteorSystem';
+import { safeInt } from './planetLife/utils';
 
 export function PlanetLife() {
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -80,10 +80,6 @@ export function PlanetLife() {
   }, [birthDigits, surviveDigits]);
 
   const cellsRef = useRef<THREE.InstancedMesh | null>(null);
-  const lastShotMsRef = useRef(0);
-
-  const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
-  const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
   const safeLatCells = useMemo(() => safeInt(latCells, 48, 8, 256), [latCells]);
   const safeLonCells = useMemo(() => safeInt(lonCells, 96, 8, 512), [lonCells]);
@@ -127,23 +123,33 @@ export function PlanetLife() {
     debugLogs,
   });
 
-  const currentPatternOffsets = useMemo(() => {
-    if (seedPattern === 'Custom ASCII') return parseAsciiPattern(customPattern);
-    if (seedPattern === 'Random Disk') return []; // generated at impact
-    return getBuiltinPatternOffsets(seedPattern);
-  }, [seedPattern, customPattern]);
+  const { seedAtPoint } = useSimulationSeeder({
+    simRef,
+    updateInstances,
+    seedPattern,
+    seedScale,
+    seedMode,
+    seedJitter,
+    seedProbability,
+    customPattern,
+    debugLogs,
+  });
 
-  const randomDiskOffsets = useCallback(() => {
-    // Disk radius uses seedScale as size knob (handy and cheap)
-    const r = Math.max(1, Math.floor(seedScale)) * 2;
-    const offsets: Array<readonly [number, number]> = [];
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy <= r * r) offsets.push([dy, dx]);
-      }
-    }
-    return offsets;
-  }, [seedScale]);
+  const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
+    meteorSpeed,
+    meteorRadius,
+    meteorCooldownMs,
+    meteorTrailLength,
+    meteorTrailWidth,
+    meteorEmissive,
+    impactFlashIntensity,
+    impactFlashRadius,
+    impactRingColor,
+    impactRingDuration,
+    impactRingSize,
+    seedAtPoint,
+    debugLogs,
+  });
 
   // Actions folder (buttons)
   useControls(
@@ -155,135 +161,6 @@ export function PlanetLife() {
     }),
     [randomize, clear, stepOnce],
   );
-
-  const seedAtPoint = useCallback(
-    (point: THREE.Vector3) => {
-      const sim = simRef.current;
-      if (!sim) return;
-
-      const offsets = seedPattern === 'Random Disk' ? randomDiskOffsets() : currentPatternOffsets;
-
-      if (debugLogs) {
-        // eslint-disable-next-line no-console
-        console.log(`[PlanetLife] seedAtPoint pattern=${seedPattern} offsets=${offsets.length}`);
-      }
-
-      sim.seedAtPoint({
-        point,
-        offsets,
-        mode: seedMode,
-        scale: seedScale,
-        jitter: seedJitter,
-        probability: seedProbability,
-        debug: debugLogs,
-      });
-      updateInstances();
-
-      // Visual ring
-      const n = point.clone().normalize();
-      setImpacts((list) => [
-        ...list,
-        {
-          id: uid('impact'),
-          point: point.clone(),
-          normal: n,
-          start: performance.now() / 1000,
-          duration: impactRingDuration,
-          color: impactRingColor,
-          flashIntensity: impactFlashIntensity,
-          flashRadius: impactFlashRadius,
-          ringSize: impactRingSize,
-        },
-      ]);
-    },
-    [
-      simRef,
-      seedPattern,
-      randomDiskOffsets,
-      currentPatternOffsets,
-      seedMode,
-      seedScale,
-      seedJitter,
-      seedProbability,
-      impactRingDuration,
-      impactRingColor,
-      impactFlashIntensity,
-      impactFlashRadius,
-      impactRingSize,
-      updateInstances,
-      debugLogs,
-    ],
-  );
-
-  const onPlanetPointerDown = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-
-      const now = performance.now();
-      if (now - lastShotMsRef.current < meteorCooldownMs) return;
-      lastShotMsRef.current = now;
-
-      const point = e.point.clone();
-      const cam = e.camera;
-      let origin: THREE.Vector3;
-      if (cam && typeof cam === 'object' && 'position' in cam) {
-        const camWithPosition = cam as { position: { clone: () => THREE.Vector3 } };
-        origin = camWithPosition.position.clone();
-      } else {
-        origin = new THREE.Vector3(0, 0, 8);
-      }
-
-      const direction = point.clone().sub(origin).normalize();
-
-      setMeteors((list) => [
-        ...list,
-        {
-          id: uid('meteor'),
-          origin,
-          direction,
-          speed: meteorSpeed,
-          radius: meteorRadius,
-          trailLength: meteorTrailLength,
-          trailWidth: meteorTrailWidth,
-          emissiveIntensity: meteorEmissive,
-        },
-      ]);
-    },
-    [
-      meteorCooldownMs,
-      meteorSpeed,
-      meteorRadius,
-      meteorTrailLength,
-      meteorTrailWidth,
-      meteorEmissive,
-    ],
-  );
-
-  const onMeteorImpact = useCallback(
-    (id: string, impactPoint: THREE.Vector3) => {
-      if (debugLogs) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[PlanetLife] onMeteorImpact id=${id} point=${impactPoint
-            .toArray()
-            .map((v) => v.toFixed(2))
-            .join(',')}`,
-        );
-      }
-      seedAtPoint(impactPoint);
-      setMeteors((list) => list.filter((m) => m.id !== id));
-    },
-    [seedAtPoint, debugLogs],
-  );
-
-  // prune impact rings
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      const t = performance.now() / 1000;
-      setImpacts((list) => list.filter((i) => t - i.start < i.duration));
-    }, 200);
-    return () => window.clearInterval(id);
-  }, []);
 
   return (
     <group>

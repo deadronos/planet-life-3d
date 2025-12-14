@@ -8,7 +8,7 @@ export type ImpactSpec = {
   normal: THREE.Vector3;
   start: number;
   duration: number;
-  color: string;
+  color: THREE.ColorRepresentation;
   flashIntensity: number;
   flashRadius: number;
   ringSize: number;

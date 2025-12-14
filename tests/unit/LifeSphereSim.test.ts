@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
-import { LifeSphereSim, parseRuleDigits } from '../../src/sim/LifeSphereSim';
+import { LifeSphereSim } from '../../src/sim/LifeSphereSim';
+import { parseRuleDigits } from '../../src/sim/rules';
 import { getBuiltinPatternOffsets } from '../../src/sim/patterns';
-import type { Rules } from '../../src/sim/LifeSphereSim';
+import type { Rules } from '../../src/sim/rules';
 import type { Offset } from '../../src/sim/patterns';
 
 // Standard Game of Life Rules: B3/S23
