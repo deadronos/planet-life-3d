@@ -118,3 +118,8 @@ Option B (cleaner): extract state handling.
 2. Extract `usePlanetMaterial` and `useLifeTexture` (resource lifecycle is easiest to validate).
 3. Extract sim lifecycle hook (largest change) while keeping function signatures stable.
 4. Optional: extract meteor/impact hooks.
+
+## Implementation Status
+
+- Implemented (TASK005): `src/components/planetLife/controls.ts`, `cellColor.ts`, `lifeTexture.ts`, `planetMaterial.ts`, `usePlanetLifeSim.ts`, `utils.ts`.
+- Kept orchestration local (by design): meteor + impact state remains in `src/components/PlanetLife.tsx`.

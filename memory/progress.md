@@ -3,7 +3,8 @@
 ## What works
 
 - Core sim implemented in `LifeSphereSim` with `step()`, `forEachAlive()`, seeding, and `pointToCell()` mapping.
-- `PlanetLife` component renders both `Texture` overlay and instanced `Dots` mode; meteors and impact rings are implemented.
+- `PlanetLife` renders both `Texture` overlay and instanced `Dots` mode; meteors and impact rings are implemented.
+- Post-TASK005 modular structure is in place: `src/components/PlanetLife.tsx` composes hooks from `src/components/planetLife/`.
 - UI: Leva controls exist for quick iteration of rules, grid sizing, meteor settings, and seeding.
 - Unit and component tests are present using Vitest; run them with `npm run test`.
 
@@ -31,3 +32,4 @@
 - `Meteor` and `ImpactRing` appear to be implemented and integrated into `PlanetLife`.
 - Precompute `positions` and `normals` in `LifeSphereSim`.
 - TASK001: Added the memory bank files and initial tasks to the `memory/` folder.
+- TASK005: Modularized `PlanetLife.tsx` into `src/components/planetLife/` modules; lint + typecheck validated.

@@ -1,7 +1,7 @@
 # Planet Life 3D — Current Implementation Spec
 
 Date: 2025-12-14  
-Branch: dev  
+Branch: refactor  
 Scope: Describes the current architecture, behaviors, data flow, and interfaces implemented in the repository.
 
 ## Overview
@@ -10,7 +10,8 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 - Core simulation: `src/sim/LifeSphereSim.ts`
 - Patterns and ASCII parsing: `src/sim/patterns.ts`
-- Rendering & UI: `src/components/PlanetLife.tsx`
+- Rendering & UI (composition): `src/components/PlanetLife.tsx`
+- Rendering & UI (private modules): `src/components/planetLife/*`
 - Interactions: `src/components/Meteor.tsx`, `src/components/ImpactRing.tsx`
 - App entry: `src/App.tsx`, `src/main.tsx`
 - UI state: `src/store/useUIStore.ts`
@@ -36,11 +37,21 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 ### Rendering & UI (PlanetLife)
 
-- Control panel (`leva`): Simulation, Rendering, Meteors, Seeding, Debug folders control parameters like grid size, rules, tick interval, planet material, cell overlay mode, meteor behavior, and seeding settings.
-- Texture overlay: Equirectangular `THREE.DataTexture` sized `lonCells × latCells` mapped to the planet UVs. The write loop reverses the longitude column (`dstLo = w - 1 - lo`) to align sim indexing and three.js UV orientation.
+- Composition + modules: `src/components/PlanetLife.tsx` is now primarily orchestration (meteors/impacts + wiring), while the heavy logic is extracted into `src/components/planetLife/`.
+- Control panel (`leva`): defined in `src/components/planetLife/controls.ts` via `usePlanetLifeControls()`.
+- Texture overlay: equirectangular `THREE.DataTexture` sized `lonCells × latCells` mapped to the planet UVs. The write loop lives in `writeLifeTexture()` and reverses the longitude column (`dstLo = w - 1 - lo`) to align sim indexing and three.js UV orientation.
 - Instanced dots: Alive cells are rendered via an `InstancedMesh` sphere geometry; only alive instances are written each update.
-- Sync strategy: `updateInstances()` always updates the texture (so overlay remains in sync) and the instanced mesh (if present). `tex.needsUpdate` and `instanceMatrix.needsUpdate` are set precisely.
-- Tick loop: `setInterval` driven by `tickMs` when `running=true`. After `sim.step()`, stores stats to `useUIStore` and triggers render sync.
+- Sync strategy: `usePlanetLifeSim().updateInstances()` always updates the texture (so overlay remains in sync) and the instanced mesh (if present). `tex.needsUpdate` and `instanceMatrix.needsUpdate` are set precisely.
+- Tick loop: `setInterval` driven by `tickMs` when `running=true` inside `usePlanetLifeSim()`. After `sim.step()`, stores stats to `useUIStore` and triggers render sync.
+
+#### PlanetLife module boundaries
+
+- `src/components/planetLife/usePlanetLifeSim.ts`: sim creation/recreation, tick loop, stats updates, texture + instanced mesh sync.
+- `src/components/planetLife/lifeTexture.ts`: `useLifeTexture()` and `writeLifeTexture()`.
+- `src/components/planetLife/planetMaterial.ts`: `usePlanetMaterial()`.
+- `src/components/planetLife/cellColor.ts`: `useCellColorResolver()`.
+- `src/components/planetLife/controls.ts`: `usePlanetLifeControls()`.
+- `src/components/planetLife/utils.ts`: `uid()`, `safeInt()`.
 
 ### Interactions
 
@@ -118,6 +129,10 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - Component tests exist under `tests/component`.
 - E2E guidance documented; Playwright instructions are present but e2e tests may be minimal.
 - Type checking via `npm run build` runs `tsc -b` before Vite.
+
+## Recent Refactor Notes
+
+- TASK005 (PlanetLife modularization) completed and validated: `npm run test`, `npm run lint`, `npm run typecheck`.
 
 ## Build & Run
 

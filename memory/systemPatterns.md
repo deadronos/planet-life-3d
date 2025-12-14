@@ -5,6 +5,8 @@
 - A client-only React application (Vite) using TypeScript and Three.js.
 - Rendering is built on `@react-three/fiber` — scene is React-managed but the simulation is contained in a pure TS class.
 - `LifeSphereSim` is the single source of truth for the grid state; it is not a React component and is deliberately testable and pure.
+- `src/components/PlanetLife.tsx` is a composition layer that wires together controls, resources, sim lifecycle, and interaction VFX.
+- `src/components/planetLife/` contains the private hooks/helpers that implement the heavy lifting.
 
 ## Key patterns
 
@@ -20,6 +22,9 @@
 - `LifeSphereSim.getGridView()` — read-only view used to populate the DataTexture.
 - `LifeSphereSim.forEachAlive()` — optimized iterator used while setting instance matrices for alive cells.
 - `LifeSphereSim.seedAtPoint()` / `seedAtCell()` — used by the UI and meteors to alter the grid.
+- `usePlanetLifeSim()` — owns sim creation/recreation, tick loop, and render sync (texture + instanced mesh).
+- `useLifeTexture()` + `writeLifeTexture()` — owns `DataTexture` lifecycle and preserves the lon-flip texture mapping.
+- `usePlanetMaterial()` — creates the planet `ShaderMaterial`.
 - Seeding modes include 'set', 'clear', 'toggle', and 'random'. `seedPattern` options include builtin ASCII patterns, 'Custom ASCII', and 'Random Disk' (a generated circular seed scaled by `seedScale`).
 - `LifeSphereSim.pointToCell()` — mapping a 3D point (impact point) to grid cell coordinates.
 
@@ -27,6 +32,7 @@
 
 - Keep `LifeSphereSim` pure and deterministic; test `step()` and `pointToCell()` thoroughly.
 - Maintain row flipping in `PlanetLife.updateTexture()` to avoid relying on `flipY` semantics across different Three.js versions.
+- Maintain row flipping in `writeLifeTexture()` (moved out of `PlanetLife.tsx`) to avoid relying on `flipY` semantics across different Three.js versions.
 - Use `instancedMesh.count` rather than allocating smaller meshes for each alive cell.
 - Keep `specs/current-state.md` and the Memory Bank (`memory/`) in sync when changing behavior or architecture.
 
