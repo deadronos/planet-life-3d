@@ -4,10 +4,10 @@ import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem
 import * as THREE from 'three';
 
 describe('useMeteorSystem', () => {
-  let mockSeedAtPoint: ReturnType<typeof vi.fn>;
+  const mockSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
 
   beforeEach(() => {
-    mockSeedAtPoint = vi.fn();
+    mockSeedAtPoint.mockClear();
   });
 
   const defaultParams = {
@@ -87,7 +87,7 @@ describe('useMeteorSystem', () => {
   });
 
   it('should accept seedAtPoint parameter', () => {
-    const customSeedAtPoint = vi.fn();
+    const customSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
     const { result } = renderHook(() =>
       useMeteorSystem({
         ...defaultParams,

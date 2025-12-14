@@ -8,7 +8,7 @@ import type { RefObject } from 'react';
 describe('useSimulationSeeder', () => {
   let mockSim: LifeSphereSim;
   let mockSimRef: RefObject<LifeSphereSim | null>;
-  let mockUpdateInstances: ReturnType<typeof vi.fn>;
+  let mockUpdateInstances: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
     mockSim = new LifeSphereSim({
@@ -21,10 +21,10 @@ describe('useSimulationSeeder', () => {
         survive: [false, false, true, true, false, false, false, false, false],
       },
     });
-    mockSim.seedAtPoint = vi.fn();
+    mockSim.seedAtPoint = vi.fn<LifeSphereSim['seedAtPoint']>();
 
     mockSimRef = { current: mockSim };
-    mockUpdateInstances = vi.fn();
+    mockUpdateInstances = vi.fn<() => void>();
   });
 
   it('should use builtin pattern offsets for known patterns', () => {
