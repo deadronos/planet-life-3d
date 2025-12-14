@@ -1,6 +1,6 @@
 # TASK015 - Workerized simulation PoC
 
-**Status:** Pending \
+**Status:** Completed \
 **Added:** 2025-12-14 \
 **Updated:** 2025-12-14
 
@@ -21,13 +21,23 @@ Move simulation ticks into a Web Worker using transferable typed arrays to reduc
 
 ## Progress Tracking
 
-**Overall Status:** Not Started - 0%
+**Overall Status:** Completed - 100%
 
 ### Subtasks
 
-|  ID | Description                             | Status      | Updated    | Notes                      |
-| --: | --------------------------------------- | ----------- | ---------- | -------------------------- |
-| 2.1 | Add `LifeGridSim` core                  | Not Started | 2025-12-14 | Separate sim from geometry |
-| 2.2 | Implement Worker message protocol       | Not Started | 2025-12-14 | Transfer buffers           |
-| 2.3 | Add opt-in wiring in `usePlanetLifeSim` | Not Started | 2025-12-14 | Keep fallback              |
-| 2.4 | Add tests for worker protocol           | Not Started | 2025-12-14 | Likely unit tests          |
+|  ID | Description                             | Status    | Updated    | Notes                      |
+| --: | --------------------------------------- | --------- | ---------- | -------------------------- |
+| 2.1 | Add `LifeGridSim` core                  | Completed | 2025-12-14 | Separate sim from geometry |
+| 2.2 | Implement Worker message protocol       | Completed | 2025-12-14 | Transfer buffers           |
+| 2.3 | Add opt-in wiring in `usePlanetLifeSim` | Completed | 2025-12-14 | Keep fallback              |
+| 2.4 | Add tests for worker protocol           | Completed | 2025-12-14 | Likely unit tests          |
+
+## Progress Log
+
+### 2025-12-14
+
+- Implemented `LifeGridSim` (pure typed-array sim core) and `spherePointToCell` helper.
+- Added worker protocol + worker implementation (`lifeGridWorkerMessages`, `lifeGridWorkerImpl`, `simWorker`).
+- Wired opt-in worker mode through `usePlanetLifeSim` and UI controls (`workerSim`).
+- Added unit tests for worker handler + `LifeGridSim`, and updated seeding tests.
+- Validated `npm run lint`, `npm run typecheck`, and `npm test`.
