@@ -1,7 +1,7 @@
 # Planet Life 3D — Current Implementation Spec
 
 Date: 2025-12-14  
-Branch: performance  
+Branch: feature/presets-and-themes-10342195161337007315 (recent changes)  
 Scope: Describes the current architecture, behaviors, data flow, and interfaces implemented in the repository.
 
 ## Overview
@@ -59,7 +59,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 - Planet pointer: `onPointerDown` spawns a meteor traveling from camera towards the hit point; respects `meteorCooldownMs`.
 - Meteor impact: On impact, seeds the simulation at the hit location with the currently selected pattern and adds a visual impact ring.
-- Seed patterns: Built-in ASCII patterns (`Cross`, `Glider`, `Exploder`, `Ring`, `Solid`), `Custom ASCII` via text input, and `Random Disk` generated procedurally from `seedScale`.
+- Seed patterns: Built-in ASCII patterns (`Cross`, `Glider`, `Exploder`, `Ring`, `Solid`, `R-pentomino`, `Diehard`, `Acorn`, `LWSS`), `Custom ASCII` via text input, and `Random Disk` generated procedurally from `seedScale`.
 
 ### State Management
 
@@ -105,8 +105,9 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 ## Controls & Parameters (PlanetLife)
 
-- Simulation: `running`, `tickMs`, `latCells`, `lonCells`, `birthDigits`, `surviveDigits`, `randomDensity`
+- Simulation: `running`, `tickMs`, `latCells`, `lonCells`, `birthDigits`, `surviveDigits`, `rulePreset` (default: `Conway`), `randomDensity`
 - Rendering: `planetRadius`, `planetWireframe`, `planetRoughness`, `cellRenderMode` (`Texture | Dots | Both`), `cellOverlayOpacity`, `cellRadius`, `cellLift`, `cellColor`
+- Upgrades / Themes: `theme` (default: `Default`) plus palette values (`cellColor`, `atmosphereColor`, `heatLowColor`, `heatMidColor`, `heatHighColor`, `impactRingColor`)
 - Meteors: `meteorSpeed`, `meteorRadius`, `meteorCooldownMs`
 - Seeding: `seedMode`, `seedPattern`, `seedScale`, `seedJitter`, `seedProbability`, `customPattern`
 - Actions: `Randomize`, `Clear`, `StepOnce`
@@ -131,7 +132,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 ## Testing & Validation
 
 - Unit tests exist for `LifeSphereSim` and `patterns` under `tests/unit`.
-- Component tests exist under `tests/component`.
+- Component tests exist under `tests/component` (note: `PlanetLife.test.tsx` was updated to mock `leva` controls and to assert default render mode is `Texture`).
 - E2E guidance documented; Playwright instructions are present but e2e tests may be minimal.
 - Type checking via `npm run build` runs `tsc -b` before Vite.
 
@@ -159,6 +160,7 @@ npm run test     # Run Vitest suite
 ## Extension Hooks
 
 - Add new built-in patterns in `src/sim/patterns.ts` and reuse `parseAsciiPattern`.
+- Add or modify rule presets and color themes in `src/sim/presets.ts` and wire them into `usePlanetLifeControls()` for UX-friendly presets.
 - Modify rules parsing or neighbor logic in `LifeSphereSim`.
 - Update rendering parity across `Texture` and `Dots` modes when changing overlay logic.
 - Expose additional parameters via `leva` controls in `PlanetLife`.

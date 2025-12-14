@@ -12,8 +12,8 @@
 ## What's left / high value tasks
 
 - Add a CI task to run `npm ci` + `npm run build` + `npm run test`.
-- Add more builtin patterns and pattern management UI improvements.
 - Accessibility and performance validations for larger grid sizes.
+- Consider local persistence for theme/preset selection and a small UI hint for 'Custom' modes.
 
 ## Known issues / notes
 
@@ -34,5 +34,6 @@
 - Precompute `positions` and `normals` in `LifeSphereSim`.
 - TASK001: Added the memory bank files and initial tasks to the `memory/` folder.
 - TASK005: Modularized `PlanetLife.tsx` into `src/components/planetLife/` modules; lint + typecheck validated.
+- RULE_PRESETS and COLOR_THEMES added; builtin patterns expanded. (See TASK006)
 - Refactor: Clustered simulation functions and extracted `useMeteorSystem` / `useSimulationSeeder` hooks.
 - Performance: Skip DataTexture writes in `Dots` mode; set instancing buffers to `DynamicDrawUsage`; reduce allocations in `Meteor`.
