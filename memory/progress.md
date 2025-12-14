@@ -43,4 +43,4 @@
 - RULE_PRESETS and COLOR_THEMES added; builtin patterns expanded. (See TASK006)
 - Refactor: Clustered simulation functions and extracted `useMeteorSystem` / `useSimulationSeeder` hooks.
 - **Performance**: Skip DataTexture writes in `Dots` mode; set instancing buffers to `DynamicDrawUsage`; reduce allocations in `Meteor` (See TASK010).
-- **Default Mode Change**: Switched default cell render mode to `Both` and added diagnostics for texture stats (See TASK011).
+- **Default Mode**: Default `cellRenderMode` remains `Texture`; a proposal to switch to `Both` was considered but not applied (See TASK011).

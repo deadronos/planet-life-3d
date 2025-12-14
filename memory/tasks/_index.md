@@ -12,7 +12,6 @@
 
 - [TASK013] Add pre-commit hooks & lint-staged - Adds pre-commit linting and `lint-staged` hooks
 - [TASK012] Add GitHub Pages deployment workflow - Adds `deploy-pages.yml` for tag-based deployment
-- [TASK011] Switch default render mode to `Both` and add texture stats logging
 - [TASK010] Simulation & rendering performance improvements - Conditional texture writes, reduced allocations
 - [TASK009] Refactor `LifeSphereSim` to reduce duplication and standardize constants
 - [TASK008] Add Overlay HUD, onboarding hint, and hotkey `h` - Adds HUD and onboarding UX improvements with tests
@@ -24,3 +23,5 @@
 - [TASK002] Add tests - Added unit and component tests using Vitest
 
 ## Abandoned
+
+- [TASK011] Default render mode proposal - Abandoned (default remains `Texture`)

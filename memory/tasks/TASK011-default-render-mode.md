@@ -1,33 +1,29 @@
-# [TASK011] - Document Default Render Mode Change (Switch to `Both`) and Texture Stats Logging
+# [TASK011] - Default Render Mode Proposal (Switch to `Both`)
 
-**Status:** Completed  
+**Status:** Abandoned / Not Applied  
 **Added:** 2025-12-13  
 **Updated:** 2025-12-14
 
 ## Original Request
 
-Make the default render mode more expressive and helpful for exploration by setting it to `Both` (Texture overlay + Dots) and add optional texture stats logging for diagnostics.
+Propose changing the default render mode to `Both` (Texture overlay + Dots) to provide immediate visual feedback to users, and add optional texture stats logging for diagnostics.
 
-## Thought Process
+## What happened
 
-- `Both` is the best default for quick visual feedback; keep an option to switch to `Texture` or `Dots` for performance testing.
-- Add internal texture stats logging to help diagnose DataTexture uploads and memory usage during development.
+- A change was proposed (commit `302d636`) that set `cellRenderMode` to `Both` in an early implementation of `PlanetLife.tsx`.
+- The consolidated controls in `src/components/planetLife/controls.ts` currently set the default `cellRenderMode` to `Texture`. The runtime default therefore remains `Texture` and the proposed switch to `Both` was not adopted.
 
-## Implementation Summary
+## Implementation Notes
 
-- Switched default control to `Both` and added texture stats logging hooks accessible in debug mode.
-- Commit: `302d636` (2025-12-13) — "feat: switch default render mode to Both and add texture stats logging".
+- If the team wants to pursue this change, the correct place to update the default is `usePlanetLifeControls()` in `src/components/planetLife/controls.ts` (change `cellRenderMode.value` to `'Both'`) and validate behavior across the overlay and instanced `Dots`.
+- Consider performance implications for large grids and provide an opt-in debug logging flag for texture stats rather than enabling it by default.
 
-## Files changed
+## Next steps / Acceptance criteria if re-opened
 
-- `src/components/planetLife/controls.ts`
-- `src/components/planetLife/lifeTexture.ts` (added small logging helpers)
+- Update `usePlanetLifeControls()` default to `'Both'` and add an automated test or smoke check to ensure the overlay+dots both render on startup.
+- Add a small performance note and optional debug-only texture stats logging behind `debugLogs`.
+- Validate with `npm run test` and manual visual checks.
 
-## Validation
+## Current status
 
-- Manual check in dev server to ensure default mode is `Both` and overlay+dots render together.
-- No breaking changes to API.
-
-## Notes
-
-- This change has minor perf implications for very large grids but is balanced by the improved UX for first-time users.
+- The default remains `Texture` in code; this task is closed as "Abandoned / Not Applied" until the team explicitly approves the UX change.
