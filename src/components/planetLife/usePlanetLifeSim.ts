@@ -13,6 +13,7 @@ export function usePlanetLifeSim({
   safeLonCells,
   planetRadius,
   cellLift,
+  cellRenderMode,
   rules,
   randomDensity,
   lifeTex,
@@ -28,6 +29,7 @@ export function usePlanetLifeSim({
   safeLonCells: number;
   planetRadius: number;
   cellLift: number;
+  cellRenderMode: 'Texture' | 'Dots' | 'Both';
   rules: Rules;
   randomDensity: number;
   lifeTex: LifeTexture;
@@ -38,6 +40,7 @@ export function usePlanetLifeSim({
   debugLogs: boolean;
 }) {
   const simRef = useRef<LifeSphereSim | null>(null);
+  const instancingConfiguredRef = useRef(false);
 
   const updateTexture = useCallback(() => {
     const sim = simRef.current;
@@ -54,15 +57,29 @@ export function usePlanetLifeSim({
     });
   }, [lifeTex, resolveCellColor, colorScratch, debugLogs]);
 
+  // Keep a ref to the latest updateInstances so effects that should only depend
+  // on sizing don't accidentally re-create the simulation.
+  const updateInstancesRef = useRef<() => void>(() => {
+    /* noop */
+  });
+
   const updateInstances = useCallback(() => {
     const sim = simRef.current;
     if (!sim) return;
 
-    // Keep the planet overlay in sync with the sim (works even in Texture-only mode).
-    updateTexture();
+    // Only update the overlay texture if it's actually being rendered.
+    // This avoids a full per-cell RGBA write + GPU upload when in Dots mode.
+    const overlayEnabled = cellRenderMode === 'Texture' || cellRenderMode === 'Both';
+    if (overlayEnabled) updateTexture();
 
     const mesh = cellsRef.current;
     if (!mesh) return;
+
+    if (!instancingConfiguredRef.current) {
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      if (mesh.instanceColor) mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+      instancingConfiguredRef.current = true;
+    }
 
     const ages = sim.getAgeView();
     const heat = sim.getNeighborHeatView();
@@ -81,7 +98,17 @@ export function usePlanetLifeSim({
     mesh.count = i;
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [cellsRef, colorScratch, dummy, resolveCellColor, updateTexture]);
+  }, [cellRenderMode, cellsRef, colorScratch, dummy, resolveCellColor, updateTexture]);
+
+  useEffect(() => {
+    updateInstancesRef.current = updateInstances;
+  }, [updateInstances]);
+
+  // If the user switches to a mode that shows the overlay while paused,
+  // ensure the texture reflects the current grid.
+  useEffect(() => {
+    if (cellRenderMode === 'Texture' || cellRenderMode === 'Both') updateTexture();
+  }, [cellRenderMode, updateTexture]);
 
   const clear = useCallback(() => {
     simRef.current?.clear();
@@ -109,8 +136,8 @@ export function usePlanetLifeSim({
     });
 
     simRef.current.randomize(randomDensity);
-    updateInstances();
-  }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity, updateInstances]);
+    updateInstancesRef.current();
+  }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity]);
 
   // Update rules without resetting the grid
   useEffect(() => {
