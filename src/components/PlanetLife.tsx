@@ -113,6 +113,7 @@ export function PlanetLife() {
     safeLonCells,
     planetRadius,
     cellLift,
+    cellRenderMode,
     rules,
     randomDensity,
     lifeTex,
