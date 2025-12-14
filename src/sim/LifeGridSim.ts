@@ -72,6 +72,18 @@ export class LifeGridSim {
     this.neighborHeat[idx] = 0;
   }
 
+  private recomputeStatsFromGrid() {
+    let pop = 0;
+
+    for (let i = 0; i < this.cellCount; i++) {
+      if (this.grid[i] === 1) pop++;
+    }
+
+    this.population = pop;
+    this.birthsLastTick = 0;
+    this.deathsLastTick = 0;
+  }
+
   getCell(lat: number, lon: number): 0 | 1 {
     return this.grid[this.coordsToIdx(lat, lon)] as 0 | 1;
   }
@@ -98,6 +110,8 @@ export class LifeGridSim {
       const alive = rng() < p ? 1 : 0;
       this.setCellState(i, alive);
     }
+
+    this.recomputeStatsFromGrid();
   }
 
   /** Single simulation tick */
@@ -210,6 +224,8 @@ export class LifeGridSim {
 
       this.setCellState(idx, nextVal);
     }
+
+    this.recomputeStatsFromGrid();
   }
 
   /** Read-only view of the grid (0/1 per cell). Useful for texture-based rendering. */
