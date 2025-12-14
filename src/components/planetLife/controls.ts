@@ -1,19 +1,27 @@
 import { folder, useControls } from 'leva';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
+import {
+  COLOR_THEME_NAMES,
+  COLOR_THEMES,
+  RULE_PRESET_NAMES,
+  RULE_PRESETS,
+} from '../../sim/presets';
 
 export type PlanetLifeControls = {
   running: boolean;
   tickMs: number;
   latCells: number;
   lonCells: number;
+  rulePreset: string;
   birthDigits: string;
   surviveDigits: string;
   randomDensity: number;
   planetRadius: number;
   planetWireframe: boolean;
   planetRoughness: number;
+  theme: string;
   rimIntensity: number;
   rimPower: number;
   terminatorSharpness: number;
@@ -58,7 +66,9 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     [],
   );
 
-  const params = useControls({
+  const setRef = useRef<((value: Partial<PlanetLifeControlsWithDebug>) => void) | null>(null);
+
+  const [params, set] = useControls(() => ({
     Simulation: folder(
       {
         running: true,
@@ -74,6 +84,18 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
           min: SIM_CONSTRAINTS.lonCells.min,
           max: 240,
           step: 1,
+        },
+        rulePreset: {
+          label: 'Rule Preset',
+          value: 'Conway',
+          options: ['Custom', ...RULE_PRESET_NAMES],
+          onChange: (v: string) => {
+            if (v === 'Custom' || !setRef.current) return;
+            const p = RULE_PRESETS[v];
+            if (p) {
+              setRef.current({ birthDigits: p.birth, surviveDigits: p.survive });
+            }
+          },
         },
         birthDigits: { value: '3' },
         surviveDigits: { value: '23' },
@@ -111,6 +133,25 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
 
     Upgrades: folder(
       {
+        theme: {
+          label: 'Theme',
+          value: 'Default',
+          options: ['Custom', ...COLOR_THEME_NAMES],
+          onChange: (v: string) => {
+            if (v === 'Custom' || !setRef.current) return;
+            const t = COLOR_THEMES[v];
+            if (t) {
+              setRef.current({
+                cellColor: t.cellColor,
+                atmosphereColor: t.atmosphereColor,
+                heatLowColor: t.heatLowColor,
+                heatMidColor: t.heatMidColor,
+                heatHighColor: t.heatHighColor,
+                impactRingColor: t.impactRingColor,
+              });
+            }
+          },
+        },
         rimIntensity: { value: 0.65, min: 0, max: 2, step: 0.01 },
         rimPower: { value: 2.6, min: 0.5, max: 6, step: 0.05 },
         terminatorSharpness: { value: 1.4, min: 0.2, max: 4, step: 0.05 },
@@ -170,7 +211,11 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
       },
       { collapsed: true },
     ),
-  });
+  }));
+
+  useEffect(() => {
+    setRef.current = set;
+  }, [set]);
 
   return params as unknown as PlanetLifeControlsWithDebug;
 }

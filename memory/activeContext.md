@@ -11,6 +11,7 @@
 - TASK005 completed: `src/components/PlanetLife.tsx` was refactored into a composition layer.
 - Refactor (Clustering): Simulation logic clustered into `src/sim/rules.ts` and `src/sim/utils.ts`.
 - Refactor (Hooks): `useMeteorSystem` and `useSimulationSeeder` extracted from `PlanetLife.tsx`.
+- RULE_PRESETS and COLOR_THEMES were added (see `src/sim/presets.ts`), and `usePlanetLifeControls` now includes `rulePreset` and `theme` selectors that can write `birthDigits`/`surviveDigits` and palette values.
 - New private modules were added under `src/components/planetLife/`:
   - `controls.ts` (Leva schema + types)
   - `cellColor.ts` (color mode resolver)
@@ -36,8 +37,8 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
 
 - Add a CI workflow to run `npm ci`, `npm run build`, and `npm run test`.
 - Keep `specs/current-state.md` updated when the module boundaries change.
-- Add task entries in `memory/tasks` for TODOs prioritized by value (patterns, docs, accessibility).
-- Add more builtin patterns and pattern management UI improvements.
+- Add task entries in `memory/tasks` for TODOs prioritized by value (docs, accessibility, pattern editor).
+- Consider local persistence for theme/preset selection and a small UI hint for 'Custom' modes.
 
 ## Notes for maintainers
 
@@ -53,3 +54,4 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
 
 - TASK001: Create memory bank — core `memory` files and an initial task index were added to the repository.
 - TASK005: Refactor `PlanetLife.tsx` into smaller modules — completed and validated.
+- TASK006: Add rule presets and color themes — completed (see `src/sim/presets.ts`, updated controls and patterns).
