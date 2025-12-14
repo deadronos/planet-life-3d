@@ -12,6 +12,7 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - Patterns and ASCII parsing: `src/sim/patterns.ts`
 - Rendering & UI (composition): `src/components/PlanetLife.tsx`
 - Rendering & UI (private modules): `src/components/planetLife/*`
+- **Environment (space background)**: `src/components/environment/*`
 - Interactions: `src/components/Meteor.tsx`, `src/components/ImpactRing.tsx`
 - App entry: `src/App.tsx`, `src/main.tsx`
 - UI state: `src/store/useUIStore.ts`
@@ -54,6 +55,17 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 - `src/components/planetLife/cellColor.ts`: `useCellColorResolver()`.
 - `src/components/planetLife/controls.ts`: `usePlanetLifeControls()`.
 - `src/components/planetLife/utils.ts`: `uid()`, re-exports `safeInt()`.
+
+### Environment (`src/components/environment/`)
+
+Space environment components providing an immersive background:
+
+- `SpaceEnvironment.tsx`: Wrapper composing all environment elements; receives `lightPosition` prop from `App.tsx`.
+- `NebulaSkybox.tsx`: Large inverted sphere (radius 150, `BackSide`) with GLSL shader using FBM simplex noise for animated purple/blue/pink nebula clouds.
+- `DistantSun.tsx`: Yellowish star with glow shader (fresnel-based) and corona layers; positioned at 10× the light direction (default: `[60, 60, 80]`), size 12 units.
+- `DistantMoons.tsx`: Two spheres with independent orbital speeds (0.02, 0.015 rad/s) and tilts; distances 55 and 70 units.
+- `SunLensFlare.tsx`: Sprite-based lens flare with procedurally generated canvas textures; elements positioned along screen-center-to-light vector.
+- `index.ts`: Barrel export for all environment components.
 
 ### Interactions
 

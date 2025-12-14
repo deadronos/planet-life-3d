@@ -8,6 +8,13 @@
 
 ## Recent changes
 
+- **Environment Enhancements (2025-12-14)**: Added immersive space background with 5 new components in `src/components/environment/`:
+  - `NebulaSkybox.tsx` — GLSL procedural nebula using FBM noise with animated purple/blue/pink palette
+  - `DistantSun.tsx` — Large yellowish star with glow shader and corona effects
+  - `DistantMoons.tsx` — Two small moons with independent orbital paths
+  - `SunLensFlare.tsx` — Sprite-based lens flare effect following directional light
+  - `SpaceEnvironment.tsx` — Wrapper composing all environment elements
+- `App.tsx` now uses `SpaceEnvironment` instead of the basic `Stars` component.
 - TASK005 completed: `src/components/PlanetLife.tsx` was refactored into a composition layer.
 - Refactor (Clustering): Simulation logic clustered into `src/sim/rules.ts` and `src/sim/utils.ts`.
 - Refactor (Hooks): `useMeteorSystem` and `useSimulationSeeder` extracted from `PlanetLife.tsx`.
@@ -44,6 +51,7 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
 
 - The simulation uses typed arrays and precomputed geometry positions to keep per-frame overhead low.
 - Keep Leva UI knobs and safe value guards in place — user controls can briefly produce invalid values while editing.
+- Environment components use GLSL shaders; changes to nebula colors or sun glow require shader modifications.
 
 ## Docs sync policy
 
@@ -55,3 +63,4 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`.
 - TASK001: Create memory bank — core `memory` files and an initial task index were added to the repository.
 - TASK005: Refactor `PlanetLife.tsx` into smaller modules — completed and validated.
 - TASK006: Add rule presets and color themes — completed (see `src/sim/presets.ts`, updated controls and patterns).
+- **2025-12-14**: Environment enhancements — procedural nebula skybox, distant sun, orbiting moons, and lens flare added.
