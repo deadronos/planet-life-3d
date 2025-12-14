@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
-import type { Rules } from '../../sim/LifeSphereSim';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
+import type { Rules } from '../../sim/rules';
 import { useUIStore } from '../../store/useUIStore';
 import type { ResolveCellColor } from './cellColor';
 import { writeLifeTexture, type LifeTexture } from './lifeTexture';

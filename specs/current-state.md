@@ -8,7 +8,7 @@ Scope: Describes the current architecture, behaviors, data flow, and interfaces 
 
 Planet Life 3D is a single-page React + TypeScript application that renders a spherical cellular automata simulation (Conway-like rules) using three.js and @react-three/fiber. The simulation grid is defined over latitude/longitude on a sphere, updated on a configurable interval, and visualized via either a texture overlay or instanced dot mesh.
 
-- Core simulation: `src/sim/LifeSphereSim.ts`
+ - Core simulation: `src/sim/LifeSphereSim.ts`, `src/sim/rules.ts`, `src/sim/utils.ts`
 - Patterns and ASCII parsing: `src/sim/patterns.ts`
 - Rendering & UI (composition): `src/components/PlanetLife.tsx`
 - Rendering & UI (private modules): `src/components/planetLife/*`
@@ -47,11 +47,13 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 #### PlanetLife module boundaries
 
 - `src/components/planetLife/usePlanetLifeSim.ts`: sim creation/recreation, tick loop, stats updates, texture + instanced mesh sync.
+- `src/components/planetLife/useMeteorSystem.ts`: meteor spawning, impacts, and visual rings.
+- `src/components/planetLife/useSimulationSeeder.ts`: pattern selection and seeding execution.
 - `src/components/planetLife/lifeTexture.ts`: `useLifeTexture()` and `writeLifeTexture()`.
 - `src/components/planetLife/planetMaterial.ts`: `usePlanetMaterial()`.
 - `src/components/planetLife/cellColor.ts`: `useCellColorResolver()`.
 - `src/components/planetLife/controls.ts`: `usePlanetLifeControls()`.
-- `src/components/planetLife/utils.ts`: `uid()`, `safeInt()`.
+- `src/components/planetLife/utils.ts`: `uid()`, re-exports `safeInt()`.
 
 ### Interactions
 
