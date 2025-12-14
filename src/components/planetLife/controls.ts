@@ -1,5 +1,6 @@
 import { folder, useControls } from 'leva';
 import { useMemo } from 'react';
+import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 
 export type PlanetLifeControls = {
@@ -62,8 +63,18 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
       {
         running: true,
         tickMs: { value: 120, min: 10, max: 1500, step: 1 },
-        latCells: { value: 48, min: 8, max: 140, step: 1 },
-        lonCells: { value: 96, min: 8, max: 240, step: 1 },
+        latCells: {
+          value: SIM_DEFAULTS.latCells,
+          min: SIM_CONSTRAINTS.latCells.min,
+          max: 140,
+          step: 1,
+        },
+        lonCells: {
+          value: SIM_DEFAULTS.lonCells,
+          min: SIM_CONSTRAINTS.lonCells.min,
+          max: 240,
+          step: 1,
+        },
         birthDigits: { value: '3' },
         surviveDigits: { value: '23' },
         randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
@@ -73,7 +84,12 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
 
     Rendering: folder(
       {
-        planetRadius: { value: 2.6, min: 1.2, max: 6, step: 0.05 },
+        planetRadius: {
+          value: SIM_DEFAULTS.planetRadius,
+          min: 1.2,
+          max: 6,
+          step: 0.05,
+        },
         planetWireframe: false,
         planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
         cellRenderMode: {
@@ -82,7 +98,12 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         },
         cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
         cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
-        cellLift: { value: 0.04, min: 0, max: 0.25, step: 0.005 },
+        cellLift: {
+          value: SIM_DEFAULTS.cellLift,
+          min: SIM_CONSTRAINTS.cellLift.min,
+          max: 0.25,
+          step: 0.005,
+        },
         cellColor: '#3dd54c',
       },
       { collapsed: true },
