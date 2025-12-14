@@ -1,5 +1,5 @@
 import { folder, useControls } from 'leva';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 import {
@@ -66,7 +66,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     [],
   );
 
-  const setRef = useRef<any>(null);
+  const setRef = useRef<((value: Partial<PlanetLifeControlsWithDebug>) => void) | null>(null);
 
   const [params, set] = useControls(() => ({
     Simulation: folder(
@@ -89,7 +89,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
           label: 'Rule Preset',
           value: 'Conway',
           options: ['Custom', ...RULE_PRESET_NAMES],
-          onChange: (v) => {
+          onChange: (v: string) => {
             if (v === 'Custom' || !setRef.current) return;
             const p = RULE_PRESETS[v];
             if (p) {
@@ -137,7 +137,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
           label: 'Theme',
           value: 'Default',
           options: ['Custom', ...COLOR_THEME_NAMES],
-          onChange: (v) => {
+          onChange: (v: string) => {
             if (v === 'Custom' || !setRef.current) return;
             const t = COLOR_THEMES[v];
             if (t) {
@@ -213,7 +213,9 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     ),
   }));
 
-  setRef.current = set;
+  useEffect(() => {
+    setRef.current = set;
+  }, [set]);
 
   return params as unknown as PlanetLifeControlsWithDebug;
 }
