@@ -2,19 +2,28 @@
 
 ## Current Focus
 
-- Creating or updating the repository `memory/` bank as requested by the user.
-- Capture key patterns and technical knowledge so future agents can pick up where this conversation left off.
-- Keep the implementation spec `specs/current-state.md` updated as behavior, controls, or architecture changes.
+- Keep the Memory Bank (`memory/`) and the implementation spec (`specs/current-state.md`) in sync with the current code.
+- Capture the post-TASK005 architecture: `PlanetLife.tsx` is now a composition layer and the heavy logic lives in `src/components/planetLife/`.
+- Track follow-on work after refactor completion (CI, docs drift prevention).
 
 ## Recent changes
 
-- The `PlanetLife` component unifies rendering and simulation: `LifeSphereSim` (core logic) provides `positions` and `normals` to the renderer, and `PlanetLife.updateTexture()` flips/write rows for equirectangular mapping.
+- TASK005 completed: `src/components/PlanetLife.tsx` was refactored into a composition layer.
+- New private modules were added under `src/components/planetLife/`:
+  - `controls.ts` (Leva schema + types)
+  - `cellColor.ts` (color mode resolver)
+  - `lifeTexture.ts` (`DataTexture` lifecycle + `writeLifeTexture` mapping)
+  - `planetMaterial.ts` (`ShaderMaterial` creation)
+  - `usePlanetLifeSim.ts` (sim lifecycle + tick loop + render sync)
+  - `utils.ts` (`uid`, `safeInt`)
 - `Meteor` and `ImpactRing` components provide interactive visual feedback when the planet is clicked.
 - Unit and component tests were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
+- Quality gates validated after modularization: `npm run test`, `npm run lint`, `npm run typecheck`.
 
 ## Next steps
 
 - Add a CI workflow to run `npm ci`, `npm run build`, and `npm run test`.
+- Keep `specs/current-state.md` updated when the module boundaries change.
 - Add task entries in `memory/tasks` for TODOs prioritized by value (patterns, docs, accessibility).
 - Add more builtin patterns and pattern management UI improvements.
 
@@ -31,3 +40,4 @@
 ## Update
 
 - TASK001: Create memory bank — core `memory` files and an initial task index were added to the repository.
+- TASK005: Refactor `PlanetLife.tsx` into smaller modules — completed and validated.
