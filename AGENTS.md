@@ -45,6 +45,7 @@ Where to modify logic safely
 Testing & validation
 
 - The repo now uses Vitest for automated testing. Tests live under the `tests/` folder, and cover pure logic such as `LifeSphereSim.step()`, `LifeSphereSim.pointToCell()`, and `parseAsciiPattern()`.
+- TypeScript note (Vitest mocks): prefer strongly-typed mocks for function-typed params/props (e.g. `const fn = vi.fn<(arg: SomeType) => void>()`) instead of `ReturnType<typeof vi.fn>` or untyped `vi.fn()`. Untyped mocks can fail `tsc -b` when passed where a specific function signature is required.
 - E2E (browser) tests should live under `tests/e2e` and use `@playwright/test` (Playwright) for real-browser testing of canvas and UI flows.
 - Run the test suite: `npm run test`. Run in watch mode with `npm run test:watch` or open the Vitest UI with `npm run test:ui`.
 - For TypeScript verification, `npm run build` still runs the authoritative type-check (`tsc -b`).

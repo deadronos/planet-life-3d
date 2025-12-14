@@ -76,6 +76,27 @@ const BUILTIN_ASCII: Record<string, string> = {
     OOO
     OOO
   `,
+  'R-pentomino': `
+    .OO
+    OO.
+    .O.
+  `,
+  Diehard: `
+    ......O.
+    OO......
+    .O...OOO
+  `,
+  Acorn: `
+    .O.....
+    ...O...
+    OO..OOO
+  `,
+  LWSS: `
+    .O..O
+    O....
+    O...O
+    OOOO.
+  `,
 };
 
 export const BUILTIN_PATTERN_NAMES = Object.keys(BUILTIN_ASCII);
