@@ -1,7 +1,7 @@
 # Planet Life 3D — Current Implementation Spec
 
 Date: 2025-12-14  
-Branch: performance
+Branch: performance  
 Scope: Describes the current architecture, behaviors, data flow, and interfaces implemented in the repository.
 
 ## Overview
