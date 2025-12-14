@@ -14,7 +14,12 @@ expect.extend(matchers);
 vi.mock('leva', () => {
   return {
     useControls: (schemaOrName: unknown, schema?: unknown) => {
-      const s = schema ?? schemaOrName;
+      let s = schema ?? schemaOrName;
+      const isFunction = typeof s === 'function';
+      if (isFunction) {
+        s = (s as Function)();
+      }
+
       const result: Record<string, unknown> = {};
       function isValueObject(v: unknown): v is { value: unknown } {
         return typeof v === 'object' && v !== null && 'value' in v;
@@ -45,11 +50,12 @@ vi.mock('leva', () => {
         }
       };
 
-      if (typeof s === 'function') {
-        return { Randomize: () => {}, Clear: () => {}, StepOnce: () => {} };
-      }
       if (typeof s === 'object' && s !== null) {
         flattenSchema(s as Record<string, unknown>);
+      }
+
+      if (isFunction) {
+        return [result, () => {}];
       }
       return result;
     },
