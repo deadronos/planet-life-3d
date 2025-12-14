@@ -9,3 +9,5 @@
 3. WHEN the user clicks the planet, THE SYSTEM SHALL fire a meteor that seeds the grid on impact with the current seed pattern [Acceptance: meteor appears, impact ring shows, grid cells update].
 
 4. WHEN a user chooses 'Custom ASCII', THE SYSTEM SHALL parse the ASCII and apply offsets to seed patterns [Acceptance: parsed offsets match expected coordinates].
+
+5. WHEN the user selects 'Random Disk', THE SYSTEM SHALL generate a disk-shaped seeding area scaled by `seedScale` and apply it at the impact point [Acceptance: seeded cells count and distribution approximate a disk shape].

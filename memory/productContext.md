@@ -15,6 +15,7 @@ Provide a small, approachable interactive simulation that is both educational an
 - WHEN a user changes the birth or survival digits, THE SYSTEM shall apply new rules without reloading the page.
 - WHEN a user clicks the planet, THE SYSTEM shall fire a meteor and seed cells at the impact.
 - WHEN the user selects ‘Custom ASCII’ patterns, THE SYSTEM shall parse and apply the ASCII pattern when seeding.
+- WHEN the user selects 'Random Disk', THE SYSTEM shall generate a disk-shaped seeding area whose size scales with `seedScale` and apply the pattern at the impact point.
 
 **Acceptance criteria**
 

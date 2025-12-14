@@ -20,6 +20,7 @@
 - `LifeSphereSim.getGridView()` — read-only view used to populate the DataTexture.
 - `LifeSphereSim.forEachAlive()` — optimized iterator used while setting instance matrices for alive cells.
 - `LifeSphereSim.seedAtPoint()` / `seedAtCell()` — used by the UI and meteors to alter the grid.
+- Seeding modes include 'set', 'clear', 'toggle', and 'random'. `seedPattern` options include builtin ASCII patterns, 'Custom ASCII', and 'Random Disk' (a generated circular seed scaled by `seedScale`).
 - `LifeSphereSim.pointToCell()` — mapping a 3D point (impact point) to grid cell coordinates.
 
 **Best practices**

@@ -9,12 +9,13 @@
 
 - The `PlanetLife` component unifies rendering and simulation: `LifeSphereSim` (core logic) provides `positions` and `normals` to the renderer, and `PlanetLife.updateTexture()` flips/write rows for equirectangular mapping.
 - `Meteor` and `ImpactRing` components provide interactive visual feedback when the planet is clicked.
+- Unit and component tests were added (Vitest) covering `LifeSphereSim`, `parseAsciiPattern`, Meteor, ImpactRing, and PlanetLife components.
 
 **Next steps**
 
-- Add tests for `LifeSphereSim.step()`, `pointToCell()`, `parseAsciiPattern()` and seeding logic.
-- Add task entries in `memory/tasks` for TODOs prioritized by value.
-- Consider CI integration: unit tests + TypeScript check + vite build.
+- Add a CI workflow to run `npm ci`, `npm run build`, and `npm run test`.
+- Add task entries in `memory/tasks` for TODOs prioritized by value (patterns, docs, accessibility).
+- Add more builtin patterns and pattern management UI improvements.
 
 **Notes for maintainers**
 
