@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { Leva } from 'leva';
@@ -26,10 +27,23 @@ const levaTheme = {
 };
 
 export default function App() {
+  const [levaHidden, setLevaHidden] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle Leva visibility on 'h' or 'H'
+      if (e.key === 'h' || e.key === 'H') {
+        setLevaHidden((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <>
       <Overlay />
-      <Leva collapsed={false} theme={levaTheme} />
+      <Leva collapsed={false} theme={levaTheme} hidden={levaHidden} />
       <Canvas camera={{ position: [0, 0, 8], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={0.75} />
