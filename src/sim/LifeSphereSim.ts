@@ -28,6 +28,18 @@ export class LifeSphereSim {
   readonly normals: THREE.Vector3[];
   readonly positions: THREE.Vector3[];
 
+  private _coordsToIdx(lat: number, lon: number): number {
+    const la = clampInt(lat, 0, this.latCells - 1);
+    const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
+    return la * this.lonCells + lo;
+  }
+
+  private _setCellState(idx: number, value: 0 | 1) {
+    this.grid[idx] = value;
+    this.age[idx] = value ? 1 : 0;
+    this.neighborHeat[idx] = 0;
+  }
+
   constructor(opts: {
     latCells: number;
     lonCells: number;
@@ -84,18 +96,11 @@ export class LifeSphereSim {
   }
 
   getCell(lat: number, lon: number): 0 | 1 {
-    const la = clampInt(lat, 0, this.latCells - 1);
-    const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
-    return this.grid[la * this.lonCells + lo] as 0 | 1;
+    return this.grid[this._coordsToIdx(lat, lon)] as 0 | 1;
   }
 
   setCell(lat: number, lon: number, value: 0 | 1) {
-    const la = clampInt(lat, 0, this.latCells - 1);
-    const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
-    const idx = la * this.lonCells + lo;
-    this.grid[idx] = value;
-    this.age[idx] = value ? 1 : 0;
-    this.neighborHeat[idx] = 0;
+    this._setCellState(this._coordsToIdx(lat, lon), value);
   }
 
   clear() {
@@ -111,9 +116,7 @@ export class LifeSphereSim {
     const p = Math.max(0, Math.min(1, density));
     for (let i = 0; i < this.cellCount; i++) {
       const alive = rng() < p ? 1 : 0;
-      this.grid[i] = alive;
-      this.age[i] = alive ? 1 : 0;
-      this.neighborHeat[i] = 0;
+      this._setCellState(i, alive);
     }
   }
 
@@ -223,27 +226,24 @@ export class LifeSphereSim {
         dLo += Math.floor((rng() * 2 - 1) * jitter);
       }
 
-      const la = clampInt(params.lat + dLa, 0, this.latCells - 1);
-      const lo = (((params.lon + dLo) % this.lonCells) + this.lonCells) % this.lonCells;
-      const idx = la * this.lonCells + lo;
+      const idx = this._coordsToIdx(params.lat + dLa, params.lon + dLo);
+      let nextVal: 0 | 1 = this.grid[idx] as 0 | 1;
 
       switch (params.mode) {
         case 'set':
-          this.grid[idx] = 1;
+          nextVal = 1;
           break;
         case 'clear':
-          this.grid[idx] = 0;
+          nextVal = 0;
           break;
         case 'toggle':
-          this.grid[idx] = this.grid[idx] ? 0 : 1;
+          nextVal = nextVal ? 0 : 1;
           break;
         case 'random':
-          this.grid[idx] = rng() < p ? 1 : 0;
+          nextVal = rng() < p ? 1 : 0;
           break;
       }
-      const alive = this.grid[idx] === 1;
-      this.age[idx] = alive ? 1 : 0;
-      this.neighborHeat[idx] = 0;
+      this._setCellState(idx, nextVal);
       affected++;
     }
     if (params.debug) {
