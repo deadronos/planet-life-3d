@@ -18,6 +18,7 @@
 - Keep per-frame UI work minimal; all heavy loops and logic live in `LifeSphereSim`.
 - Two rendering modes: `Texture` (DataTexture overlay) and `Dots` (instanced mesh), and they must stay in sync.
 - Defensive guards (safeInt, safeFloat) to resist transient invalid inputs from UI controls.
+- **Planet Shader**: Uses `THREE.ShaderMaterial` with World Space normals to ensure lighting aligns with the fixed Sun position regardless of camera rotation. Features 3D noise for surface variation and mixing procedural grid lines with cell data.
 - **Environment shaders**: GLSL shaders for procedural nebula (FBM noise) and sun glow (fresnel-based) — animated via `useFrame`.
 
 ## Environment components (`src/components/environment/`)

@@ -47,13 +47,13 @@ export default function App() {
     <>
       <Overlay />
       <Leva collapsed={false} theme={levaTheme} hidden={levaHidden} />
-      <Canvas camera={{ position: [0, 0, 8], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
+      <Canvas camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={0.75} />
         <directionalLight position={LIGHT_POSITION} intensity={1.2} />
         <SpaceEnvironment lightPosition={LIGHT_POSITION} />
 
-        <PlanetLife />
+        <PlanetLife lightPosition={LIGHT_POSITION} />
         <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
       </Canvas>
     </>
