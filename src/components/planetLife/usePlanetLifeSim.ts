@@ -147,22 +147,42 @@ export function usePlanetLifeSim({
   // Tick loop
   useEffect(() => {
     if (!running) return;
-    const id = window.setInterval(() => {
-      const sim = simRef.current;
-      if (!sim) return;
-      sim.step();
+    let cancelled = false;
+    let timeoutId: number | null = null;
+    const safeTickMs = Number.isFinite(tickMs) ? Math.max(0, tickMs) : 0;
+    let nextAt = performance.now() + safeTickMs;
 
-      useUIStore.getState().setStats({
-        generation: sim.generation,
-        population: sim.population,
-        birthsLastTick: sim.birthsLastTick,
-        deathsLastTick: sim.deathsLastTick,
-      });
+    const scheduleNext = () => {
+      if (cancelled) return;
+      const delay = Math.max(0, nextAt - performance.now());
+      timeoutId = window.setTimeout(() => {
+        if (cancelled) return;
+        const sim = simRef.current;
+        if (sim) {
+          sim.step();
 
-      updateInstances();
-    }, tickMs);
+          useUIStore.getState().setStats({
+            generation: sim.generation,
+            population: sim.population,
+            birthsLastTick: sim.birthsLastTick,
+            deathsLastTick: sim.deathsLastTick,
+          });
 
-    return () => window.clearInterval(id);
+          updateInstances();
+        }
+
+        // Schedule from "now" to avoid interval backlog when ticks are slow.
+        nextAt = performance.now() + safeTickMs;
+        scheduleNext();
+      }, delay);
+    };
+
+    scheduleNext();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
   }, [running, tickMs, updateInstances]);
 
   return {
