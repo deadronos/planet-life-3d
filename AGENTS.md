@@ -66,6 +66,7 @@ PR Checklist for agents
 - Run `npm run build` and verify `tsc` does not emit type errors.
 - Run `npm run dev` and visually verify the change in the browser.
 - If you touch rendering or simulation invariants, update `.github/copilot-instructions.md` and this `AGENTS.md` with the changed behavior.
+- Keep documentation consistent: update `memory/` (Memory Bank) and `specs/current-state.md` in the same PR when you change simulation behavior, rendering mapping, controls, or architecture.
 - Add tests for pure logic (`LifeSphereSim`, `parseAsciiPattern`).
 - Update README or add docs if there are behavioral or UX changes.
 
