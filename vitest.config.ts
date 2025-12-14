@@ -18,6 +18,10 @@ export default defineConfig({
     },
   },
 
+  benchmark: {
+    include: ['tests/**/*.bench.ts', 'tests/**/*.bench.tsx'],
+  },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

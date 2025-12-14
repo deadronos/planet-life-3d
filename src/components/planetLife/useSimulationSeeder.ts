@@ -1,11 +1,19 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import type { RefObject } from 'react';
-import type { LifeSphereSim, SeedMode } from '../../sim/LifeSphereSim';
+import type { SeedMode } from '../../sim/LifeGridSim';
+import type { Offset } from '../../sim/patterns';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
 
 type SimulationSeederParams = {
-  simRef: RefObject<LifeSphereSim | null>;
+  seedAtPointImpl: (params: {
+    point: THREE.Vector3;
+    offsets: Offset[];
+    mode: SeedMode;
+    scale: number;
+    jitter: number;
+    probability: number;
+    debug?: boolean;
+  }) => void;
   updateInstances: () => void;
   seedPattern: string;
   seedScale: number;
@@ -17,7 +25,7 @@ type SimulationSeederParams = {
 };
 
 export function useSimulationSeeder({
-  simRef,
+  seedAtPointImpl,
   updateInstances,
   seedPattern,
   seedScale,
@@ -47,9 +55,6 @@ export function useSimulationSeeder({
 
   const seedAtPoint = useCallback(
     (point: THREE.Vector3) => {
-      const sim = simRef.current;
-      if (!sim) return;
-
       const offsets = seedPattern === 'Random Disk' ? randomDiskOffsets() : currentPatternOffsets;
 
       if (debugLogs) {
@@ -57,7 +62,7 @@ export function useSimulationSeeder({
         console.log(`[PlanetLife] seedAtPoint pattern=${seedPattern} offsets=${offsets.length}`);
       }
 
-      sim.seedAtPoint({
+      seedAtPointImpl({
         point,
         offsets,
         mode: seedMode,
@@ -69,7 +74,7 @@ export function useSimulationSeeder({
       updateInstances();
     },
     [
-      simRef,
+      seedAtPointImpl,
       seedPattern,
       randomDiskOffsets,
       currentPatternOffsets,
