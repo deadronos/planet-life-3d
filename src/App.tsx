@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { Leva } from 'leva';
 import { PlanetLife } from './components/PlanetLife';
 import { Overlay } from './components/Overlay';
+import { SpaceEnvironment } from './components/environment';
 
 const levaTheme = {
   colors: {
@@ -26,6 +27,8 @@ const levaTheme = {
   },
 };
 
+const LIGHT_POSITION: [number, number, number] = [6, 6, 8];
+
 export default function App() {
   const [levaHidden, setLevaHidden] = useState(false);
 
@@ -47,8 +50,8 @@ export default function App() {
       <Canvas camera={{ position: [0, 0, 8], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={0.75} />
-        <directionalLight position={[6, 6, 8]} intensity={1.2} />
-        <Stars radius={80} depth={30} count={2500} factor={4} fade speed={0.4} />
+        <directionalLight position={LIGHT_POSITION} intensity={1.2} />
+        <SpaceEnvironment lightPosition={LIGHT_POSITION} />
 
         <PlanetLife />
         <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
