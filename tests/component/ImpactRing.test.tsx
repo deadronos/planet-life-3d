@@ -9,7 +9,6 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
 
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 
 // Mock @react-three/fiber locally to ensure it works
 vi.mock('@react-three/fiber', (_importOriginal) => {
@@ -49,6 +48,10 @@ describe('ImpactRing', () => {
       normal: new THREE.Vector3(1, 0, 0),
       start: 0,
       duration: 1,
+      color: '#ffeeaa',
+      flashIntensity: 1,
+      flashRadius: 0.4,
+      ringSize: 1,
     };
 
     const { container } = render(<ImpactRing spec={spec} planetRadius={10} />);

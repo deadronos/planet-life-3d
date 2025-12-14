@@ -34,14 +34,34 @@ type PlanetLifeControls = {
   planetRadius: number;
   planetWireframe: boolean;
   planetRoughness: number;
+  rimIntensity: number;
+  rimPower: number;
+  terminatorSharpness: number;
+  terminatorBoost: number;
+  atmosphereColor: string;
+  atmosphereIntensity: number;
+  atmosphereHeight: number;
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
   cellOverlayOpacity: number;
   cellRadius: number;
   cellLift: number;
   cellColor: string;
+  cellColorMode: 'Solid' | 'Age Fade' | 'Neighbor Heat';
+  ageFadeHalfLife: number;
+  heatLowColor: string;
+  heatMidColor: string;
+  heatHighColor: string;
   meteorSpeed: number;
   meteorRadius: number;
   meteorCooldownMs: number;
+  meteorTrailLength: number;
+  meteorTrailWidth: number;
+  meteorEmissive: number;
+  impactFlashIntensity: number;
+  impactFlashRadius: number;
+  impactRingColor: string;
+  impactRingDuration: number;
+  impactRingSize: number;
   seedMode: 'set' | 'toggle' | 'clear' | 'random';
   seedPattern: string;
   seedScale: number;
@@ -85,6 +105,35 @@ export function PlanetLife() {
         cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
         cellLift: { value: 0.04, min: 0, max: 0.25, step: 0.005 },
         cellColor: '#3dd54c',
+      },
+      { collapsed: true },
+    ),
+
+    Upgrades: folder(
+      {
+        rimIntensity: { value: 0.65, min: 0, max: 2, step: 0.01 },
+        rimPower: { value: 2.6, min: 0.5, max: 6, step: 0.05 },
+        terminatorSharpness: { value: 1.4, min: 0.2, max: 4, step: 0.05 },
+        terminatorBoost: { value: 0.35, min: 0, max: 1, step: 0.01 },
+        atmosphereColor: '#64d4ff',
+        atmosphereIntensity: { value: 0.55, min: 0, max: 2, step: 0.01 },
+        atmosphereHeight: { value: 0.06, min: 0, max: 0.35, step: 0.005 },
+        cellColorMode: {
+          value: 'Neighbor Heat' as const,
+          options: ['Solid', 'Age Fade', 'Neighbor Heat'] as const,
+        },
+        ageFadeHalfLife: { value: 24, min: 2, max: 160, step: 1 },
+        heatLowColor: '#2ee488',
+        heatMidColor: '#f0d96a',
+        heatHighColor: '#ff6b55',
+        meteorTrailLength: { value: 0.9, min: 0.2, max: 3, step: 0.05 },
+        meteorTrailWidth: { value: 0.12, min: 0.02, max: 0.4, step: 0.01 },
+        meteorEmissive: { value: 2.6, min: 0.2, max: 5, step: 0.05 },
+        impactFlashIntensity: { value: 1.5, min: 0, max: 4, step: 0.05 },
+        impactFlashRadius: { value: 0.45, min: 0.05, max: 2, step: 0.05 },
+        impactRingColor: '#ffeeaa',
+        impactRingDuration: { value: 0.9, min: 0.2, max: 2, step: 0.05 },
+        impactRingSize: { value: 1, min: 0.4, max: 2.5, step: 0.05 },
       },
       { collapsed: true },
     ),
@@ -139,6 +188,13 @@ export function PlanetLife() {
     planetRadius,
     planetWireframe,
     planetRoughness,
+    rimIntensity,
+    rimPower,
+    terminatorSharpness,
+    terminatorBoost,
+    atmosphereColor,
+    atmosphereIntensity,
+    atmosphereHeight,
 
     cellRenderMode,
     cellOverlayOpacity,
@@ -146,10 +202,23 @@ export function PlanetLife() {
     cellRadius,
     cellLift,
     cellColor,
+    cellColorMode,
+    ageFadeHalfLife,
+    heatLowColor,
+    heatMidColor,
+    heatHighColor,
 
     meteorSpeed,
     meteorRadius,
     meteorCooldownMs,
+    meteorTrailLength,
+    meteorTrailWidth,
+    meteorEmissive,
+    impactFlashIntensity,
+    impactFlashRadius,
+    impactRingColor,
+    impactRingDuration,
+    impactRingSize,
 
     seedMode,
     seedPattern,
@@ -208,18 +277,144 @@ export function PlanetLife() {
     };
   }, [lifeTex]);
 
-  const cellRgb8 = useMemo(() => {
-    const c = new THREE.Color(cellColor);
-    return [Math.round(c.r * 255), Math.round(c.g * 255), Math.round(c.b * 255)] as const;
-  }, [cellColor]);
+  const solidColor = useMemo(() => new THREE.Color(cellColor), [cellColor]);
+
+  const heatLowColorObj = useMemo(() => new THREE.Color(heatLowColor), [heatLowColor]);
+  const heatMidColorObj = useMemo(() => new THREE.Color(heatMidColor), [heatMidColor]);
+  const heatHighColorObj = useMemo(() => new THREE.Color(heatHighColor), [heatHighColor]);
+  const colorScratch = useMemo(() => new THREE.Color(), []);
+  const ageHalfLife = useMemo(() => Math.max(1, ageFadeHalfLife), [ageFadeHalfLife]);
+
+  const resolveCellColor = useCallback(
+    (idx: number, ageView: Uint8Array, neighborHeatView: Uint8Array, target: THREE.Color) => {
+      switch (cellColorMode) {
+        case 'Age Fade': {
+          const age = ageView[idx];
+          const decay = Math.exp(-age / ageHalfLife);
+          const brightness = THREE.MathUtils.clamp(0.35 + decay * 0.75, 0.25, 1.2);
+          target.copy(solidColor).multiplyScalar(brightness);
+          break;
+        }
+        case 'Neighbor Heat': {
+          const n = neighborHeatView[idx];
+          const t = Math.min(1, Math.max(0, n / 8));
+          if (t <= 0.5) {
+            target.copy(heatLowColorObj).lerp(heatMidColorObj, t * 2);
+          } else {
+            target.copy(heatMidColorObj).lerp(heatHighColorObj, (t - 0.5) * 2);
+          }
+          break;
+        }
+        case 'Solid':
+        default:
+          target.copy(solidColor);
+          break;
+      }
+      target.r = Math.min(1, target.r);
+      target.g = Math.min(1, target.g);
+      target.b = Math.min(1, target.b);
+      return Math.max(target.r, target.g, target.b);
+    },
+    [cellColorMode, heatHighColorObj, heatLowColorObj, heatMidColorObj, ageHalfLife, solidColor],
+  );
+
+  const rimLightDir = useMemo(() => new THREE.Vector3(6, 6, 8).normalize(), []);
+
+  const planetMaterial = useMemo(() => {
+    const uniforms = {
+      uDayColor: { value: new THREE.Color('#1a1f2a') },
+      uNightColor: { value: new THREE.Color('#0c0e15') },
+      uRimColor: { value: new THREE.Color('#64d4ff') },
+      uLightDir: { value: new THREE.Vector3(0.6, 0.7, 0.6).normalize() },
+      uRimPower: { value: 2.2 },
+      uRimIntensity: { value: 0.7 },
+      uTerminatorSharpness: { value: 1.2 },
+      uTerminatorBoost: { value: 0.3 },
+      uAmbientFloor: { value: 0.2 },
+    } satisfies Record<string, { value: THREE.Vector3 | THREE.Color | number }>;
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vNormal = normalize(normalMatrix * normal);
+          vViewDir = normalize(cameraPosition - worldPos.xyz);
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uDayColor;
+        uniform vec3 uNightColor;
+        uniform vec3 uRimColor;
+        uniform vec3 uLightDir;
+        uniform float uRimPower;
+        uniform float uRimIntensity;
+        uniform float uTerminatorSharpness;
+        uniform float uTerminatorBoost;
+        uniform float uAmbientFloor;
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        void main() {
+          vec3 n = normalize(vNormal);
+          vec3 l = normalize(uLightDir);
+          float ndl = max(0.0, dot(n, l));
+          float shade = pow(ndl, uTerminatorSharpness);
+          shade = max(shade, uAmbientFloor);
+          shade = clamp(shade * (1.0 + uTerminatorBoost), 0.0, 1.0);
+          vec3 base = mix(uNightColor, uDayColor, shade);
+          float rim = pow(1.0 - max(0.0, dot(n, normalize(vViewDir))), uRimPower) * uRimIntensity;
+          vec3 color = base + rim * uRimColor;
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+    });
+    material.toneMapped = true;
+    material.depthWrite = true;
+    return material;
+  }, []);
+
+  useEffect(() => {
+    planetMaterial.uniforms.uRimColor.value.set(atmosphereColor);
+    planetMaterial.uniforms.uRimIntensity.value = rimIntensity;
+    planetMaterial.uniforms.uRimPower.value = rimPower;
+    planetMaterial.uniforms.uTerminatorSharpness.value = terminatorSharpness;
+    planetMaterial.uniforms.uTerminatorBoost.value = terminatorBoost;
+    planetMaterial.uniforms.uLightDir.value.copy(rimLightDir);
+    planetMaterial.uniforms.uAmbientFloor.value = THREE.MathUtils.clamp(
+      planetRoughness * 0.65,
+      0.05,
+      0.95,
+    );
+    planetMaterial.uniforms.uDayColor.value.set('#1a1f2a');
+    planetMaterial.uniforms.uNightColor.value.set('#0c0e15');
+    planetMaterial.wireframe = planetWireframe;
+  }, [
+    planetMaterial,
+    atmosphereColor,
+    rimIntensity,
+    rimPower,
+    terminatorSharpness,
+    terminatorBoost,
+    rimLightDir,
+    planetRoughness,
+    planetWireframe,
+  ]);
+
+  useEffect(() => {
+    return () => planetMaterial.dispose();
+  }, [planetMaterial]);
 
   const updateTexture = useCallback(() => {
     const sim = simRef.current;
     if (!sim) return;
 
     const grid = sim.getGridView();
+    const ages = sim.getAgeView();
+    const heat = sim.getNeighborHeatView();
     const { data, tex, w, h } = lifeTex;
-    const [r, g, b] = cellRgb8;
 
     let aliveCount = 0;
     // Map sim lat index 0 (south pole) to texture v=0 (bottom).
@@ -228,7 +423,8 @@ export function PlanetLife() {
       const srcRow = la * w;
       const dstRow = la * w;
       for (let lo = 0; lo < w; lo++) {
-        const alive = grid[srcRow + lo] === 1;
+        const idx = srcRow + lo;
+        const alive = grid[idx] === 1;
         // Three.js SphereGeometry UVs run opposite to our generic Lon mapping.
         // Our Sim: u=0.25 -> -90 deg. Three.js u=0.25 -> +90 deg.
         // So we map Sim column `lo` to Texture column `w - 1 - lo`.
@@ -236,11 +432,15 @@ export function PlanetLife() {
         const di = (dstRow + dstLo) * 4;
         if (alive) {
           aliveCount++;
-          data[di + 0] = r;
-          data[di + 1] = g;
-          data[di + 2] = b;
-          data[di + 3] = 255;
+          const intensity = resolveCellColor(idx, ages, heat, colorScratch);
+          data[di + 0] = Math.round(colorScratch.r * 255);
+          data[di + 1] = Math.round(colorScratch.g * 255);
+          data[di + 2] = Math.round(colorScratch.b * 255);
+          data[di + 3] = Math.round(255 * Math.min(1, Math.max(0.05, intensity)));
         } else {
+          data[di + 0] = 0;
+          data[di + 1] = 0;
+          data[di + 2] = 0;
           data[di + 3] = 0;
         }
       }
@@ -252,7 +452,7 @@ export function PlanetLife() {
     }
 
     tex.needsUpdate = true;
-  }, [lifeTex, cellRgb8, debugLogs]);
+  }, [lifeTex, resolveCellColor, colorScratch, debugLogs]);
 
   const currentPatternOffsets = useMemo(() => {
     if (seedPattern === 'Custom ASCII') return parseAsciiPattern(customPattern);
@@ -282,17 +482,23 @@ export function PlanetLife() {
     const mesh = cellsRef.current;
     if (!mesh) return;
 
+    const ages = sim.getAgeView();
+    const heat = sim.getNeighborHeatView();
+
     let i = 0;
     sim.forEachAlive((idx) => {
       dummy.position.copy(sim.positions[idx]);
       dummy.scale.setScalar(1);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
+      resolveCellColor(idx, ages, heat, colorScratch);
+      mesh.setColorAt(i, colorScratch);
       i++;
     });
     mesh.count = i;
     mesh.instanceMatrix.needsUpdate = true;
-  }, [dummy, updateTexture]);
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [dummy, updateTexture, resolveCellColor, colorScratch]);
 
   const clear = useCallback(() => {
     simRef.current?.clear();
@@ -392,7 +598,11 @@ export function PlanetLife() {
           point: point.clone(),
           normal: n,
           start: performance.now() / 1000,
-          duration: 0.55,
+          duration: impactRingDuration,
+          color: impactRingColor,
+          flashIntensity: impactFlashIntensity,
+          flashRadius: impactFlashRadius,
+          ringSize: impactRingSize,
         },
       ]);
     },
@@ -404,6 +614,11 @@ export function PlanetLife() {
       seedScale,
       seedJitter,
       seedProbability,
+      impactRingDuration,
+      impactRingColor,
+      impactFlashIntensity,
+      impactFlashRadius,
+      impactRingSize,
       updateInstances,
       debugLogs,
     ],
@@ -437,10 +652,20 @@ export function PlanetLife() {
           direction,
           speed: meteorSpeed,
           radius: meteorRadius,
+          trailLength: meteorTrailLength,
+          trailWidth: meteorTrailWidth,
+          emissiveIntensity: meteorEmissive,
         },
       ]);
     },
-    [meteorCooldownMs, meteorSpeed, meteorRadius],
+    [
+      meteorCooldownMs,
+      meteorSpeed,
+      meteorRadius,
+      meteorTrailLength,
+      meteorTrailWidth,
+      meteorEmissive,
+    ],
   );
 
   const onMeteorImpact = useCallback(
@@ -474,11 +699,19 @@ export function PlanetLife() {
       {/* Planet */}
       <mesh onPointerDown={onPlanetPointerDown}>
         <sphereGeometry args={[planetRadius, 64, 64]} />
-        <meshStandardMaterial
-          color={'#1a1f2a'}
-          roughness={planetRoughness}
-          metalness={0.05}
-          wireframe={planetWireframe}
+        <primitive object={planetMaterial} attach="material" />
+      </mesh>
+
+      {/* Atmosphere glow */}
+      <mesh raycast={() => null}>
+        <sphereGeometry args={[planetRadius * (1 + atmosphereHeight), 64, 64]} />
+        <meshBasicMaterial
+          color={atmosphereColor}
+          transparent
+          opacity={Math.max(0, atmosphereIntensity) * 0.35}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.BackSide}
         />
       </mesh>
 
@@ -508,9 +741,10 @@ export function PlanetLife() {
           <meshStandardMaterial
             color={cellColor}
             emissive={cellColor}
-            emissiveIntensity={0.6}
+            emissiveIntensity={0.7}
             roughness={0.35}
             metalness={0.05}
+            vertexColors
           />
         </instancedMesh>
       )}
