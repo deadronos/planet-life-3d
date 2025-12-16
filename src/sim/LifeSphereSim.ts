@@ -146,28 +146,53 @@ export class LifeSphereSim {
     const L = this.latCells;
     const W = this.lonCells;
     const { birth, survive } = this.rules;
+    const grid = this.grid;
 
     let births = 0;
     let deaths = 0;
     let pop = 0;
 
     for (let la = 0; la < L; la++) {
-      const row = la * W;
+      const rowOffset = la * W;
+
+      // Pre-calculate neighbor row indices
+      const rTop = (la - 1) * W;
+      const rMid = rowOffset;
+      const rBot = (la + 1) * W;
+
+      const hasTop = la > 0;
+      const hasBot = la < L - 1;
+
       for (let lo = 0; lo < W; lo++) {
         let neighbors = 0;
-        for (let dLa = -1; dLa <= 1; dLa++) {
-          const nla = la + dLa;
-          if (nla < 0 || nla >= L) continue;
-          const nrow = nla * W;
-          for (let dLo = -1; dLo <= 1; dLo++) {
-            if (dLa === 0 && dLo === 0) continue;
-            const nlo = (lo + dLo + W) % W;
-            neighbors += this.grid[nrow + nlo];
+
+        if (lo > 0 && lo < W - 1) {
+          // Safe zone - no wrapping needed
+          if (hasTop) {
+            neighbors += grid[rTop + lo - 1] + grid[rTop + lo] + grid[rTop + lo + 1];
+          }
+          // Middle row: left and right only
+          neighbors += grid[rMid + lo - 1] + grid[rMid + lo + 1];
+          if (hasBot) {
+            neighbors += grid[rBot + lo - 1] + grid[rBot + lo] + grid[rBot + lo + 1];
+          }
+        } else {
+          // Edges - wrap longitude
+          const left = (lo - 1 + W) % W;
+          const right = (lo + 1) % W;
+
+          if (hasTop) {
+            neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
+          }
+          // Middle row
+          neighbors += grid[rMid + left] + grid[rMid + right];
+          if (hasBot) {
+            neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
           }
         }
 
-        const idx = row + lo;
-        const alive = this.grid[idx] === 1;
+        const idx = rowOffset + lo;
+        const alive = grid[idx] === 1;
         const nextAlive = alive ? (survive[neighbors] ? 1 : 0) : birth[neighbors] ? 1 : 0;
 
         if (!alive && nextAlive) births++;

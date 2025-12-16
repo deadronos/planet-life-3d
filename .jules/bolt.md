@@ -1,0 +1,3 @@
+## 2025-02-20 - Loop Unrolling and Modulo Avoidance in Grid Simulation
+**Learning:** In a 2D grid simulation on a sphere (wrapped longitude), the neighbor calculation loop using modulo arithmetic for every neighbor access is a significant bottleneck. Splitting the loop into a "safe center" (no wrapping needed) and "edge cases" (wrapping needed) removes the modulo operations for the vast majority of cells.
+**Action:** When optimizing grid-based simulations with boundary conditions, always look for opportunities to process the "inner" safe area separately from the edges to avoid conditional checks or expensive math (like modulo) in the hot loop.
