@@ -1,5 +1,5 @@
 import type { Offset } from '../sim/patterns';
-import type { SeedMode } from '../sim/LifeGridSim';
+import type { SeedMode } from '../sim/LifeSimBase';
 import type { Rules } from '../sim/rules';
 
 export type LifeGridWorkerInit = {
