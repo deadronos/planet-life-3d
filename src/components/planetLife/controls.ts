@@ -189,7 +189,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         meteorSpeed: { value: 10, min: 1, max: 40, step: 0.5 },
         meteorRadius: { value: 0.08, min: 0.02, max: 0.3, step: 0.01 },
         meteorCooldownMs: { value: 120, min: 0, max: 1000, step: 10 },
-        showerEnabled: { value: false, label: 'Shower Enabled' },
+        showerEnabled: { value: true, label: 'Shower Enabled' },
         showerInterval: { value: 250, min: 50, max: 2000, step: 50, label: 'Shower Interval (ms)' },
       },
       { collapsed: true },
