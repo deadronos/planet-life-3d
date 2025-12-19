@@ -56,9 +56,16 @@ export function useMeteorSystem({
 
       // Start from somewhere far out (e.g. radius 12)
       // We add some jitter to the origin so it's not always falling straight down
-      const originDir = target.clone().add(
-        new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(1.5)
-      ).normalize();
+      const originDir = target
+        .clone()
+        .add(
+          new THREE.Vector3(
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+          ).multiplyScalar(1.5),
+        )
+        .normalize();
 
       const origin = originDir.multiplyScalar(12);
       const direction = target.sub(origin).normalize();
