@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Leva } from 'leva';
+import { Leva, useControls, folder } from 'leva';
 import { PlanetLife } from './components/PlanetLife';
 import { Overlay } from './components/Overlay';
 import { SpaceEnvironment } from './components/environment';
@@ -43,6 +43,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const { autoRotate, autoRotateSpeed } = useControls({
+    Camera: folder(
+      {
+        autoRotate: { value: false, label: 'Auto Rotate' },
+        autoRotateSpeed: { value: 0.5, min: 0.1, max: 10, step: 0.1, label: 'Rotation Speed' },
+      },
+      { collapsed: true },
+    ),
+  });
+
   return (
     <>
       <Overlay />
@@ -54,7 +64,13 @@ export default function App() {
         <SpaceEnvironment lightPosition={LIGHT_POSITION} />
 
         <PlanetLife lightPosition={LIGHT_POSITION} />
-        <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
+        <OrbitControls
+          makeDefault
+          enableDamping
+          dampingFactor={0.08}
+          autoRotate={autoRotate}
+          autoRotateSpeed={autoRotateSpeed}
+        />
       </Canvas>
     </>
   );

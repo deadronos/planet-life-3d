@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { useSimulationSeeder } from '../../src/components/planetLife/useSimulationSeeder';
 import * as THREE from 'three';
 import type { Offset } from '../../src/sim/patterns';
-import type { SeedMode } from '../../src/sim/LifeGridSim';
+import type { SeedMode } from '../../src/sim/LifeSimBase';
 
 describe('useSimulationSeeder', () => {
   let mockSeedAtPointImpl: ReturnType<

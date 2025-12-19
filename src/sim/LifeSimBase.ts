@@ -211,7 +211,6 @@ export class LifeSimBase {
       );
     }
 
-    let affected = 0;
     for (const [dLa0, dLo0] of params.offsets) {
       let dLa = dLa0 * scale;
       let dLo = dLo0 * scale;
@@ -239,7 +238,6 @@ export class LifeSimBase {
           break;
       }
       this.setCellState(idx, nextVal);
-      affected++;
     }
 
     // We should recompute stats if we are modifying the grid outside of step()

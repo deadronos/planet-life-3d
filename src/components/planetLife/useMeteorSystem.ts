@@ -9,6 +9,8 @@ type MeteorSystemParams = {
   meteorSpeed: number;
   meteorRadius: number;
   meteorCooldownMs: number;
+  showerEnabled: boolean;
+  showerInterval: number;
   meteorTrailLength: number;
   meteorTrailWidth: number;
   meteorEmissive: number;
@@ -25,6 +27,8 @@ export function useMeteorSystem({
   meteorSpeed,
   meteorRadius,
   meteorCooldownMs,
+  showerEnabled,
+  showerInterval,
   meteorTrailLength,
   meteorTrailWidth,
   meteorEmissive,
@@ -39,6 +43,59 @@ export function useMeteorSystem({
   const lastShotMsRef = useRef(0);
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
+
+  // Meteor shower logic
+  useEffect(() => {
+    if (!showerEnabled) return;
+
+    const spawnMeteor = () => {
+      // Pick a random target on the unit sphere
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const target = new THREE.Vector3().setFromSphericalCoords(1, phi, theta);
+
+      // Start from somewhere far out (e.g. radius 12)
+      // We add some jitter to the origin so it's not always falling straight down
+      const originDir = target
+        .clone()
+        .add(
+          new THREE.Vector3(
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+            Math.random() - 0.5,
+          ).multiplyScalar(1.5),
+        )
+        .normalize();
+
+      const origin = originDir.multiplyScalar(12);
+      const direction = target.sub(origin).normalize();
+
+      setMeteors((list) => [
+        ...list,
+        {
+          id: uid('meteor'),
+          origin,
+          direction,
+          speed: meteorSpeed,
+          radius: meteorRadius,
+          trailLength: meteorTrailLength,
+          trailWidth: meteorTrailWidth,
+          emissiveIntensity: meteorEmissive,
+        },
+      ]);
+    };
+
+    const id = window.setInterval(spawnMeteor, showerInterval);
+    return () => window.clearInterval(id);
+  }, [
+    showerEnabled,
+    showerInterval,
+    meteorSpeed,
+    meteorRadius,
+    meteorTrailLength,
+    meteorTrailWidth,
+    meteorEmissive,
+  ]);
 
   const onPlanetPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
