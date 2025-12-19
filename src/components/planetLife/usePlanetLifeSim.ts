@@ -7,7 +7,7 @@ import type { Rules } from '../../sim/rules';
 import { useUIStore } from '../../store/useUIStore';
 import type { ResolveCellColor } from './cellColor';
 import { writeLifeTexture, type LifeTexture } from './lifeTexture';
-import type { SeedMode } from '../../sim/LifeGridSim';
+import type { SeedMode } from '../../sim/LifeSimBase';
 import type {
   LifeGridWorkerInMessage,
   LifeGridWorkerOutMessage,

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import type { SeedMode } from '../../sim/LifeGridSim';
+import type { SeedMode } from '../../sim/LifeSimBase';
 import type { Offset } from '../../sim/patterns';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
 
