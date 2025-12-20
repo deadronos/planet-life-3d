@@ -19,6 +19,12 @@ export class LifeSimBase {
   protected neighborHeatNext: Uint8Array;
   protected rules: Rules;
 
+  // Optimizations
+  protected aliveIndices: Int32Array;
+  protected nextAliveIndices: Int32Array;
+  protected aliveCount = 0;
+  protected nextAliveCount = 0;
+
   // Stats
   generation = 0;
   population = 0;
@@ -46,6 +52,10 @@ export class LifeSimBase {
     this.ageNext = new Uint8Array(this.cellCount);
     this.neighborHeat = new Uint8Array(this.cellCount);
     this.neighborHeatNext = new Uint8Array(this.cellCount);
+
+    this.aliveIndices = new Int32Array(this.cellCount);
+    this.nextAliveIndices = new Int32Array(this.cellCount);
+
     this.rules = opts.rules;
   }
 
@@ -80,6 +90,8 @@ export class LifeSimBase {
     this.ageNext.fill(0);
     this.neighborHeat.fill(0);
     this.neighborHeatNext.fill(0);
+    this.aliveCount = 0;
+    this.nextAliveCount = 0;
     this.population = 0;
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
@@ -93,11 +105,7 @@ export class LifeSimBase {
       this.setCellState(i, alive);
     }
     // Recompute stats after randomizing
-    let pop = 0;
-    for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i] === 1) pop++;
-    }
-    this.population = pop;
+    this.rebuildAliveIndices();
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
   }
@@ -123,6 +131,7 @@ export class LifeSimBase {
     let births = 0;
     let deaths = 0;
     let pop = 0;
+    this.nextAliveCount = 0;
 
     for (let la = 0; la < L; la++) {
       const rowOffset = la * W;
@@ -161,6 +170,7 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
       }
 
       // 2. Safe Center (lo = 1 .. W - 2)
@@ -187,6 +197,7 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
       }
 
       // 3. Right Edge (lo = W - 1)
@@ -215,6 +226,7 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
       }
     }
 
@@ -235,6 +247,11 @@ export class LifeSimBase {
     tmp = this.neighborHeat;
     this.neighborHeat = this.neighborHeatNext;
     this.neighborHeatNext = tmp;
+
+    const tmpIdx = this.aliveIndices;
+    this.aliveIndices = this.nextAliveIndices;
+    this.nextAliveIndices = tmpIdx;
+    this.aliveCount = this.nextAliveCount;
   }
 
   seedAtCell(params: {
@@ -290,16 +307,27 @@ export class LifeSimBase {
     }
 
     // We should recompute stats if we are modifying the grid outside of step()
-    // However, for performance in bulk operations we might skip this or do it lazily.
-    // For now, let's keep it simple and not re-scan the whole grid here,
-    // assuming step() will fix it or the user doesn't strictly need perfectly live stats during seeding.
-    // Use randomize() logic if you want immediate stats update.
+    this.rebuildAliveIndices();
+  }
+
+  protected rebuildAliveIndices() {
+    let pop = 0;
+    this.aliveCount = 0;
+    for (let i = 0; i < this.cellCount; i++) {
+      if (this.grid[i] === 1) {
+        pop++;
+        this.aliveIndices[this.aliveCount++] = i;
+      }
+    }
+    this.population = pop;
   }
 
   /** Iterate alive cells (for rendering) */
   forEachAlive(fn: (idx: number) => void) {
-    for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i]) fn(i);
+    const count = this.aliveCount;
+    const indices = this.aliveIndices;
+    for (let i = 0; i < count; i++) {
+      fn(indices[i]);
     }
   }
 
