@@ -15,6 +15,7 @@ module.exports = [
       'build/**',
       'public/**',
       '.vscode/**',
+      '.github/**',
       'vitest.config.*',
     ],
   },
