@@ -112,6 +112,14 @@ export class LifeSimBase {
     const { birth, survive } = this.rules;
     const grid = this.grid;
 
+    // Convert rules to bitmasks for faster lookup
+    let birthMask = 0;
+    let surviveMask = 0;
+    for (let i = 0; i < 9; i++) {
+      if (birth[i]) birthMask |= 1 << i;
+      if (survive[i]) surviveMask |= 1 << i;
+    }
+
     let births = 0;
     let deaths = 0;
     let pop = 0;
@@ -127,44 +135,85 @@ export class LifeSimBase {
       const hasTop = la > 0;
       const hasBot = la < L - 1;
 
-      for (let lo = 0; lo < W; lo++) {
+      // 1. Left Edge (lo = 0)
+      {
+        const lo = 0;
         let neighbors = 0;
+        const left = W - 1;
+        const right = 1;
 
-        if (lo > 0 && lo < W - 1) {
-          // Safe zone - no wrapping needed
-          if (hasTop) {
-            neighbors += grid[rTop + lo - 1] + grid[rTop + lo] + grid[rTop + lo + 1];
-          }
-          // Middle row: left and right only
-          neighbors += grid[rMid + lo - 1] + grid[rMid + lo + 1];
-          if (hasBot) {
-            neighbors += grid[rBot + lo - 1] + grid[rBot + lo] + grid[rBot + lo + 1];
-          }
-        } else {
-          // Edges - wrap longitude
-          const left = (lo - 1 + W) % W;
-          const right = (lo + 1) % W;
-
-          if (hasTop) {
-            neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
-          }
-          // Middle row
-          neighbors += grid[rMid + left] + grid[rMid + right];
-          if (hasBot) {
-            neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
-          }
+        if (hasTop) {
+          neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
+        }
+        neighbors += grid[rMid + left] + grid[rMid + right];
+        if (hasBot) {
+          neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
         }
 
         const idx = rowOffset + lo;
-        const alive = grid[idx] === 1;
-        const nextAlive = alive ? (survive[neighbors] ? 1 : 0) : birth[neighbors] ? 1 : 0;
+        const alive = grid[idx];
+        const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
 
-        if (!alive && nextAlive) births++;
-        if (alive && !nextAlive) deaths++;
+        if (nextAlive > alive) births++;
+        if (alive > nextAlive) deaths++;
         if (nextAlive) pop++;
 
         this.next[idx] = nextAlive;
-        this.ageNext[idx] = nextAlive ? Math.min(255, (alive ? this.age[idx] : 0) + 1) : 0;
+        this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+      }
+
+      // 2. Safe Center (lo = 1 .. W - 2)
+      const centerEnd = W - 1;
+      for (let lo = 1; lo < centerEnd; lo++) {
+        let neighbors = 0;
+
+        if (hasTop) {
+          neighbors += grid[rTop + lo - 1] + grid[rTop + lo] + grid[rTop + lo + 1];
+        }
+        neighbors += grid[rMid + lo - 1] + grid[rMid + lo + 1];
+        if (hasBot) {
+          neighbors += grid[rBot + lo - 1] + grid[rBot + lo] + grid[rBot + lo + 1];
+        }
+
+        const idx = rowOffset + lo;
+        const alive = grid[idx];
+        const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
+
+        if (nextAlive > alive) births++;
+        if (alive > nextAlive) deaths++;
+        if (nextAlive) pop++;
+
+        this.next[idx] = nextAlive;
+        this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+      }
+
+      // 3. Right Edge (lo = W - 1)
+      {
+        const lo = W - 1;
+        let neighbors = 0;
+        const left = W - 2;
+        const right = 0;
+
+        if (hasTop) {
+          neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
+        }
+        neighbors += grid[rMid + left] + grid[rMid + right];
+        if (hasBot) {
+          neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
+        }
+
+        const idx = rowOffset + lo;
+        const alive = grid[idx];
+        const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
+
+        if (nextAlive > alive) births++;
+        if (alive > nextAlive) deaths++;
+        if (nextAlive) pop++;
+
+        this.next[idx] = nextAlive;
+        this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
       }
     }
