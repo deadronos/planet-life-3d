@@ -82,6 +82,11 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           sim.setRules(msg.rules);
           return;
         }
+        case 'setGameMode': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setGameMode(msg.mode);
+          return;
+        }
         case 'clear': {
           if (!sim) return sendError('Worker not initialized');
           sim.clear();

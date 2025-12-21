@@ -21,6 +21,7 @@ export function usePlanetLifeSim({
   planetRadius,
   cellLift,
   cellRenderMode,
+  gameMode,
   rules,
   randomDensity,
   workerSim,
@@ -38,6 +39,7 @@ export function usePlanetLifeSim({
   planetRadius: number;
   cellLift: number;
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
+  gameMode: 'Classic' | 'Colony';
   rules: Rules;
   randomDensity: number;
   workerSim: boolean;
@@ -119,22 +121,23 @@ export function usePlanetLifeSim({
       // We still use a main-thread LifeSphereSim instance for precomputed positions.
       const positions = sim.positions;
       for (let idx = 0; idx < grid.length; idx++) {
-        if (grid[idx] !== 1) continue;
+        if (grid[idx] === 0) continue;
         dummy.position.copy(positions[idx]);
         dummy.scale.setScalar(1);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, ages, heat, colorScratch);
+        resolveCellColor(idx, grid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
       }
     } else {
+      const currentGrid = sim.getGridView();
       sim.forEachAlive((idx) => {
         dummy.position.copy(sim.positions[idx]);
         dummy.scale.setScalar(1);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, ages, heat, colorScratch);
+        resolveCellColor(idx, currentGrid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
       });
@@ -247,6 +250,7 @@ export function usePlanetLifeSim({
         cellLift,
         rules,
       });
+      geometrySimRef.current.setGameMode(gameMode);
       simRef.current = null;
       updateInstancesRef.current();
       return;
@@ -259,6 +263,7 @@ export function usePlanetLifeSim({
       cellLift,
       rules,
     });
+    sim.setGameMode(gameMode);
 
     simRef.current = sim;
     geometrySimRef.current = sim;
@@ -275,6 +280,18 @@ export function usePlanetLifeSim({
     }
     simRef.current?.setRules(rules);
   }, [rules, workerEnabled]);
+
+  // Update gameMode
+  useEffect(() => {
+    if (workerEnabled && workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setGameMode',
+        mode: gameMode,
+      } satisfies LifeGridWorkerInMessage);
+      return;
+    }
+    simRef.current?.setGameMode(gameMode);
+  }, [gameMode, workerEnabled]);
 
   // Worker lifecycle
   useEffect(() => {

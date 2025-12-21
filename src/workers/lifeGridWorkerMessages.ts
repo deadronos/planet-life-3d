@@ -1,5 +1,5 @@
 import type { Offset } from '../sim/patterns';
-import type { SeedMode } from '../sim/LifeSimBase';
+import type { SeedMode, GameMode } from '../sim/LifeSimBase';
 import type { Rules } from '../sim/rules';
 
 export type LifeGridWorkerInit = {
@@ -18,6 +18,11 @@ export type LifeGridWorkerTick = {
 export type LifeGridWorkerSetRules = {
   type: 'setRules';
   rules: Rules;
+};
+
+export type LifeGridWorkerSetGameMode = {
+  type: 'setGameMode';
+  mode: GameMode;
 };
 
 export type LifeGridWorkerClear = { type: 'clear' };
@@ -50,6 +55,7 @@ export type LifeGridWorkerInMessage =
   | LifeGridWorkerInit
   | LifeGridWorkerTick
   | LifeGridWorkerSetRules
+  | LifeGridWorkerSetGameMode
   | LifeGridWorkerClear
   | LifeGridWorkerRandomize
   | LifeGridWorkerSeedAtCell

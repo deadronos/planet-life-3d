@@ -5,6 +5,8 @@ import * as THREE from 'three';
 
 describe('cellColor', () => {
   describe('useCellColorResolver', () => {
+    const mockGrid = new Uint8Array([1]);
+
     it('should return Solid color when mode is Solid', () => {
       const { result } = renderHook(() =>
         useCellColorResolver({
@@ -14,6 +16,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -21,7 +26,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([4]);
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Should be red (ff0000)
       expect(color.r).toBeCloseTo(1, 2);
@@ -38,6 +43,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -45,7 +53,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([4]);
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Young cells should be bright
       const brightness = Math.max(color.r, color.g, color.b);
@@ -61,6 +69,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -68,7 +79,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([4]);
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Old cells should be dimmer
       const brightness = Math.max(color.r, color.g, color.b);
@@ -84,6 +95,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00', // Green
           heatMidColor: '#ffff00', // Yellow
           heatHighColor: '#ff0000', // Red
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -91,7 +105,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([0]); // Very low heat
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Should be close to green (low heat color)
       expect(color.g).toBeGreaterThan(0.8);
@@ -107,6 +121,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00', // Green
           heatMidColor: '#ffff00', // Yellow
           heatHighColor: '#ff0000', // Red
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -114,7 +131,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([4]); // Mid heat (4/8 = 0.5)
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Should be yellowish (mix of green and red)
       expect(color.r).toBeGreaterThan(0.3);
@@ -130,6 +147,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00', // Green
           heatMidColor: '#ffff00', // Yellow
           heatHighColor: '#ff0000', // Red
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -137,7 +157,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([8]); // Very high heat
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Should be close to red (high heat color)
       expect(color.r).toBeGreaterThan(0.8);
@@ -153,6 +173,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -160,7 +183,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([0]);
       const color = new THREE.Color();
 
-      result.current.resolveCellColor(0, ageView, heatView, color);
+      result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // All components should be clamped to 1
       expect(color.r).toBeLessThanOrEqual(1);
@@ -177,6 +200,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -184,7 +210,7 @@ describe('cellColor', () => {
       const heatView = new Uint8Array([0]);
       const color = new THREE.Color();
 
-      const brightness = result.current.resolveCellColor(0, ageView, heatView, color);
+      const brightness = result.current.resolveCellColor(0, mockGrid, ageView, heatView, color);
 
       // Brightness should be the max of r,g,b
       expect(brightness).toBeCloseTo(Math.max(color.r, color.g, color.b), 5);
@@ -199,6 +225,9 @@ describe('cellColor', () => {
           heatLowColor: '#00ff00',
           heatMidColor: '#ffff00',
           heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
         }),
       );
 
@@ -207,7 +236,41 @@ describe('cellColor', () => {
       const color = new THREE.Color();
 
       // Should not throw
-      expect(() => result.current.resolveCellColor(0, ageView, heatView, color)).not.toThrow();
+      expect(() =>
+        result.current.resolveCellColor(0, mockGrid, ageView, heatView, color),
+      ).not.toThrow();
+    });
+
+    it('should use colony colors in Colony mode', () => {
+      const { result } = renderHook(() =>
+        useCellColorResolver({
+          cellColorMode: 'Solid', // Should be ignored
+          cellColor: '#ff0000',
+          ageFadeHalfLife: 24,
+          heatLowColor: '#00ff00',
+          heatMidColor: '#ffff00',
+          heatHighColor: '#ff0000',
+          gameMode: 'Colony',
+          colonyColorA: '#ff0000', // Red
+          colonyColorB: '#0000ff', // Blue
+        }),
+      );
+
+      const ageView = new Uint8Array([0]);
+      const heatView = new Uint8Array([0]);
+      const color = new THREE.Color();
+      const gridA = new Uint8Array([1]);
+      const gridB = new Uint8Array([2]);
+
+      // Check Species A
+      result.current.resolveCellColor(0, gridA, ageView, heatView, color);
+      expect(color.r).toBeCloseTo(1, 2);
+      expect(color.b).toBeCloseTo(0, 2);
+
+      // Check Species B
+      result.current.resolveCellColor(0, gridB, ageView, heatView, color);
+      expect(color.r).toBeCloseTo(0, 2);
+      expect(color.b).toBeCloseTo(1, 2);
     });
   });
 });
