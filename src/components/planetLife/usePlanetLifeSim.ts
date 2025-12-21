@@ -374,6 +374,7 @@ export function usePlanetLifeSim({
       latCells: safeLatCells,
       lonCells: safeLonCells,
       rules,
+      gameMode,
       randomDensity,
     } satisfies LifeGridWorkerInMessage);
 

@@ -7,6 +7,7 @@ export type LifeGridWorkerInit = {
   latCells: number;
   lonCells: number;
   rules: Rules;
+  gameMode?: GameMode;
   randomDensity?: number;
 };
 
