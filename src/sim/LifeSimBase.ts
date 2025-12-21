@@ -4,8 +4,10 @@ import type { Rules } from './rules';
 import { clampInt, safeInt } from './utils';
 
 export type SeedMode = 'set' | 'toggle' | 'clear' | 'random';
+export type GameMode = 'Classic' | 'Colony';
 
 export class LifeSimBase {
+  gameMode: GameMode = 'Classic';
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -63,23 +65,27 @@ export class LifeSimBase {
     this.rules = rules;
   }
 
+  setGameMode(mode: GameMode) {
+    this.gameMode = mode;
+  }
+
   protected coordsToIdx(lat: number, lon: number): number {
     const la = clampInt(lat, 0, this.latCells - 1);
     const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
     return la * this.lonCells + lo;
   }
 
-  protected setCellState(idx: number, value: 0 | 1) {
+  protected setCellState(idx: number, value: number) {
     this.grid[idx] = value;
-    this.age[idx] = value ? 1 : 0;
+    this.age[idx] = value > 0 ? 1 : 0;
     this.neighborHeat[idx] = 0;
   }
 
-  getCell(lat: number, lon: number): 0 | 1 {
-    return this.grid[this.coordsToIdx(lat, lon)] as 0 | 1;
+  getCell(lat: number, lon: number): number {
+    return this.grid[this.coordsToIdx(lat, lon)];
   }
 
-  setCell(lat: number, lon: number, value: 0 | 1) {
+  setCell(lat: number, lon: number, value: number) {
     this.setCellState(this.coordsToIdx(lat, lon), value);
   }
 
@@ -100,8 +106,12 @@ export class LifeSimBase {
 
   randomize(density: number, rng = Math.random) {
     const p = Math.max(0, Math.min(1, density));
+    const isColony = this.gameMode === 'Colony';
     for (let i = 0; i < this.cellCount; i++) {
-      const alive = rng() < p ? 1 : 0;
+      let alive = 0;
+      if (rng() < p) {
+        alive = isColony ? (rng() < 0.5 ? 1 : 2) : 1;
+      }
       this.setCellState(i, alive);
     }
     // Recompute stats after randomizing
@@ -110,11 +120,15 @@ export class LifeSimBase {
     this.deathsLastTick = 0;
   }
 
-  /**
-   * Single simulation tick.
-   * Optimized loop from LifeSphereSim handling safe zones to avoid modulo operations.
-   */
   step() {
+    if (this.gameMode === 'Colony') {
+      this.stepColony();
+    } else {
+      this.stepClassic();
+    }
+  }
+
+  private stepClassic() {
     const L = this.latCells;
     const W = this.lonCells;
     const { birth, survive } = this.rules;
@@ -230,12 +244,92 @@ export class LifeSimBase {
       }
     }
 
+    this.swapBuffers(births, deaths, pop);
+  }
+
+  private stepColony() {
+    const L = this.latCells;
+    const W = this.lonCells;
+    const grid = this.grid;
+
+    let births = 0;
+    let deaths = 0;
+    let pop = 0;
+    this.nextAliveCount = 0;
+
+    for (let la = 0; la < L; la++) {
+      const rowOffset = la * W;
+      const rTop = (la - 1) * W;
+      const rMid = rowOffset;
+      const rBot = (la + 1) * W;
+      const hasTop = la > 0;
+      const hasBot = la < L - 1;
+
+      for (let lo = 0; lo < W; lo++) {
+        const left = (lo - 1 + W) % W;
+        const right = (lo + 1) % W;
+
+        // Count neighbors (non-zero) and sum species if needed
+        let neighbors = 0;
+        let countA = 0; // species 1
+        let countB = 0; // species 2
+
+        const check = (idx: number) => {
+          const v = grid[idx];
+          if (v > 0) {
+            neighbors++;
+            if (v === 1) countA++; else countB++;
+          }
+        };
+
+        if (hasTop) {
+          check(rTop + left); check(rTop + lo); check(rTop + right);
+        }
+        check(rMid + left); check(rMid + right);
+        if (hasBot) {
+          check(rBot + left); check(rBot + lo); check(rBot + right);
+        }
+
+        const idx = rowOffset + lo;
+        const current = grid[idx];
+        let nextVal = 0;
+
+        if (current > 0) {
+          // Survival: 2 or 3 neighbors
+          if (neighbors === 2 || neighbors === 3) {
+            nextVal = current;
+          } else {
+            nextVal = 0;
+          }
+        } else {
+          // Birth: exactly 3 neighbors
+          if (neighbors === 3) {
+            nextVal = countA > countB ? 1 : 2;
+          } else {
+            nextVal = 0;
+          }
+        }
+
+        if (nextVal > 0 && current === 0) births++;
+        if (current > 0 && nextVal === 0) deaths++;
+        if (nextVal > 0) pop++;
+
+        this.next[idx] = nextVal;
+        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
+        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+      }
+    }
+
+    this.swapBuffers(births, deaths, pop);
+  }
+
+  private swapBuffers(births: number, deaths: number, pop: number) {
     this.birthsLastTick = births;
     this.deathsLastTick = deaths;
     this.population = pop;
     this.generation++;
 
-    // swap
     let tmp = this.grid;
     this.grid = this.next;
     this.next = tmp;
@@ -287,20 +381,24 @@ export class LifeSimBase {
       }
 
       const idx = this.coordsToIdx(params.lat + dLa, params.lon + dLo);
-      let nextVal: 0 | 1 = this.grid[idx] as 0 | 1;
+      let nextVal: number = this.grid[idx];
 
       switch (params.mode) {
         case 'set':
-          nextVal = 1;
+          nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
           break;
         case 'clear':
           nextVal = 0;
           break;
         case 'toggle':
-          nextVal = nextVal ? 0 : 1;
+          nextVal = nextVal > 0 ? 0 : 1;
           break;
         case 'random':
-          nextVal = rng() < p ? 1 : 0;
+          if (rng() < p) {
+            nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
+          } else {
+            nextVal = 0;
+          }
           break;
       }
       this.setCellState(idx, nextVal);
@@ -314,7 +412,7 @@ export class LifeSimBase {
     let pop = 0;
     this.aliveCount = 0;
     for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i] === 1) {
+      if (this.grid[i] > 0) {
         pop++;
         this.aliveIndices[this.aliveCount++] = i;
       }

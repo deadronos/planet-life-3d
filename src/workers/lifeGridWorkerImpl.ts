@@ -71,6 +71,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
             lonCells: msg.lonCells,
             rules: msg.rules,
           });
+          if (msg.gameMode) sim.setGameMode(msg.gameMode);
           pool = [];
           if (typeof msg.randomDensity === 'number') sim.randomize(msg.randomDensity);
           postMessage({ type: 'ready' });
@@ -80,6 +81,11 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
         case 'setRules': {
           if (!sim) return sendError('Worker not initialized');
           sim.setRules(msg.rules);
+          return;
+        }
+        case 'setGameMode': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setGameMode(msg.mode);
           return;
         }
         case 'clear': {

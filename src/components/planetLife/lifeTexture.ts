@@ -63,7 +63,7 @@ export function writeLifeTexture(params: {
     const dstRow = la * w;
     for (let lo = 0; lo < w; lo++) {
       const idx = srcRow + lo;
-      const alive = grid[idx] === 1;
+      const alive = grid[idx] > 0;
 
       // Three.js SphereGeometry UVs run opposite to our generic Lon mapping.
       // Our Sim: u=0.25 -> -90 deg. Three.js u=0.25 -> +90 deg.
@@ -73,7 +73,7 @@ export function writeLifeTexture(params: {
 
       if (alive) {
         aliveCount++;
-        const intensity = resolveCellColor(idx, ages, heat, colorScratch);
+        const intensity = resolveCellColor(idx, grid, ages, heat, colorScratch);
         data[di + 0] = Math.round(colorScratch.r * 255);
         data[di + 1] = Math.round(colorScratch.g * 255);
         data[di + 2] = Math.round(colorScratch.b * 255);

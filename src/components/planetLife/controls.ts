@@ -41,6 +41,9 @@ export type PlanetLifeControls = {
   heatHighColor: string;
   meteorSpeed: number;
   meteorRadius: number;
+  colonyColorA: string;
+  colonyColorB: string;
+  gameMode: 'Classic' | 'Colony';
   meteorCooldownMs: number;
   showerEnabled: boolean;
   showerInterval: number;
@@ -76,6 +79,11 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
   const [params, set] = useControls(() => ({
     Simulation: folder(
       {
+        gameMode: {
+          label: 'Game Mode',
+          value: 'Classic' as const,
+          options: ['Classic', 'Colony'] as const,
+        },
         running: true,
         tickMs: { value: 120, min: 10, max: 1500, step: 1 },
         latCells: {
@@ -138,6 +146,8 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
 
     Upgrades: folder(
       {
+        colonyColorA: '#ff3333',
+        colonyColorB: '#3388ff',
         theme: {
           label: 'Theme',
           value: 'Default',
