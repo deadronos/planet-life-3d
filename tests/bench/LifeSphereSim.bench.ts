@@ -20,21 +20,40 @@ function makeSim(latCells: number, lonCells: number, density = 0.35) {
   return sim;
 }
 
+function makeSimColony(latCells: number, lonCells: number, density = 0.35) {
+  const sim = new LifeSphereSim({
+    latCells,
+    lonCells,
+    planetRadius: 10,
+    cellLift: 0,
+    rules: GOL_RULES,
+  });
+  sim.setGameMode('Colony');
+  sim.randomize(density);
+  return sim;
+}
+
 describe('LifeSphereSim.step (bench)', () => {
   // Keep sizes modest so `npm run bench` stays fast on laptops.
   const sim64x128 = makeSim(64, 128);
   const sim128x256 = makeSim(128, 256);
-  const sim192x384 = makeSim(192, 384);
 
-  bench('step 64x128', () => {
+  const simColony64x128 = makeSimColony(64, 128);
+  const simColony128x256 = makeSimColony(128, 256);
+
+  bench('Classic 64x128', () => {
     sim64x128.step();
   });
 
-  bench('step 128x256', () => {
+  bench('Classic 128x256', () => {
     sim128x256.step();
   });
 
-  bench('step 192x384', () => {
-    sim192x384.step();
+  bench('Colony 64x128', () => {
+    simColony64x128.step();
+  });
+
+  bench('Colony 128x256', () => {
+    simColony128x256.step();
   });
 });
