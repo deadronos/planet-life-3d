@@ -9,3 +9,7 @@
 ## 2025-02-21 - Sparse Iteration for Rendering
 **Learning:** In a cellular automaton, rendering typically iterates the entire grid to draw alive cells. Maintaining a secondary list of `aliveIndices` during the simulation step (which already iterates the grid) allows the render loop to be O(Alive) instead of O(Total). This is a massive win (20x+) for sparse grids.
 **Action:** When an expensive render loop iterates a large data structure to find a small subset of active items, maintain an active list/index during the state update phase.
+
+## 2025-02-21 - Colony Mode Loop Peeling
+**Learning:** The "Safe Center" optimization (splitting loop to avoid modulo) was missing from `stepColony`, leading to it being 2.4x slower than Classic mode. Applying the same loop peeling technique yielded a 2x speedup. Inlining the neighbor-check logic was required to fit the unrolled structure.
+**Action:** Ensure optimization patterns (like loop peeling) are applied consistently across all variations of a hot path (e.g. different game modes).
