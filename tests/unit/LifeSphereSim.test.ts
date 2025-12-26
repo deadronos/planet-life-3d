@@ -236,6 +236,25 @@ describe('LifeSphereSim', () => {
       expect(count).toBe(1);
     });
 
+    it('seedAtPoint debug logs when requested', () => {
+      const offsets = [[0, 0]];
+      const point = new THREE.Vector3(10, 0, 0);
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      sim.seedAtPoint({
+        point,
+        offsets: offsets as unknown as Offset[],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+        debug: true,
+      });
+
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
     it('seedAtCell with mode "clear" should remove cells', () => {
       sim.setCell(5, 5, 1);
       sim.seedAtCell({
