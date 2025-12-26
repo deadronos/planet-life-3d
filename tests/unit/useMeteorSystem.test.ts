@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem';
 import * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 
 describe('useMeteorSystem', () => {
   const mockSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
@@ -157,5 +158,54 @@ describe('useMeteorSystem', () => {
 
     // Hook should accept all parameters without error
     expect(result.current).toBeDefined();
+  });
+
+  it('onMeteorImpact should seed point, remove meteor, and add impact', () => {
+    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+
+    // Add a meteor via onPlanetPointerDown to get a real id
+    const mockEvent = {
+      stopPropagation: vi.fn(),
+      point: new THREE.Vector3(2, 0, 0),
+      camera: {
+        position: {
+          clone: () => new THREE.Vector3(0, 0, 5),
+        },
+      },
+    };
+
+    act(() => {
+      result.current.onPlanetPointerDown(mockEvent as unknown as ThreeEvent<PointerEvent>);
+    });
+
+    expect(result.current.meteors.length).toBeGreaterThanOrEqual(1);
+    const id = result.current.meteors[0].id;
+
+    const impactPoint = new THREE.Vector3(0, 0, 5);
+
+    act(() => {
+      result.current.onMeteorImpact(id, impactPoint);
+    });
+
+    expect(mockSeedAtPoint).toHaveBeenCalled();
+    expect(result.current.meteors.find((m) => m.id === id)).toBeUndefined();
+    expect(result.current.impacts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shower should spawn meteors when enabled', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() =>
+      useMeteorSystem({ ...defaultParams, showerEnabled: true, showerInterval: 50 }),
+    );
+
+    // Fast-forward timers (wrap in act to allow React updates)
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(result.current.meteors.length).toBeGreaterThan(0);
+
+    unmount();
+    vi.useRealTimers();
   });
 });

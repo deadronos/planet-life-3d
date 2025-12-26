@@ -14,6 +14,12 @@ export type ImpactSpec = {
   ringSize: number;
 };
 
+export function computeImpactBasis(normal: THREE.Vector3, planetRadius: number) {
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+  const pos = normal.clone().multiplyScalar(planetRadius + 0.01);
+  return { q, pos };
+}
+
 export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
   const groupRef = useRef<THREE.Group>(null!);
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -21,15 +27,10 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
   const flashRef = useRef<THREE.Mesh>(null!);
   const flashMatRef = useRef<THREE.MeshBasicMaterial>(null!);
 
-  const basis = useMemo(() => {
-    // ringGeometry faces +Z; rotate it so +Z aligns with the surface normal
-    const q = new THREE.Quaternion().setFromUnitVectors(
-      new THREE.Vector3(0, 0, 1),
-      props.spec.normal,
-    );
-    const pos = props.spec.normal.clone().multiplyScalar(props.planetRadius + 0.01);
-    return { q, pos };
-  }, [props.spec.normal, props.planetRadius]);
+  const basis = useMemo(
+    () => computeImpactBasis(props.spec.normal, props.planetRadius),
+    [props.spec.normal, props.planetRadius],
+  );
 
   useFrame(({ clock }) => {
     const t = (clock.getElapsedTime() - props.spec.start) / props.spec.duration;
