@@ -13,6 +13,13 @@ export type MeteorSpec = {
   emissiveIntensity: number;
 };
 
+export function computeMeteorState(origin: THREE.Vector3, direction: THREE.Vector3) {
+  return {
+    pos: origin.clone(),
+    dir: direction.clone().normalize(),
+  };
+}
+
 export function Meteor(props: {
   spec: MeteorSpec;
   planetRadius: number;
@@ -25,12 +32,10 @@ export function Meteor(props: {
   const trailQuat = useMemo(() => new THREE.Quaternion(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
-  const state = useMemo(() => {
-    return {
-      pos: props.spec.origin.clone(),
-      dir: props.spec.direction.clone().normalize(),
-    };
-  }, [props.spec.origin, props.spec.direction]);
+  const state = useMemo(
+    () => computeMeteorState(props.spec.origin, props.spec.direction),
+    [props.spec.origin, props.spec.direction],
+  );
 
   useFrame((_, dt) => {
     if (impactedRef.current) return;

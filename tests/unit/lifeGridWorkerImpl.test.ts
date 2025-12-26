@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Rules } from '../../src/sim/rules';
 import { createLifeGridWorkerHandler } from '../../src/workers/lifeGridWorkerImpl';
-import type { LifeGridWorkerOutMessage } from '../../src/workers/lifeGridWorkerMessages';
+import type {
+  LifeGridWorkerOutMessage,
+  LifeGridWorkerInMessage,
+} from '../../src/workers/lifeGridWorkerMessages';
 
 // Standard Game of Life Rules: B3/S23
 const GOL_RULES: Rules = {
@@ -62,5 +65,70 @@ describe('lifeGridWorkerImpl', () => {
     expect(second!.grid).toBe(first!.grid);
     expect(second!.age).toBe(first!.age);
     expect(second!.heat).toBe(first!.heat);
+  });
+
+  it('sends an error for commands before init', () => {
+    const out: LifeGridWorkerOutMessage[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+
+    // setRules should return an error when not initialized
+    handler.onMessage({ type: 'setRules', rules: GOL_RULES } as LifeGridWorkerInMessage);
+    const err = out.find((m) => m.type === 'error');
+    expect(err).toBeTruthy();
+  });
+
+  it('supports tick and randomize commands after init', () => {
+    const out: LifeGridWorkerOutMessage[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+
+    handler.onMessage({
+      type: 'init',
+      latCells: 3,
+      lonCells: 3,
+      rules: GOL_RULES,
+    } as LifeGridWorkerInMessage);
+    out.length = 0;
+
+    handler.onMessage({ type: 'randomize', density: 1 } as LifeGridWorkerInMessage);
+    let snap = out.find(
+      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
+    );
+    expect(snap).toBeTruthy();
+
+    out.length = 0;
+    handler.onMessage({ type: 'tick' } as LifeGridWorkerInMessage);
+    snap = out.find(
+      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
+    );
+    expect(snap).toBeTruthy();
+    expect(typeof snap!.generation).toBe('number');
+  });
+
+  it('handles seedAtCell after init', () => {
+    const out: LifeGridWorkerOutMessage[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+
+    handler.onMessage({
+      type: 'init',
+      latCells: 3,
+      lonCells: 3,
+      rules: GOL_RULES,
+    } as LifeGridWorkerInMessage);
+    out.length = 0;
+
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 1,
+      lon: 1,
+      offsets: [],
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    } as LifeGridWorkerInMessage);
+    const snap = out.find(
+      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
+    );
+    expect(snap).toBeTruthy();
   });
 });
