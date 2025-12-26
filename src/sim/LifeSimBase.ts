@@ -189,16 +189,27 @@ export class LifeSimBase {
 
       // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
-      for (let lo = 1; lo < centerEnd; lo++) {
-        let neighbors = 0;
 
-        if (hasTop) {
-          neighbors += grid[rTop + lo - 1] + grid[rTop + lo] + grid[rTop + lo + 1];
-        }
-        neighbors += grid[rMid + lo - 1] + grid[rMid + lo + 1];
-        if (hasBot) {
-          neighbors += grid[rBot + lo - 1] + grid[rBot + lo] + grid[rBot + lo + 1];
-        }
+      // Sliding window sums for column (lo - 1), (lo), (lo + 1)
+      // Initialize sLeft (at lo=0)
+      let sLeft = grid[rMid];
+      if (hasTop) sLeft += grid[rTop];
+      if (hasBot) sLeft += grid[rBot];
+
+      // Initialize sCurr (at lo=1)
+      let sCurr = grid[rMid + 1];
+      if (hasTop) sCurr += grid[rTop + 1];
+      if (hasBot) sCurr += grid[rBot + 1];
+
+      for (let lo = 1; lo < centerEnd; lo++) {
+        // Calculate sRight (at lo + 1)
+        const nextCol = lo + 1;
+        let sRight = grid[rMid + nextCol];
+        if (hasTop) sRight += grid[rTop + nextCol];
+        if (hasBot) sRight += grid[rBot + nextCol];
+
+        // neighbors = sum of 3x3 block - center cell
+        const neighbors = sLeft + sCurr + sRight - grid[rMid + lo];
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -212,6 +223,10 @@ export class LifeSimBase {
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
         if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
+
+        // Shift window
+        sLeft = sCurr;
+        sCurr = sRight;
       }
 
       // 3. Right Edge (lo = W - 1)
