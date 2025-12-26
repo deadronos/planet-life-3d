@@ -4,6 +4,8 @@ import { renderHook } from '@testing-library/react';
 let setSpy: ReturnType<typeof vi.fn>;
 let capturedSchema: unknown = null;
 
+type SchemaShape = { Simulation?: { rulePreset?: { onChange?: (v: string) => void } } };
+
 vi.mock('leva', () => ({
   useControls: (schemaOrName: unknown, schema?: unknown) => {
     const s = schema ?? schemaOrName;
@@ -54,7 +56,6 @@ describe('usePlanetLifeControls - onChange handlers', () => {
 
     // The captured schema should include Simulation.rulePreset.onChange
     expect(capturedSchema).toBeTruthy();
-    type SchemaShape = { Simulation?: { rulePreset?: { onChange?: (v: string) => void } } };
     const rp = (capturedSchema as SchemaShape).Simulation?.rulePreset;
     expect(rp).toBeTruthy();
     expect(typeof rp!.onChange).toBe('function');
