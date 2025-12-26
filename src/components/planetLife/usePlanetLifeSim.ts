@@ -239,6 +239,10 @@ export function usePlanetLifeSim({
   );
 
   // (Re)create sim when grid or planet sizing changes
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Intentionally omit `gameMode` from the dependency array: we update it in a separate
+  // effect to avoid recreating the full simulation (and re-randomizing) when only
+  // the game mode changes.
   useEffect(() => {
     instancingConfiguredRef.current = false;
 
@@ -271,6 +275,7 @@ export function usePlanetLifeSim({
     sim.randomize(randomDensity);
     updateInstancesRef.current();
   }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity, workerEnabled]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Update rules without resetting the grid
   useEffect(() => {
@@ -294,6 +299,10 @@ export function usePlanetLifeSim({
   }, [gameMode, workerEnabled]);
 
   // Worker lifecycle
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Intentionally omit `gameMode` from the dependency array: we post updates to the
+  // worker via a dedicated effect to avoid restarting the worker when only the
+  // game mode changes.
   useEffect(() => {
     if (!workerEnabled) {
       // Disable worker if it was previously enabled.
@@ -398,6 +407,7 @@ export function usePlanetLifeSim({
       workerTickInFlightRef.current = false;
     };
   }, [workerEnabled, safeLatCells, safeLonCells, rules, randomDensity, debugLogs]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Tick loop
   useEffect(() => {
