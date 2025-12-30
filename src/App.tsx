@@ -46,7 +46,7 @@ export default function App() {
   const { autoRotate, autoRotateSpeed } = useControls({
     Camera: folder(
       {
-        autoRotate: { value: false, label: 'Auto Rotate' },
+        autoRotate: { value: true, label: 'Auto Rotate' },
         autoRotateSpeed: { value: 0.5, min: 0.1, max: 10, step: 0.1, label: 'Rotation Speed' },
       },
       { collapsed: true },
@@ -56,7 +56,7 @@ export default function App() {
   return (
     <>
       <Overlay />
-      <Leva collapsed={false} theme={levaTheme} hidden={levaHidden} />
+      <Leva collapsed={true} theme={levaTheme} hidden={levaHidden} />
       <Canvas camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
         <color attach="background" args={['#05060a']} />
         <ambientLight intensity={0.75} />
