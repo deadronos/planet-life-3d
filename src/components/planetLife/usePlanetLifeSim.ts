@@ -21,6 +21,7 @@ export function usePlanetLifeSim({
   planetRadius,
   cellLift,
   cellRenderMode,
+  gameMode,
   rules,
   randomDensity,
   workerSim,
@@ -38,6 +39,7 @@ export function usePlanetLifeSim({
   planetRadius: number;
   cellLift: number;
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
+  gameMode: 'Classic' | 'Colony';
   rules: Rules;
   randomDensity: number;
   workerSim: boolean;
@@ -119,22 +121,23 @@ export function usePlanetLifeSim({
       // We still use a main-thread LifeSphereSim instance for precomputed positions.
       const positions = sim.positions;
       for (let idx = 0; idx < grid.length; idx++) {
-        if (grid[idx] !== 1) continue;
+        if (grid[idx] === 0) continue;
         dummy.position.copy(positions[idx]);
         dummy.scale.setScalar(1);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, ages, heat, colorScratch);
+        resolveCellColor(idx, grid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
       }
     } else {
+      const currentGrid = sim.getGridView();
       sim.forEachAlive((idx) => {
         dummy.position.copy(sim.positions[idx]);
         dummy.scale.setScalar(1);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, ages, heat, colorScratch);
+        resolveCellColor(idx, currentGrid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
       });
@@ -236,6 +239,10 @@ export function usePlanetLifeSim({
   );
 
   // (Re)create sim when grid or planet sizing changes
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Intentionally omit `gameMode` from the dependency array: we update it in a separate
+  // effect to avoid recreating the full simulation (and re-randomizing) when only
+  // the game mode changes.
   useEffect(() => {
     instancingConfiguredRef.current = false;
 
@@ -247,6 +254,7 @@ export function usePlanetLifeSim({
         cellLift,
         rules,
       });
+      geometrySimRef.current.setGameMode(gameMode);
       simRef.current = null;
       updateInstancesRef.current();
       return;
@@ -259,6 +267,7 @@ export function usePlanetLifeSim({
       cellLift,
       rules,
     });
+    sim.setGameMode(gameMode);
 
     simRef.current = sim;
     geometrySimRef.current = sim;
@@ -266,6 +275,7 @@ export function usePlanetLifeSim({
     sim.randomize(randomDensity);
     updateInstancesRef.current();
   }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity, workerEnabled]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Update rules without resetting the grid
   useEffect(() => {
@@ -276,7 +286,23 @@ export function usePlanetLifeSim({
     simRef.current?.setRules(rules);
   }, [rules, workerEnabled]);
 
+  // Update gameMode
+  useEffect(() => {
+    if (workerEnabled && workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setGameMode',
+        mode: gameMode,
+      } satisfies LifeGridWorkerInMessage);
+      return;
+    }
+    simRef.current?.setGameMode(gameMode);
+  }, [gameMode, workerEnabled]);
+
   // Worker lifecycle
+  /* eslint-disable react-hooks/exhaustive-deps */
+  // Intentionally omit `gameMode` from the dependency array: we post updates to the
+  // worker via a dedicated effect to avoid restarting the worker when only the
+  // game mode changes.
   useEffect(() => {
     if (!workerEnabled) {
       // Disable worker if it was previously enabled.
@@ -357,6 +383,7 @@ export function usePlanetLifeSim({
       latCells: safeLatCells,
       lonCells: safeLonCells,
       rules,
+      gameMode,
       randomDensity,
     } satisfies LifeGridWorkerInMessage);
 
@@ -380,6 +407,7 @@ export function usePlanetLifeSim({
       workerTickInFlightRef.current = false;
     };
   }, [workerEnabled, safeLatCells, safeLonCells, rules, randomDensity, debugLogs]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Tick loop
   useEffect(() => {

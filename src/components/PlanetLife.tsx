@@ -30,6 +30,7 @@ export function PlanetLife({
     lonCells,
     birthDigits,
     surviveDigits,
+    gameMode,
     randomDensity,
 
     planetRadius,
@@ -50,6 +51,8 @@ export function PlanetLife({
     cellLift,
     cellColor,
     cellColorMode,
+    colonyColorA,
+    colonyColorB,
     ageFadeHalfLife,
     heatLowColor,
     heatMidColor,
@@ -120,6 +123,9 @@ export function PlanetLife({
     heatLowColor,
     heatMidColor,
     heatHighColor,
+    gameMode,
+    colonyColorA,
+    colonyColorB,
   });
 
   const planetMaterial = usePlanetMaterial({
@@ -149,6 +155,7 @@ export function PlanetLife({
     planetRadius,
     cellLift,
     cellRenderMode,
+    gameMode,
     rules,
     randomDensity,
     workerSim,

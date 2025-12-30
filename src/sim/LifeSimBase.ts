@@ -4,8 +4,10 @@ import type { Rules } from './rules';
 import { clampInt, safeInt } from './utils';
 
 export type SeedMode = 'set' | 'toggle' | 'clear' | 'random';
+export type GameMode = 'Classic' | 'Colony';
 
 export class LifeSimBase {
+  gameMode: GameMode = 'Classic';
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -18,6 +20,12 @@ export class LifeSimBase {
   protected neighborHeat: Uint8Array;
   protected neighborHeatNext: Uint8Array;
   protected rules: Rules;
+
+  // Optimizations
+  protected aliveIndices: Int32Array;
+  protected nextAliveIndices: Int32Array;
+  protected aliveCount = 0;
+  protected nextAliveCount = 0;
 
   // Stats
   generation = 0;
@@ -46,11 +54,19 @@ export class LifeSimBase {
     this.ageNext = new Uint8Array(this.cellCount);
     this.neighborHeat = new Uint8Array(this.cellCount);
     this.neighborHeatNext = new Uint8Array(this.cellCount);
+
+    this.aliveIndices = new Int32Array(this.cellCount);
+    this.nextAliveIndices = new Int32Array(this.cellCount);
+
     this.rules = opts.rules;
   }
 
   setRules(rules: Rules) {
     this.rules = rules;
+  }
+
+  setGameMode(mode: GameMode) {
+    this.gameMode = mode;
   }
 
   protected coordsToIdx(lat: number, lon: number): number {
@@ -59,17 +75,17 @@ export class LifeSimBase {
     return la * this.lonCells + lo;
   }
 
-  protected setCellState(idx: number, value: 0 | 1) {
+  protected setCellState(idx: number, value: number) {
     this.grid[idx] = value;
-    this.age[idx] = value ? 1 : 0;
+    this.age[idx] = value > 0 ? 1 : 0;
     this.neighborHeat[idx] = 0;
   }
 
-  getCell(lat: number, lon: number): 0 | 1 {
-    return this.grid[this.coordsToIdx(lat, lon)] as 0 | 1;
+  getCell(lat: number, lon: number): number {
+    return this.grid[this.coordsToIdx(lat, lon)];
   }
 
-  setCell(lat: number, lon: number, value: 0 | 1) {
+  setCell(lat: number, lon: number, value: number) {
     this.setCellState(this.coordsToIdx(lat, lon), value);
   }
 
@@ -80,6 +96,8 @@ export class LifeSimBase {
     this.ageNext.fill(0);
     this.neighborHeat.fill(0);
     this.neighborHeatNext.fill(0);
+    this.aliveCount = 0;
+    this.nextAliveCount = 0;
     this.population = 0;
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
@@ -88,25 +106,29 @@ export class LifeSimBase {
 
   randomize(density: number, rng = Math.random) {
     const p = Math.max(0, Math.min(1, density));
+    const isColony = this.gameMode === 'Colony';
     for (let i = 0; i < this.cellCount; i++) {
-      const alive = rng() < p ? 1 : 0;
+      let alive = 0;
+      if (rng() < p) {
+        alive = isColony ? (rng() < 0.5 ? 1 : 2) : 1;
+      }
       this.setCellState(i, alive);
     }
     // Recompute stats after randomizing
-    let pop = 0;
-    for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i] === 1) pop++;
-    }
-    this.population = pop;
+    this.rebuildAliveIndices();
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
   }
 
-  /**
-   * Single simulation tick.
-   * Optimized loop from LifeSphereSim handling safe zones to avoid modulo operations.
-   */
   step() {
+    if (this.gameMode === 'Colony') {
+      this.stepColony();
+    } else {
+      this.stepClassic();
+    }
+  }
+
+  private stepClassic() {
     const L = this.latCells;
     const W = this.lonCells;
     const { birth, survive } = this.rules;
@@ -123,6 +145,7 @@ export class LifeSimBase {
     let births = 0;
     let deaths = 0;
     let pop = 0;
+    this.nextAliveCount = 0;
 
     for (let la = 0; la < L; la++) {
       const rowOffset = la * W;
@@ -161,20 +184,32 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
       }
 
       // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
-      for (let lo = 1; lo < centerEnd; lo++) {
-        let neighbors = 0;
 
-        if (hasTop) {
-          neighbors += grid[rTop + lo - 1] + grid[rTop + lo] + grid[rTop + lo + 1];
-        }
-        neighbors += grid[rMid + lo - 1] + grid[rMid + lo + 1];
-        if (hasBot) {
-          neighbors += grid[rBot + lo - 1] + grid[rBot + lo] + grid[rBot + lo + 1];
-        }
+      // Sliding window sums for column (lo - 1), (lo), (lo + 1)
+      // Initialize sLeft (at lo=0)
+      let sLeft = grid[rMid];
+      if (hasTop) sLeft += grid[rTop];
+      if (hasBot) sLeft += grid[rBot];
+
+      // Initialize sCurr (at lo=1)
+      let sCurr = grid[rMid + 1];
+      if (hasTop) sCurr += grid[rTop + 1];
+      if (hasBot) sCurr += grid[rBot + 1];
+
+      for (let lo = 1; lo < centerEnd; lo++) {
+        // Calculate sRight (at lo + 1)
+        const nextCol = lo + 1;
+        let sRight = grid[rMid + nextCol];
+        if (hasTop) sRight += grid[rTop + nextCol];
+        if (hasBot) sRight += grid[rBot + nextCol];
+
+        // neighbors = sum of 3x3 block - center cell
+        const neighbors = sLeft + sCurr + sRight - grid[rMid + lo];
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -187,6 +222,11 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
+
+        // Shift window
+        sLeft = sCurr;
+        sCurr = sRight;
       }
 
       // 3. Right Edge (lo = W - 1)
@@ -215,15 +255,259 @@ export class LifeSimBase {
         this.next[idx] = nextAlive;
         this.ageNext[idx] = nextAlive ? Math.min(255, this.age[idx] + 1) : 0;
         this.neighborHeatNext[idx] = nextAlive ? neighbors : 0;
+        if (nextAlive) this.nextAliveIndices[this.nextAliveCount++] = idx;
       }
     }
 
+    this.swapBuffers(births, deaths, pop);
+  }
+
+  private stepColony() {
+    const L = this.latCells;
+    const W = this.lonCells;
+    const grid = this.grid;
+
+    let births = 0;
+    let deaths = 0;
+    let pop = 0;
+    this.nextAliveCount = 0;
+
+    for (let la = 0; la < L; la++) {
+      const rowOffset = la * W;
+      const rTop = (la - 1) * W;
+      const rMid = rowOffset;
+      const rBot = (la + 1) * W;
+      const hasTop = la > 0;
+      const hasBot = la < L - 1;
+
+      // 1. Left Edge (lo = 0)
+      {
+        const lo = 0;
+        let neighbors = 0;
+        let countA = 0;
+
+        const left = W - 1;
+        const right = 1;
+
+        if (hasTop) {
+          let v = grid[rTop + left];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + right];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+        let v = grid[rMid + left];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        v = grid[rMid + right];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        if (hasBot) {
+          let v = grid[rBot + left];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + right];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+
+        const idx = rowOffset + lo;
+        const current = grid[idx];
+        let nextVal = 0;
+
+        if (current > 0) {
+          if (neighbors === 2 || neighbors === 3) nextVal = current;
+        } else {
+          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+        }
+
+        if (nextVal > 0 && current === 0) births++;
+        if (current > 0 && nextVal === 0) deaths++;
+        if (nextVal > 0) pop++;
+
+        this.next[idx] = nextVal;
+        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
+        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+      }
+
+      // 2. Safe Center (lo = 1 .. W - 2)
+      const centerEnd = W - 1;
+      for (let lo = 1; lo < centerEnd; lo++) {
+        let neighbors = 0;
+        let countA = 0;
+
+        if (hasTop) {
+          let v = grid[rTop + lo - 1];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + lo + 1];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+        let v = grid[rMid + lo - 1];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        v = grid[rMid + lo + 1];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        if (hasBot) {
+          let v = grid[rBot + lo - 1];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + lo + 1];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+
+        const idx = rowOffset + lo;
+        const current = grid[idx];
+        let nextVal = 0;
+
+        if (current > 0) {
+          if (neighbors === 2 || neighbors === 3) nextVal = current;
+        } else {
+          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+        }
+
+        if (nextVal > 0 && current === 0) births++;
+        if (current > 0 && nextVal === 0) deaths++;
+        if (nextVal > 0) pop++;
+
+        this.next[idx] = nextVal;
+        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
+        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+      }
+
+      // 3. Right Edge (lo = W - 1)
+      {
+        const lo = W - 1;
+        let neighbors = 0;
+        let countA = 0;
+        const left = W - 2;
+        const right = 0;
+
+        if (hasTop) {
+          let v = grid[rTop + left];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rTop + right];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+        let v = grid[rMid + left];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        v = grid[rMid + right];
+        if (v) {
+          neighbors++;
+          if (v === 1) countA++;
+        }
+        if (hasBot) {
+          let v = grid[rBot + left];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + lo];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+          v = grid[rBot + right];
+          if (v) {
+            neighbors++;
+            if (v === 1) countA++;
+          }
+        }
+
+        const idx = rowOffset + lo;
+        const current = grid[idx];
+        let nextVal = 0;
+
+        if (current > 0) {
+          if (neighbors === 2 || neighbors === 3) nextVal = current;
+        } else {
+          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+        }
+
+        if (nextVal > 0 && current === 0) births++;
+        if (current > 0 && nextVal === 0) deaths++;
+        if (nextVal > 0) pop++;
+
+        this.next[idx] = nextVal;
+        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
+        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
+        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+      }
+    }
+
+    this.swapBuffers(births, deaths, pop);
+  }
+
+  private swapBuffers(births: number, deaths: number, pop: number) {
     this.birthsLastTick = births;
     this.deathsLastTick = deaths;
     this.population = pop;
     this.generation++;
 
-    // swap
     let tmp = this.grid;
     this.grid = this.next;
     this.next = tmp;
@@ -235,6 +519,11 @@ export class LifeSimBase {
     tmp = this.neighborHeat;
     this.neighborHeat = this.neighborHeatNext;
     this.neighborHeatNext = tmp;
+
+    const tmpIdx = this.aliveIndices;
+    this.aliveIndices = this.nextAliveIndices;
+    this.nextAliveIndices = tmpIdx;
+    this.aliveCount = this.nextAliveCount;
   }
 
   seedAtCell(params: {
@@ -270,36 +559,51 @@ export class LifeSimBase {
       }
 
       const idx = this.coordsToIdx(params.lat + dLa, params.lon + dLo);
-      let nextVal: 0 | 1 = this.grid[idx] as 0 | 1;
+      let nextVal: number = this.grid[idx];
 
       switch (params.mode) {
         case 'set':
-          nextVal = 1;
+          nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
           break;
         case 'clear':
           nextVal = 0;
           break;
         case 'toggle':
-          nextVal = nextVal ? 0 : 1;
+          nextVal = nextVal > 0 ? 0 : 1;
           break;
         case 'random':
-          nextVal = rng() < p ? 1 : 0;
+          if (rng() < p) {
+            nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
+          } else {
+            nextVal = 0;
+          }
           break;
       }
       this.setCellState(idx, nextVal);
     }
 
     // We should recompute stats if we are modifying the grid outside of step()
-    // However, for performance in bulk operations we might skip this or do it lazily.
-    // For now, let's keep it simple and not re-scan the whole grid here,
-    // assuming step() will fix it or the user doesn't strictly need perfectly live stats during seeding.
-    // Use randomize() logic if you want immediate stats update.
+    this.rebuildAliveIndices();
+  }
+
+  protected rebuildAliveIndices() {
+    let pop = 0;
+    this.aliveCount = 0;
+    for (let i = 0; i < this.cellCount; i++) {
+      if (this.grid[i] > 0) {
+        pop++;
+        this.aliveIndices[this.aliveCount++] = i;
+      }
+    }
+    this.population = pop;
   }
 
   /** Iterate alive cells (for rendering) */
   forEachAlive(fn: (idx: number) => void) {
-    for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i]) fn(i);
+    const count = this.aliveCount;
+    const indices = this.aliveIndices;
+    for (let i = 0; i < count; i++) {
+      fn(indices[i]);
     }
   }
 

@@ -4,6 +4,12 @@ Short, actionable instructions for AI coding agents working on this repo.
 
 Important: Read the `.github/copilot-instructions.md` and `.github/instructions/` files first — they contain workspace-level instructions, safety rules, and file-type guidance.
 
+## Also important
+
+After finishing code changes, run:
+npm run test && npm run lint && npm run typecheck
+to ensure tests pass, code is linted, and types are valid.
+
 What this project is
 
 - A single-page React + TypeScript app using Vite + three.js + @react-three/fiber.
