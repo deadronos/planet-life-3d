@@ -1,6 +1,6 @@
 export const SIM_DEFAULTS = {
-  latCells: 48,
-  lonCells: 96,
+  latCells: 100,
+  lonCells: 160,
   planetRadius: 2.6,
   cellLift: 0.04,
 };
