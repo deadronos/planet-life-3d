@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useUIStore } from '../store/useUIStore';
 
 export function Overlay() {
   const stats = useUIStore((state) => state.stats);
 
-  const [showHint] = useState<boolean>(() => {
+  const [showHint, setShowHint] = useState<boolean>(() => {
     const hintShown = localStorage.getItem('onboardingHintShown');
     return !hintShown;
   });
 
-  useEffect(() => {
-    if (showHint) {
-      localStorage.setItem('onboardingHintShown', 'true');
-    }
-  }, [showHint]);
+  const dismissHint = () => {
+    setShowHint(false);
+    localStorage.setItem('onboardingHintShown', 'true');
+  };
 
   return (
     <div className="overlay-panel">
@@ -25,6 +24,13 @@ export function Overlay() {
       {showHint && (
         <div className="onboarding-hint">
           <p>Drag to orbit • Scroll to zoom • Click planet to fire meteor.</p>
+          <button
+            onClick={dismissHint}
+            aria-label="Dismiss instructions"
+            className="hint-dismiss-btn"
+          >
+            ✕
+          </button>
         </div>
       )}
 
