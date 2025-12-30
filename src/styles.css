@@ -67,7 +67,7 @@ body,
   background: rgba(13, 17, 28, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  padding: 1rem 1.5rem;
+  padding: 1rem 1rem 1rem 1.5rem;
   border-radius: 4px;
   border-left: 3px solid #818cf8;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -78,10 +78,45 @@ body,
   line-height: 1.4;
   letter-spacing: 0.02em;
   transition: transform 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
 }
 
 .onboarding-hint:hover {
   transform: translateX(2px);
+}
+
+.onboarding-hint p {
+  margin: 0;
+}
+
+.hint-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+  line-height: 1;
+}
+
+.hint-dismiss-btn:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hint-dismiss-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  color: white;
 }
 
 /* Leva tweaks if needed via CSS, though theme prop is better */

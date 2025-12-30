@@ -1,4 +1,4 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Overlay } from '../../src/components/Overlay';
 
@@ -36,13 +36,13 @@ describe('Overlay component', () => {
       /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
     );
     expect(hintText).toBeInTheDocument();
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('onboardingHintShown', 'true');
+    // It should NOT set localStorage immediately on render anymore
+    expect(localStorageMock.setItem).not.toHaveBeenCalledWith('onboardingHintShown', 'true');
   });
 
-  it('should not display the onboarding hint on subsequent renders after being shown once', () => {
+  it('should not display the onboarding hint if it was previously dismissed', () => {
     // Simulate hint being shown once
     localStorageMock.setItem('onboardingHintShown', 'true');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('onboardingHintShown', 'true'); // Verify our mock setup
 
     // Render the component
     render(<Overlay />);
@@ -52,6 +52,23 @@ describe('Overlay component', () => {
       /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
     );
     expect(hintText).not.toBeInTheDocument();
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1); // Should not be called again
+  });
+
+  it('should dismiss the hint when the close button is clicked', () => {
+    render(<Overlay />);
+
+    const dismissBtn = screen.getByLabelText('Dismiss instructions');
+    expect(dismissBtn).toBeInTheDocument();
+
+    fireEvent.click(dismissBtn);
+
+    // Should disappear
+    const hintText = screen.queryByText(
+      /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
+    );
+    expect(hintText).not.toBeInTheDocument();
+
+    // Should persist to localStorage
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('onboardingHintShown', 'true');
   });
 });
