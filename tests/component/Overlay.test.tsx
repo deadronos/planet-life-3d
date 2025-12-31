@@ -33,7 +33,7 @@ describe('Overlay component', () => {
   it('should display the onboarding hint the first time it is rendered', () => {
     render(<Overlay />);
     const hintText = screen.getByText(
-      /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
+      /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
     );
     expect(hintText).toBeInTheDocument();
     // It should NOT set localStorage immediately on render anymore
@@ -49,7 +49,7 @@ describe('Overlay component', () => {
 
     // Expect the hint not to be in the document
     const hintText = screen.queryByText(
-      /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
+      /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
     );
     expect(hintText).not.toBeInTheDocument();
   });
@@ -64,7 +64,7 @@ describe('Overlay component', () => {
 
     // Should disappear
     const hintText = screen.queryByText(
-      /Drag to orbit • Scroll to zoom • Click planet to fire meteor/i,
+      /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
     );
     expect(hintText).not.toBeInTheDocument();
 
