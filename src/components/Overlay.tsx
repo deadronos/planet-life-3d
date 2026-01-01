@@ -22,8 +22,11 @@ export function Overlay() {
       </div>
 
       {showHint && (
-        <div className="onboarding-hint">
-          <p>Drag to orbit • Scroll to zoom • Click planet to fire meteor.</p>
+        <div className="onboarding-hint" role="region" aria-label="Onboarding instructions">
+          <p>
+            Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press &apos;h&apos; to
+            toggle UI.
+          </p>
           <button
             onClick={dismissHint}
             aria-label="Dismiss instructions"
