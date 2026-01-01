@@ -272,6 +272,41 @@ export class LifeSimBase {
     let pop = 0;
     this.nextAliveCount = 0;
 
+    const check = (idx: number, stats: { neighbors: number; countA: number }) => {
+      const v = grid[idx];
+      if (v) {
+        stats.neighbors++;
+        if (v === 1) stats.countA++;
+      }
+    };
+
+    // Helper to process a single cell after neighbors are counted
+    const process = (
+      lo: number,
+      neighbors: number,
+      countA: number,
+      rowOffset: number,
+    ) => {
+      const idx = rowOffset + lo;
+      const current = grid[idx];
+      let nextVal = 0;
+
+      if (current > 0) {
+        if (neighbors === 2 || neighbors === 3) nextVal = current;
+      } else {
+        if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+      }
+
+      if (nextVal > 0 && current === 0) births++;
+      if (current > 0 && nextVal === 0) deaths++;
+      if (nextVal > 0) pop++;
+
+      this.next[idx] = nextVal;
+      this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
+      this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
+      if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+    };
+
     for (let la = 0; la < L; la++) {
       const rowOffset = la * W;
       const rTop = (la - 1) * W;
@@ -283,219 +318,72 @@ export class LifeSimBase {
       // 1. Left Edge (lo = 0)
       {
         const lo = 0;
-        let neighbors = 0;
-        let countA = 0;
-
+        const stats = { neighbors: 0, countA: 0 };
         const left = W - 1;
         const right = 1;
 
         if (hasTop) {
-          let v = grid[rTop + left];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + right];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rTop + left, stats);
+          check(rTop + lo, stats);
+          check(rTop + right, stats);
         }
-        let v = grid[rMid + left];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
-        v = grid[rMid + right];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
+        check(rMid + left, stats);
+        check(rMid + right, stats);
         if (hasBot) {
-          let v = grid[rBot + left];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + right];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rBot + left, stats);
+          check(rBot + lo, stats);
+          check(rBot + right, stats);
         }
 
-        const idx = rowOffset + lo;
-        const current = grid[idx];
-        let nextVal = 0;
-
-        if (current > 0) {
-          if (neighbors === 2 || neighbors === 3) nextVal = current;
-        } else {
-          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
-        }
-
-        if (nextVal > 0 && current === 0) births++;
-        if (current > 0 && nextVal === 0) deaths++;
-        if (nextVal > 0) pop++;
-
-        this.next[idx] = nextVal;
-        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
-        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
-        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+        process(lo, stats.neighbors, stats.countA, rowOffset);
       }
 
       // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
       for (let lo = 1; lo < centerEnd; lo++) {
-        let neighbors = 0;
-        let countA = 0;
+        const stats = { neighbors: 0, countA: 0 };
+        // We know indices are safe here, so we can unroll/optimize if needed,
+        // but for deduplication we use the same structure.
+        // Note: Using `check` function call in tight loop might be slightly slower,
+        // but V8 usually inlines this.
 
         if (hasTop) {
-          let v = grid[rTop + lo - 1];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + lo + 1];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rTop + lo - 1, stats);
+          check(rTop + lo, stats);
+          check(rTop + lo + 1, stats);
         }
-        let v = grid[rMid + lo - 1];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
-        v = grid[rMid + lo + 1];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
+        check(rMid + lo - 1, stats);
+        check(rMid + lo + 1, stats);
         if (hasBot) {
-          let v = grid[rBot + lo - 1];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + lo + 1];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rBot + lo - 1, stats);
+          check(rBot + lo, stats);
+          check(rBot + lo + 1, stats);
         }
 
-        const idx = rowOffset + lo;
-        const current = grid[idx];
-        let nextVal = 0;
-
-        if (current > 0) {
-          if (neighbors === 2 || neighbors === 3) nextVal = current;
-        } else {
-          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
-        }
-
-        if (nextVal > 0 && current === 0) births++;
-        if (current > 0 && nextVal === 0) deaths++;
-        if (nextVal > 0) pop++;
-
-        this.next[idx] = nextVal;
-        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
-        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
-        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+        process(lo, stats.neighbors, stats.countA, rowOffset);
       }
 
       // 3. Right Edge (lo = W - 1)
       {
         const lo = W - 1;
-        let neighbors = 0;
-        let countA = 0;
+        const stats = { neighbors: 0, countA: 0 };
         const left = W - 2;
         const right = 0;
 
         if (hasTop) {
-          let v = grid[rTop + left];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rTop + right];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rTop + left, stats);
+          check(rTop + lo, stats);
+          check(rTop + right, stats);
         }
-        let v = grid[rMid + left];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
-        v = grid[rMid + right];
-        if (v) {
-          neighbors++;
-          if (v === 1) countA++;
-        }
+        check(rMid + left, stats);
+        check(rMid + right, stats);
         if (hasBot) {
-          let v = grid[rBot + left];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + lo];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
-          v = grid[rBot + right];
-          if (v) {
-            neighbors++;
-            if (v === 1) countA++;
-          }
+          check(rBot + left, stats);
+          check(rBot + lo, stats);
+          check(rBot + right, stats);
         }
 
-        const idx = rowOffset + lo;
-        const current = grid[idx];
-        let nextVal = 0;
-
-        if (current > 0) {
-          if (neighbors === 2 || neighbors === 3) nextVal = current;
-        } else {
-          if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
-        }
-
-        if (nextVal > 0 && current === 0) births++;
-        if (current > 0 && nextVal === 0) deaths++;
-        if (nextVal > 0) pop++;
-
-        this.next[idx] = nextVal;
-        this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
-        this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
-        if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+        process(lo, stats.neighbors, stats.countA, rowOffset);
       }
     }
 
