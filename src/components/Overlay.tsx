@@ -22,11 +22,7 @@ export function Overlay() {
       </div>
 
       {showHint && (
-        <div
-          className="onboarding-hint"
-          role="region"
-          aria-label="Onboarding instructions"
-        >
+        <div className="onboarding-hint" role="region" aria-label="Onboarding instructions">
           <p>
             Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press &apos;h&apos; to
             toggle UI.
