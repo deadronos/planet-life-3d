@@ -281,12 +281,7 @@ export class LifeSimBase {
     };
 
     // Helper to process a single cell after neighbors are counted
-    const process = (
-      lo: number,
-      neighbors: number,
-      countA: number,
-      rowOffset: number,
-    ) => {
+    const process = (lo: number, neighbors: number, countA: number, rowOffset: number) => {
       const idx = rowOffset + lo;
       const current = grid[idx];
       let nextVal = 0;
