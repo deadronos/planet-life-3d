@@ -22,12 +22,10 @@ export function useLifeTexture(params: { lonCells: number; latCells: number }): 
     tex.flipY = false;
 
     // colorSpace is the modern three.js name; tolerate older builds.
-    try {
+    if ('SRGBColorSpace' in THREE) {
       (tex as unknown as Record<string, unknown>)['colorSpace'] = (
         THREE as unknown as Record<string, unknown>
       )['SRGBColorSpace'];
-    } catch {
-      /* noop */
     }
 
     tex.needsUpdate = true;
