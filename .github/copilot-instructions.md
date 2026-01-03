@@ -37,7 +37,10 @@ If `npm run dev` fails, ensure dependencies are installed and Node is supported;
 
 ## Tests & validation
 
-- There is no test harness in the repository. Use `npm run build` to validate TypeScript correctness and `npm run dev` to manually verify behavior in browser.
+- The repository uses **Vitest** for unit testing. Tests live in the `tests/` directory.
+- Run tests: `npm run test` (or `npm run test:watch`).
+- E2E tests (if any) should live in `tests/e2e`.
+- Use `npm run build` to validate TypeScript correctness.
 - Unit-test candidates: `LifeSphereSim.step()`, `pointToCell()` and `parseAsciiPattern()` are pure/isolated and ideal for adding tests.
 
 ## Quick code examples (where to look)
