@@ -1,9 +1,5 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import {
-  calculateNextCellState,
-  countNeighborsColony,
-  sumNeighborsEdge,
-} from './LifeGridHelper';
+import { calculateNextCellState, countNeighborsColony, sumNeighborsEdge } from './LifeGridHelper';
 import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { clampInt, safeInt } from './utils';
@@ -169,17 +165,7 @@ export class LifeSimBase {
         const left = W - 1;
         const right = 1;
 
-        const neighbors = sumNeighborsEdge(
-          grid,
-          rTop,
-          rMid,
-          rBot,
-          hasTop,
-          hasBot,
-          left,
-          lo,
-          right,
-        );
+        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -243,17 +229,7 @@ export class LifeSimBase {
         const left = W - 2;
         const right = 0;
 
-        const neighbors = sumNeighborsEdge(
-          grid,
-          rTop,
-          rMid,
-          rBot,
-          hasTop,
-          hasBot,
-          left,
-          lo,
-          right,
-        );
+        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -320,18 +296,7 @@ export class LifeSimBase {
         const left = W - 1;
         const right = 1;
 
-        countNeighborsColony(
-          grid,
-          rTop,
-          rMid,
-          rBot,
-          hasTop,
-          hasBot,
-          left,
-          lo,
-          right,
-          stats,
-        );
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -342,18 +307,7 @@ export class LifeSimBase {
         const stats = { neighbors: 0, countA: 0 };
         // We know indices are safe here, so we can unroll/optimize if needed,
         // but for deduplication we use the same structure.
-        countNeighborsColony(
-          grid,
-          rTop,
-          rMid,
-          rBot,
-          hasTop,
-          hasBot,
-          lo - 1,
-          lo,
-          lo + 1,
-          stats,
-        );
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, lo - 1, lo, lo + 1, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -365,18 +319,7 @@ export class LifeSimBase {
         const left = W - 2;
         const right = 0;
 
-        countNeighborsColony(
-          grid,
-          rTop,
-          rMid,
-          rBot,
-          hasTop,
-          hasBot,
-          left,
-          lo,
-          right,
-          stats,
-        );
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -443,13 +386,7 @@ export class LifeSimBase {
 
       const idx = this.coordsToIdx(params.lat + dLa, params.lon + dLo);
       const currentVal = this.grid[idx];
-      const nextVal = calculateNextCellState(
-        currentVal,
-        params.mode,
-        this.gameMode,
-        rng,
-        p,
-      );
+      const nextVal = calculateNextCellState(currentVal, params.mode, this.gameMode, rng, p);
       this.setCellState(idx, nextVal);
     }
 
