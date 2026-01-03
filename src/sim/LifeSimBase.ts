@@ -1,4 +1,5 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
+import { calculateNextCellState, countNeighborsColony, sumNeighborsEdge } from './LifeGridHelper';
 import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { clampInt, safeInt } from './utils';
@@ -161,17 +162,10 @@ export class LifeSimBase {
       // 1. Left Edge (lo = 0)
       {
         const lo = 0;
-        let neighbors = 0;
         const left = W - 1;
         const right = 1;
 
-        if (hasTop) {
-          neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
-        }
-        neighbors += grid[rMid + left] + grid[rMid + right];
-        if (hasBot) {
-          neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
-        }
+        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -232,17 +226,10 @@ export class LifeSimBase {
       // 3. Right Edge (lo = W - 1)
       {
         const lo = W - 1;
-        let neighbors = 0;
         const left = W - 2;
         const right = 0;
 
-        if (hasTop) {
-          neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
-        }
-        neighbors += grid[rMid + left] + grid[rMid + right];
-        if (hasBot) {
-          neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
-        }
+        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -271,14 +258,6 @@ export class LifeSimBase {
     let deaths = 0;
     let pop = 0;
     this.nextAliveCount = 0;
-
-    const check = (idx: number, stats: { neighbors: number; countA: number }) => {
-      const v = grid[idx];
-      if (v) {
-        stats.neighbors++;
-        if (v === 1) stats.countA++;
-      }
-    };
 
     // Helper to process a single cell after neighbors are counted
     const process = (lo: number, neighbors: number, countA: number, rowOffset: number) => {
@@ -317,18 +296,7 @@ export class LifeSimBase {
         const left = W - 1;
         const right = 1;
 
-        if (hasTop) {
-          check(rTop + left, stats);
-          check(rTop + lo, stats);
-          check(rTop + right, stats);
-        }
-        check(rMid + left, stats);
-        check(rMid + right, stats);
-        if (hasBot) {
-          check(rBot + left, stats);
-          check(rBot + lo, stats);
-          check(rBot + right, stats);
-        }
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -339,21 +307,7 @@ export class LifeSimBase {
         const stats = { neighbors: 0, countA: 0 };
         // We know indices are safe here, so we can unroll/optimize if needed,
         // but for deduplication we use the same structure.
-        // Note: Using `check` function call in tight loop might be slightly slower,
-        // but V8 usually inlines this.
-
-        if (hasTop) {
-          check(rTop + lo - 1, stats);
-          check(rTop + lo, stats);
-          check(rTop + lo + 1, stats);
-        }
-        check(rMid + lo - 1, stats);
-        check(rMid + lo + 1, stats);
-        if (hasBot) {
-          check(rBot + lo - 1, stats);
-          check(rBot + lo, stats);
-          check(rBot + lo + 1, stats);
-        }
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, lo - 1, lo, lo + 1, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -365,18 +319,7 @@ export class LifeSimBase {
         const left = W - 2;
         const right = 0;
 
-        if (hasTop) {
-          check(rTop + left, stats);
-          check(rTop + lo, stats);
-          check(rTop + right, stats);
-        }
-        check(rMid + left, stats);
-        check(rMid + right, stats);
-        if (hasBot) {
-          check(rBot + left, stats);
-          check(rBot + lo, stats);
-          check(rBot + right, stats);
-        }
+        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
@@ -442,26 +385,8 @@ export class LifeSimBase {
       }
 
       const idx = this.coordsToIdx(params.lat + dLa, params.lon + dLo);
-      let nextVal: number = this.grid[idx];
-
-      switch (params.mode) {
-        case 'set':
-          nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
-          break;
-        case 'clear':
-          nextVal = 0;
-          break;
-        case 'toggle':
-          nextVal = nextVal > 0 ? 0 : 1;
-          break;
-        case 'random':
-          if (rng() < p) {
-            nextVal = this.gameMode === 'Colony' ? (rng() < 0.5 ? 1 : 2) : 1;
-          } else {
-            nextVal = 0;
-          }
-          break;
-      }
+      const currentVal = this.grid[idx];
+      const nextVal = calculateNextCellState(currentVal, params.mode, this.gameMode, rng, p);
       this.setCellState(idx, nextVal);
     }
 
