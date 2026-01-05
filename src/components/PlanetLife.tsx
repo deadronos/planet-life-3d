@@ -1,17 +1,18 @@
+import { button, useControls } from 'leva';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { button, useControls } from 'leva';
+
+import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { parseRuleDigits } from '../sim/rules';
-import { Meteor } from './Meteor';
 import { ImpactRing } from './ImpactRing';
-import { usePlanetLifeControls } from './planetLife/controls';
+import { Meteor } from './Meteor';
 import { useCellColorResolver } from './planetLife/cellColor';
+import { usePlanetLifeControls } from './planetLife/controls';
 import { useLifeTexture } from './planetLife/lifeTexture';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
+import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
 import { useSimulationSeeder } from './planetLife/useSimulationSeeder';
-import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
-import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { safeInt } from './planetLife/utils';
 
 export function PlanetLife({

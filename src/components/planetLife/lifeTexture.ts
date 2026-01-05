@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+
 import type { ResolveCellColor } from './cellColor';
 
 export type LifeTexture = {

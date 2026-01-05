@@ -1,5 +1,6 @@
 import { folder, useControls } from 'leva';
 import { useEffect, useMemo, useRef } from 'react';
+
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 import {

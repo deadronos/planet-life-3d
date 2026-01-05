@@ -1,8 +1,9 @@
+import type { ThreeEvent } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import type { ThreeEvent } from '@react-three/fiber';
-import type { MeteorSpec } from '../Meteor';
+
 import type { ImpactSpec } from '../ImpactRing';
+import type { MeteorSpec } from '../Meteor';
 import { uid } from './utils';
 
 type MeteorSystemParams = {

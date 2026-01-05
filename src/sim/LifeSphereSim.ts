@@ -1,10 +1,11 @@
 import * as THREE from 'three';
+
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import type { Rules } from './rules';
-import { safeFloat } from './utils';
 import { LifeSimBase, type SeedMode } from './LifeSimBase';
-import { spherePointToCell } from './spherePointToCell';
 import type { Offset } from './patterns';
+import type { Rules } from './rules';
+import { spherePointToCell } from './spherePointToCell';
+import { safeFloat } from './utils';
 
 export type { SeedMode };
 

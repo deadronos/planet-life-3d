@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
 import { Stars } from '@react-three/drei';
-import { NebulaSkybox } from './NebulaSkybox';
+import { useMemo } from 'react';
+
 import { DistantMoons } from './DistantMoons';
 import { DistantSun } from './DistantSun';
+import { NebulaSkybox } from './NebulaSkybox';
 import { SunLensFlare } from './SunLensFlare';
 
 interface SpaceEnvironmentProps {

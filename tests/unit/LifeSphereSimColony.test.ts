@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { LifeSphereSim } from '../../src/sim/LifeSphereSim';
 import type { Rules } from '../../src/sim/rules';
 
@@ -77,8 +78,8 @@ describe('LifeSphereSim Colony Mode', () => {
     // (5, 0) neighbors: (5, lon-1), (4, 0), (6, 0)
 
     sim.setCell(5, lonCells - 1, 1); // Left of (5,0)
-    sim.setCell(4, 0, 1);            // Top of (5,0)
-    sim.setCell(6, 0, 1);            // Bottom of (5,0)
+    sim.setCell(4, 0, 1); // Top of (5,0)
+    sim.setCell(6, 0, 1); // Bottom of (5,0)
 
     sim.step();
 

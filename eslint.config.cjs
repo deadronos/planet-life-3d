@@ -5,6 +5,10 @@ const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const jsxA11yPlugin = require('eslint-plugin-jsx-a11y');
 const prettierRecommended = require('eslint-plugin-prettier/recommended');
+const globals = require('globals');
+const simpleImportSort = require('eslint-plugin-simple-import-sort');
+const unusedImports = require('eslint-plugin-unused-imports');
+const reactRefresh = require('eslint-plugin-react-refresh');
 
 module.exports = [
   // Global ignore patterns (replaces .eslintignore)
@@ -51,17 +55,26 @@ module.exports = [
         project: './tsconfig.json',
         tsconfigRootDir: __dirname,
       },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
     settings: {
       react: {
         version: 'detect',
       },
     },
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+      'unused-imports': unusedImports,
+      'react-refresh': reactRefresh,
+    },
     rules: {
       'no-console': 'warn',
       'no-debugger': 'warn',
       // Basic TypeScript/React rules we want to enforce/override
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'off', // Off in favor of unused-imports
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       '@typescript-eslint/no-unsafe-member-access': 'warn',
@@ -69,6 +82,25 @@ module.exports = [
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react/no-unknown-property': 'off',
+
+      // Import sorting
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+
+      // Unused imports
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+        },
+      ],
+
+      // React Refresh
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
 ].filter(Boolean);
