@@ -1,5 +1,5 @@
 import { button, useControls } from 'leva';
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
@@ -202,12 +202,12 @@ export function PlanetLife({
   });
 
   // --- GPU Simulation Logic ---
-  const [gpuRandomizeTrigger, setGpuRandomizeTrigger] = useState(0);
-  const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
+  // Ref for the material so GPU sim can update the map directly without re-renders
+  const lifeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
 
-  const handleGpuTextureUpdate = useCallback((tex: THREE.Texture) => {
-      setGpuTexture(tex);
-  }, []);
+  const [gpuRandomizeTrigger, setGpuRandomizeTrigger] = useState(0);
+  const [gpuClearTrigger, setGpuClearTrigger] = useState(0);
+  const [gpuStepOnceTrigger, setGpuStepOnceTrigger] = useState(0);
 
   // Actions folder (buttons)
   useControls(
@@ -220,8 +220,20 @@ export function PlanetLife({
               randomize();
           }
       }),
-      Clear: button(() => clear()), // Clear not implemented for GPU yet
-      StepOnce: button(() => stepOnce()), // StepOnce not implemented for GPU yet
+      Clear: button(() => {
+          if (gpuEnabled) {
+              setGpuClearTrigger(t => t + 1);
+          } else {
+              clear();
+          }
+      }),
+      StepOnce: button(() => {
+          if (gpuEnabled) {
+              setGpuStepOnceTrigger(t => t + 1);
+          } else {
+              stepOnce();
+          }
+      }),
     }),
     [randomize, clear, stepOnce, gpuEnabled],
   );
@@ -252,7 +264,9 @@ export function PlanetLife({
         <mesh scale={1.01} raycast={() => null}>
           <sphereGeometry args={[planetRadius, 64, 64]} />
           <meshBasicMaterial
-            map={gpuEnabled && gpuTexture ? gpuTexture : lifeTex.tex}
+            ref={lifeMaterialRef}
+            // If GPU is enabled, we leave map undefined so GpuSimulation can manage it via ref
+            map={!gpuEnabled ? lifeTex.tex : undefined}
             transparent
             opacity={cellOverlayOpacity}
             blending={THREE.AdditiveBlending}
@@ -289,8 +303,10 @@ export function PlanetLife({
               surviveRules={rules.survive}
               running={running}
               tickMs={tickMs}
-              onTextureUpdate={handleGpuTextureUpdate}
+              targetMaterial={lifeMaterialRef}
               randomizeTrigger={gpuRandomizeTrigger}
+              clearTrigger={gpuClearTrigger}
+              stepOnceTrigger={gpuStepOnceTrigger}
               randomDensity={randomDensity}
           />
       )}

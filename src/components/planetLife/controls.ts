@@ -65,6 +65,7 @@ export type PlanetLifeControls = {
 
   // Debug/experiments
   workerSim: boolean;
+  gpuEnabled: boolean;
 };
 
 export type PlanetLifeControlsWithDebug = PlanetLifeControls & { debugLogs: boolean };
@@ -230,6 +231,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         // Experimental: offload simulation ticking to a Web Worker.
         // Rendering still happens on the main thread.
         workerSim: false,
+        gpuEnabled: { value: false, label: 'GPGPU Mode' },
       },
       { collapsed: true },
     ),
