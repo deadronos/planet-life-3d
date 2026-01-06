@@ -14,6 +14,10 @@
 
 - Precompute geometry data (positions, normals) and keep it immutable — reduces GC pressure and per-frame allocation.
 - Use typed arrays (Uint8Array) for grid state and texture data to make updates fast and memory efficient.
+- **Unified Rendering Pipeline**: All simulation modes (CPU, Worker, GPU) render the cell overlay using the same GPU shader (`gpuOverlayMaterial`).
+  - CPU/Worker sims write raw simulation data (State, Age, Heat) to a DataTexture.
+  - GPU Sim renders directly to a float texture with the same channel layout.
+  - The vertex shader handles displacement (pulsing) and the fragment shader handles coloring on the GPU.
 - Map the sim lat/lon grid to an equirectangular DataTexture (`THREE.DataTexture`) to exploit GPU speed for the overlay.
 - Keep per-frame UI work minimal; all heavy loops and logic live in `LifeSphereSim`.
 - Two rendering modes: `Texture` (DataTexture overlay) and `Dots` (instanced mesh), and they must stay in sync.
@@ -35,7 +39,7 @@
 - `LifeSphereSim.forEachAlive()` — optimized iterator used while setting instance matrices for alive cells.
 - `LifeSphereSim.seedAtPoint()` / `seedAtCell()` — used by the UI and meteors to alter the grid.
 - `usePlanetLifeSim()` — owns sim creation/recreation, tick loop, and render sync (texture + instanced mesh).
-- `useLifeTexture()` + `writeLifeTexture()` — owns `DataTexture` lifecycle and preserves the lon-flip texture mapping.
+- `writeLifeTexture()` — writes raw simulation data (R=State, G=Age, B=Heat) to the DataTexture, preserving the lon-flip texture mapping.
 - `usePlanetMaterial()` — creates the planet `ShaderMaterial`.
 - `useMeteorSystem()` — encapsulates meteor spawning, state management, and visual impact effects.
 - `useSimulationSeeder()` — handles pattern selection (ASCII/procedural) and executes `seedAtPoint()`.

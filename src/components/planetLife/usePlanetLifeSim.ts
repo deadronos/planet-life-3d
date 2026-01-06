@@ -79,11 +79,10 @@ export function usePlanetLifeSim({
       ages,
       heat,
       lifeTex,
-      resolveCellColor,
-      colorScratch,
+      gameMode,
       debugLogs,
     });
-  }, [lifeTex, resolveCellColor, colorScratch, debugLogs, workerEnabled]);
+  }, [lifeTex, gameMode, debugLogs, workerEnabled]);
 
   // Keep a ref to the latest updateInstances so effects that should only depend
   // on sizing don't accidentally re-create the simulation.
@@ -101,7 +100,6 @@ export function usePlanetLifeSim({
     const heat = workerEnabled ? snap?.heat : simRef.current?.getNeighborHeatView();
     if (!grid || !ages || !heat) return;
 
-    // Only update the overlay texture if it's actually being rendered.
     // This avoids a full per-cell RGBA write + GPU upload when in Dots mode.
     const overlayEnabled = cellRenderMode === 'Texture' || cellRenderMode === 'Both';
     if (overlayEnabled) updateTexture();
