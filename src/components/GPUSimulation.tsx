@@ -29,6 +29,7 @@ export function GPUSimulation({
   tickMs = 120,
   rules,
   randomDensity = 0.1,
+  gameMode = 'Classic',
   onTextureUpdate,
 }: {
   resolution?: number;
@@ -36,6 +37,7 @@ export function GPUSimulation({
   tickMs?: number;
   rules: Rules;
   randomDensity?: number;
+  gameMode?: 'Classic' | 'Colony';
   onTextureUpdate?: (texture: THREE.Texture) => void;
 }) {
   const { gl } = useThree();
@@ -61,11 +63,12 @@ export function GPUSimulation({
         uResolution: { value: new THREE.Vector2(resolution, resolution) },
         uBirthRules: { value: birthRules },
         uSurviveRules: { value: surviveRules },
+        uColonyMode: { value: gameMode === 'Colony' },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
     });
-  }, [resolution, rules]);
+  }, [resolution, rules, gameMode]);
 
   // Separate scene for simulation rendering (doesn't show in main view)
   const simScene = useMemo(() => {
@@ -82,10 +85,19 @@ export function GPUSimulation({
     const size = resolution * resolution * 4;
     const data = new Float32Array(size);
     for (let i = 0; i < size; i += 4) {
-      const alive = Math.random() < randomDensity ? 1.0 : 0.0;
-      data[i] = alive; // R: alive/dead
-      data[i + 1] = 0.0; // G: age
-      data[i + 2] = 0.0; // B: heat
+      let state = 0.0;
+      if (Math.random() < randomDensity) {
+        if (gameMode === 'Colony') {
+          // Colony mode: 0.33 for Colony A, 0.67 for Colony B
+          state = Math.random() < 0.5 ? 0.33 : 0.67;
+        } else {
+          // Classic mode: 1.0 for alive
+          state = 1.0;
+        }
+      }
+      data[i] = state; // R: alive/dead or colony state
+      data[i + 1] = 0.0; // G: age (starts at 0)
+      data[i + 2] = 0.0; // B: neighbor heat (starts at 0)
       data[i + 3] = 1.0; // A: always 1
     }
 
@@ -116,9 +128,9 @@ export function GPUSimulation({
     gl.setRenderTarget(prevTarget);
 
     texture.dispose();
-  }, [resolution, randomDensity, gl, simScene, simMaterial, targetA, targetB]);
+  }, [resolution, randomDensity, gameMode, gl, simScene, simMaterial, targetA, targetB]);
 
-  // Update rules when they change
+  // Update rules and game mode when they change
   useEffect(() => {
     const birthRules = rulesToFloatArray(rules.birth);
     const surviveRules = rulesToFloatArray(rules.survive);
@@ -126,7 +138,9 @@ export function GPUSimulation({
     simMaterial.uniforms.uBirthRules.value = birthRules;
     // eslint-disable-next-line react-hooks/immutability
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
-  }, [rules, simMaterial]);
+    // eslint-disable-next-line react-hooks/immutability
+    simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
+  }, [rules, gameMode, simMaterial]);
 
   // Simulation update loop with tick speed throttling
   useFrame(() => {

@@ -2,6 +2,8 @@ import { button, useControls } from 'leva';
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+import { gpuOverlayFragmentShader } from '../shaders/gpuOverlay.frag';
+import { gpuOverlayVertexShader } from '../shaders/gpuOverlay.vert';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { parseRuleDigits } from '../sim/rules';
 import { GPUSimulation } from './GPUSimulation';
@@ -138,6 +140,50 @@ export function PlanetLife({
     colonyColorB,
   });
 
+  // GPU overlay material with color support
+  const gpuOverlayMaterial = useMemo(() => {
+    const colorModeValue = cellColorMode === 'Solid' ? 0 : cellColorMode === 'Age Fade' ? 1 : 2;
+    
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uLifeTexture: { value: null },
+        uCellColor: { value: new THREE.Color(cellColor) },
+        uColonyColorA: { value: new THREE.Color(colonyColorA) },
+        uColonyColorB: { value: new THREE.Color(colonyColorB) },
+        uHeatLowColor: { value: new THREE.Color(heatLowColor) },
+        uHeatMidColor: { value: new THREE.Color(heatMidColor) },
+        uHeatHighColor: { value: new THREE.Color(heatHighColor) },
+        uAgeFadeHalfLife: { value: Math.max(1, ageFadeHalfLife) },
+        uColorMode: { value: colorModeValue },
+        uColonyMode: { value: gameMode === 'Colony' },
+      },
+      vertexShader: gpuOverlayVertexShader,
+      fragmentShader: gpuOverlayFragmentShader,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+  }, [
+    cellColorMode,
+    cellColor,
+    colonyColorA,
+    colonyColorB,
+    heatLowColor,
+    heatMidColor,
+    heatHighColor,
+    ageFadeHalfLife,
+    gameMode,
+  ]);
+
+  // Update GPU overlay material when texture changes
+  useMemo(() => {
+    if (gpuTexture && gpuOverlayMaterial) {
+      // eslint-disable-next-line react-hooks/immutability
+      gpuOverlayMaterial.uniforms.uLifeTexture.value = gpuTexture;
+    }
+  }, [gpuTexture, gpuOverlayMaterial]);
+
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,
     rimIntensity,
@@ -228,6 +274,7 @@ export function PlanetLife({
           tickMs={tickMs}
           rules={rules}
           randomDensity={randomDensity}
+          gameMode={gameMode}
           onTextureUpdate={setGpuTexture}
         />
       )}
@@ -270,14 +317,7 @@ export function PlanetLife({
       {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && gpuSim && gpuTexture && (
         <mesh scale={1.01} raycast={() => null}>
           <sphereGeometry args={[planetRadius, 64, 64]} />
-          <meshBasicMaterial
-            map={gpuTexture}
-            transparent
-            opacity={cellOverlayOpacity}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
+          <primitive object={gpuOverlayMaterial} attach="material" />
         </mesh>
       )}
 
