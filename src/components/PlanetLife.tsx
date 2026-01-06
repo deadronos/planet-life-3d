@@ -5,8 +5,9 @@ import * as THREE from 'three';
 import { gpuOverlayFragmentShader } from '../shaders/gpuOverlay.frag';
 import { gpuOverlayVertexShader } from '../shaders/gpuOverlay.vert';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
+import { getBuiltinPatternOffsets, parseAsciiPattern } from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
-import { GPUSimulation } from './GPUSimulation';
+import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
 import { ImpactRing } from './ImpactRing';
 import { Meteor } from './Meteor';
 import { useCellColorResolver } from './planetLife/cellColor';
@@ -121,7 +122,8 @@ export function PlanetLife({
 
   const lifeTex = useLifeTexture({ lonCells: safeLonCells, latCells: safeLatCells });
 
-  // GPU simulation state
+  // GPU simulation state and ref
+  const gpuSimRef = useRef<GPUSimulationHandle>(null);
   const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
   const gpuResolution = useMemo(() => {
     // Use higher resolution for GPU mode
@@ -223,7 +225,7 @@ export function PlanetLife({
     debugLogs,
   });
 
-  const { seedAtPoint } = useSimulationSeeder({
+  const { seedAtPoint: seedAtPointCPU } = useSimulationSeeder({
     seedAtPointImpl,
     updateInstances,
     seedPattern,
@@ -234,6 +236,64 @@ export function PlanetLife({
     customPattern,
     debugLogs,
   });
+
+  // Unified seeding that works for both CPU and GPU modes
+  const seedAtPoint = useMemo(() => {
+    return (point: THREE.Vector3) => {
+      if (gpuSim && gpuSimRef.current) {
+        // GPU seeding: convert point to UV coordinates
+        // Point is on sphere surface, convert to lat/lon then to UV
+        const lat = Math.asin(point.y / planetRadius);
+        const lon = Math.atan2(point.z, point.x);
+        
+        // Convert lat (-π/2 to π/2) and lon (-π to π) to UV (0 to 1)
+        const v = (lat / Math.PI) + 0.5; // 0 at south pole, 1 at north pole
+        const u = (lon / (2 * Math.PI)) + 0.5; // 0 at -π, 1 at π (wraps around)
+        
+        // Get pattern as 2D array
+        let pattern: number[][];
+        if (seedPattern === 'Random Disk') {
+          const r = Math.max(1, Math.floor(seedScale)) * 2;
+          pattern = [];
+          for (let dy = -r; dy <= r; dy++) {
+            const row: number[] = [];
+            for (let dx = -r; dx <= r; dx++) {
+              row.push(dx * dx + dy * dy <= r * r ? 1 : 0);
+            }
+            pattern.push(row);
+          }
+        } else {
+          const offsets = seedPattern === 'Custom ASCII' 
+            ? parseAsciiPattern(customPattern)
+            : getBuiltinPatternOffsets(seedPattern);
+          
+          // Convert offsets to 2D array
+          const minX = Math.min(...offsets.map(([_, x]) => x));
+          const maxX = Math.max(...offsets.map(([_, x]) => x));
+          const minY = Math.min(...offsets.map(([y, _]) => y));
+          const maxY = Math.max(...offsets.map(([y, _]) => y));
+          const width = maxX - minX + 1;
+          const height = maxY - minY + 1;
+          
+          pattern = Array.from({ length: height }, () => Array(width).fill(0));
+          offsets.forEach(([y, x]) => {
+            pattern[y - minY][x - minX] = 1;
+          });
+        }
+        
+        gpuSimRef.current.seedAtUV({
+          u,
+          v,
+          pattern,
+          mode: seedMode,
+          probability: seedProbability,
+        });
+      } else {
+        // CPU seeding (existing logic)
+        seedAtPointCPU(point);
+      }
+    };
+  }, [gpuSim, planetRadius, seedPattern, seedScale, seedMode, customPattern, seedProbability, seedAtPointCPU]);
 
   const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
     meteorSpeed,
@@ -276,6 +336,7 @@ export function PlanetLife({
           randomDensity={randomDensity}
           gameMode={gameMode}
           onTextureUpdate={setGpuTexture}
+          simRef={gpuSimRef}
         />
       )}
 
