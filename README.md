@@ -3,6 +3,15 @@
 A 3D Conway-style cellular automaton that runs on a lat/lon grid wrapped onto a planet.
 Click the planet to shoot a meteor. On impact it seeds the grid using a configurable pattern.
 
+## Features
+
+- **CPU Simulation**: Traditional JavaScript-based cellular automata with worker support
+- **GPU Simulation**: High-performance GPU-based simulation using WebGL shaders for massive grid sizes
+- Multiple rendering modes (Texture, Dots, or Both)
+- Custom rule sets and patterns
+- Meteor impacts with visual effects
+- Real-time configuration via Leva UI
+
 ## Demo Screenshot
 
 ![screenshot](image.png)
@@ -19,6 +28,31 @@ npm run dev
 - Orbit with mouse (right drag to pan, wheel zoom).
 - Click the planet to fire a meteor at the clicked spot.
 - Tune grid/rules/speed/meteor + seeding parameters via the Leva UI.
+
+### GPU Mode
+
+Enable GPU simulation in the Debug panel for high-resolution grids (512x512+):
+
+1. Open the Debug folder in Leva UI
+2. Enable "gpuSim" toggle
+3. Increase grid resolution (latCells/lonCells) for massive grids with no performance drop
+
+**Note**: GPU mode uses fragment shaders for cellular automata computation with ping-pong buffer swapping. The simulation runs entirely on the GPU, updating a texture that's mapped to the planet sphere.
+
+## GPU Implementation
+
+The GPU simulation uses the following architecture:
+
+- **Ping-Pong Buffers**: Two render targets swap roles each frame (read from A, write to B, then swap)
+- **Fragment Shader**: Computes Game of Life rules for each pixel (cell) in parallel
+- **Sphere Wrapping**: Longitude (U) wraps seamlessly, Latitude (V) clamps at poles
+- **Higher Resolution**: Supports 512x1024+ grids without performance degradation
+
+Key files:
+
+- `src/shaders/simulation.frag.ts` - Game of Life computation shader
+- `src/shaders/simulation.vert.ts` - Fullscreen quad vertex shader
+- `src/components/GPUSimulation.tsx` - Buffer management and simulation loop
 
 ## Testing
 
