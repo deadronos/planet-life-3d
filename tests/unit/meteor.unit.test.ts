@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { computeMeteorState } from '../../src/components/Meteor';
+import { describe, expect, it } from 'vitest';
+
+import { computeMeteorState } from '../../src/components/meteorTypes';
 
 describe('computeMeteorState', () => {
   it('clones origin and normalizes direction', () => {

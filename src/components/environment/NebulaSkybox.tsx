@@ -1,6 +1,6 @@
+import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
 
 /**
  * Procedural nebula skybox using a custom shader.

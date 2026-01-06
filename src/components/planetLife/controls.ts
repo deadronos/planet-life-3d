@@ -1,5 +1,6 @@
 import { folder, useControls } from 'leva';
 import { useEffect, useMemo, useRef } from 'react';
+
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 import {
@@ -64,6 +65,7 @@ export type PlanetLifeControls = {
 
   // Debug/experiments
   workerSim: boolean;
+  gpuSim: boolean;
 };
 
 export type PlanetLifeControlsWithDebug = PlanetLifeControls & { debugLogs: boolean };
@@ -229,6 +231,10 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         // Experimental: offload simulation ticking to a Web Worker.
         // Rendering still happens on the main thread.
         workerSim: false,
+
+        // Experimental: run simulation on GPU using shaders
+        // This allows for much higher resolutions (512x1024+)
+        gpuSim: false,
       },
       { collapsed: true },
     ),

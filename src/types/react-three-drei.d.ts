@@ -1,7 +1,7 @@
 declare module '@react-three/drei' {
+  import type { ReactThreeFiber } from '@react-three/fiber';
   import type React from 'react';
   import type * as THREE from 'three';
-  import type { ReactThreeFiber } from '@react-three/fiber';
   import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
   type OrbitControlsElementProps = ReactThreeFiber.ThreeElement<typeof OrbitControlsImpl>;

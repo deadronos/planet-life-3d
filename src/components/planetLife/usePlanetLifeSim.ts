@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useRef, type RefObject } from 'react';
+import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+
+import type { SeedMode } from '../../sim/LifeSimBase';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
-import { spherePointToCell } from '../../sim/spherePointToCell';
 import type { Rules } from '../../sim/rules';
+import { spherePointToCell } from '../../sim/spherePointToCell';
 import { useUIStore } from '../../store/useUIStore';
-import type { ResolveCellColor } from './cellColor';
-import { writeLifeTexture, type LifeTexture } from './lifeTexture';
-import type { SeedMode } from '../../sim/LifeSimBase';
 import type {
   LifeGridWorkerInMessage,
   LifeGridWorkerOutMessage,
 } from '../../workers/lifeGridWorkerMessages';
+import type { ResolveCellColor } from './cellColor';
+import { type LifeTexture, writeLifeTexture } from './lifeTexture';
 
 export function usePlanetLifeSim({
   running,

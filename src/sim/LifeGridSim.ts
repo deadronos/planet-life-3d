@@ -1,5 +1,5 @@
-import type { Rules } from './rules';
 import { LifeSimBase } from './LifeSimBase';
+import type { Rules } from './rules';
 
 /**
  * Pure simulation core (typed arrays only).

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Leva, useControls, folder } from 'leva';
-import { PlanetLife } from './components/PlanetLife';
-import { Overlay } from './components/Overlay';
+import { Canvas } from '@react-three/fiber';
+import { folder, Leva, useControls } from 'leva';
+import { useEffect, useState } from 'react';
+
 import { SpaceEnvironment } from './components/environment';
+import { Overlay } from './components/Overlay';
+import { PlanetLife } from './components/PlanetLife';
 
 const levaTheme = {
   colors: {
