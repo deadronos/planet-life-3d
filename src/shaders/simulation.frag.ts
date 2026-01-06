@@ -1,9 +1,10 @@
 // Fragment shader for GPU-based cellular automata simulation
-// Implements Conway's Game of Life rules with sphere wrapping support
+// Implements customizable cellular automata rules with sphere wrapping support
 export const simulationFragmentShader = /* glsl */ `
   uniform sampler2D uTexture;        // Previous frame's state
   uniform vec2 uResolution;           // Texture resolution (width, height)
-  uniform vec4 uBirthSurviveRules;    // Birth and survive neighbor counts packed
+  uniform float uBirthRules[9];       // Birth rules: array[neighborCount] = 1.0 if birth, 0.0 otherwise
+  uniform float uSurviveRules[9];     // Survive rules: array[neighborCount] = 1.0 if survive, 0.0 otherwise
   
   varying vec2 vUv;
   
@@ -37,24 +38,19 @@ export const simulationFragmentShader = /* glsl */ `
     neighbors += sampleNeighbor(vUv, vec2( 0.0,  1.0));
     neighbors += sampleNeighbor(vUv, vec2( 1.0,  1.0));
     
-    // Apply Game of Life rules
-    // Birth: dead cell with exactly 3 neighbors becomes alive
-    // Survive: live cell with 2 or 3 neighbors stays alive
-    // Default rules can be customized via uBirthSurviveRules uniform
-    
+    // Apply customizable rules based on neighbor count
+    int neighborCount = int(neighbors);
     float nextState = 0.0;
     
     if (current > 0.5) {
-      // Cell is alive - check survive rule
-      // Survive on 2 or 3 neighbors (standard Conway rules)
-      if (neighbors >= 2.0 && neighbors <= 3.0) {
-        nextState = 1.0;
+      // Cell is alive - check survive rule for this neighbor count
+      if (neighborCount >= 0 && neighborCount <= 8) {
+        nextState = uSurviveRules[neighborCount];
       }
     } else {
-      // Cell is dead - check birth rule
-      // Born on exactly 3 neighbors (standard Conway rules)
-      if (neighbors >= 2.99 && neighbors <= 3.01) {
-        nextState = 1.0;
+      // Cell is dead - check birth rule for this neighbor count
+      if (neighborCount >= 0 && neighborCount <= 8) {
+        nextState = uBirthRules[neighborCount];
       }
     }
     

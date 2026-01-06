@@ -11,11 +11,17 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationVertexShader).toContain('gl_Position');
   });
 
-  it('should export fragment shader with Game of Life logic', () => {
+  it('should export fragment shader with customizable rules logic', () => {
     expect(simulationFragmentShader).toBeDefined();
     expect(simulationFragmentShader).toContain('uniform sampler2D uTexture');
     expect(simulationFragmentShader).toContain('uniform vec2 uResolution');
     expect(simulationFragmentShader).toContain('varying vec2 vUv');
+  });
+
+  it('should support customizable birth and survive rules via uniforms', () => {
+    // Check for uniform arrays for birth and survive rules
+    expect(simulationFragmentShader).toContain('uniform float uBirthRules[9]');
+    expect(simulationFragmentShader).toContain('uniform float uSurviveRules[9]');
   });
 
   it('should implement neighbor sampling with sphere wrapping', () => {
@@ -34,12 +40,14 @@ describe('GPU Simulation Shaders', () => {
     expect(neighborSamples!.length).toBeGreaterThanOrEqual(8);
   });
 
-  it('should implement Game of Life birth and survival rules', () => {
+  it('should implement customizable birth and survival rules', () => {
     expect(simulationFragmentShader).toContain('nextState');
     // Check for alive/dead state transitions
     expect(simulationFragmentShader).toContain('current > 0.5');
-    // Check for neighbor-based rules
-    expect(simulationFragmentShader).toContain('neighbors');
+    // Check for neighbor-based rules using uniform arrays
+    expect(simulationFragmentShader).toContain('neighborCount');
+    expect(simulationFragmentShader).toContain('uBirthRules[neighborCount]');
+    expect(simulationFragmentShader).toContain('uSurviveRules[neighborCount]');
   });
 
   it('should output to gl_FragColor', () => {

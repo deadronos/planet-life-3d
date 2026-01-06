@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import type { Rules } from '../sim/rules';
 import { simulationFragmentShader } from '../shaders/simulation.frag';
 import { simulationVertexShader } from '../shaders/simulation.vert';
 
@@ -17,13 +18,24 @@ function createRenderTarget(resolution: number): THREE.WebGLRenderTarget {
   });
 }
 
+// Convert boolean rules array to float array for shader
+function rulesToFloatArray(rules: boolean[]): number[] {
+  return rules.map((r) => (r ? 1.0 : 0.0));
+}
+
 export function GPUSimulation({
   resolution = 512,
   running = true,
+  tickMs = 120,
+  rules,
+  randomDensity = 0.1,
   onTextureUpdate,
 }: {
   resolution?: number;
   running?: boolean;
+  tickMs?: number;
+  rules: Rules;
+  randomDensity?: number;
   onTextureUpdate?: (texture: THREE.Texture) => void;
 }) {
   const { gl } = useThree();
@@ -34,21 +46,26 @@ export function GPUSimulation({
 
   // Track which buffer is the current "read" buffer
   const currentBufferRef = useRef<'A' | 'B'>('A');
+  
+  // Track last tick time for throttling
+  const lastTickTimeRef = useRef<number>(0);
 
   // Create simulation material with shaders (using ref to avoid useMemo immutability issues)
-  const simMaterial = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        uniforms: {
-          uTexture: { value: null },
-          uResolution: { value: new THREE.Vector2(resolution, resolution) },
-          uBirthSurviveRules: { value: new THREE.Vector4(3, 3, 2, 3) },
-        },
-        vertexShader: simulationVertexShader,
-        fragmentShader: simulationFragmentShader,
-      }),
-    [resolution],
-  );
+  const simMaterial = useMemo(() => {
+    const birthRules = rulesToFloatArray(rules.birth);
+    const surviveRules = rulesToFloatArray(rules.survive);
+
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTexture: { value: null },
+        uResolution: { value: new THREE.Vector2(resolution, resolution) },
+        uBirthRules: { value: birthRules },
+        uSurviveRules: { value: surviveRules },
+      },
+      vertexShader: simulationVertexShader,
+      fragmentShader: simulationFragmentShader,
+    });
+  }, [resolution, rules]);
 
   // Separate scene for simulation rendering (doesn't show in main view)
   const simScene = useMemo(() => {
@@ -65,7 +82,7 @@ export function GPUSimulation({
     const size = resolution * resolution * 4;
     const data = new Float32Array(size);
     for (let i = 0; i < size; i += 4) {
-      const alive = Math.random() < 0.1 ? 1.0 : 0.0;
+      const alive = Math.random() < randomDensity ? 1.0 : 0.0;
       data[i] = alive; // R: alive/dead
       data[i + 1] = 0.0; // G: age
       data[i + 2] = 0.0; // B: heat
@@ -99,11 +116,28 @@ export function GPUSimulation({
     gl.setRenderTarget(prevTarget);
 
     texture.dispose();
-  }, [resolution, gl, simScene, simMaterial, targetA, targetB]);
+  }, [resolution, randomDensity, gl, simScene, simMaterial, targetA, targetB]);
 
-  // Simulation update loop
+  // Update rules when they change
+  useEffect(() => {
+    const birthRules = rulesToFloatArray(rules.birth);
+    const surviveRules = rulesToFloatArray(rules.survive);
+    // eslint-disable-next-line react-hooks/immutability
+    simMaterial.uniforms.uBirthRules.value = birthRules;
+    // eslint-disable-next-line react-hooks/immutability
+    simMaterial.uniforms.uSurviveRules.value = surviveRules;
+  }, [rules, simMaterial]);
+
+  // Simulation update loop with tick speed throttling
   useFrame(() => {
     if (!running) return;
+
+    // Throttle updates based on tickMs
+    const now = performance.now();
+    const elapsed = now - lastTickTimeRef.current;
+    if (elapsed < tickMs) return;
+
+    lastTickTimeRef.current = now;
 
     // Determine read and write buffers
     const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;

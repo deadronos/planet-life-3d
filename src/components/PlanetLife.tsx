@@ -225,6 +225,9 @@ export function PlanetLife({
         <GPUSimulation
           resolution={gpuResolution}
           running={running}
+          tickMs={tickMs}
+          rules={rules}
+          randomDensity={randomDensity}
           onTextureUpdate={setGpuTexture}
         />
       )}
