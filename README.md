@@ -47,22 +47,31 @@ The GPU simulation uses the following architecture:
 - **Fragment Shader**: Computes customizable cellular automata rules for each pixel (cell) in parallel
 - **Sphere Wrapping**: Longitude (U) wraps seamlessly, Latitude (V) clamps at poles
 - **Higher Resolution**: Supports 512x1024+ grids without performance degradation
-- **Parameter Parity**: Supports custom rules, tick speed, and random density (same as CPU mode)
+- **100% Parameter Parity**: All Leva controls work identically in GPU mode
 
-### Supported Parameters
+### Supported Features
 
-GPU mode now supports:
+GPU mode has complete parity with CPU mode:
 - ✅ Custom birth/survive rules (birthDigits, surviveDigits)
 - ✅ Tick speed control (tickMs)
 - ✅ Random density (randomDensity)
-- ✅ Running state (running)
-- ⚠️ Cell colors (future - requires additional texture channels)
-- ⚠️ Colony mode (future - requires multi-state logic)
+- ✅ Running state (running/paused)
+- ✅ Cell color modes (Solid, Age Fade, Neighbor Heat)
+- ✅ Colony mode (two-colony competition)
+- ✅ Meteor impacts with pattern seeding
+- ✅ All seed modes (set, toggle, clear, random)
+- ✅ All pattern types (builtin, Custom ASCII, Random Disk)
+
+### Limitations
+
+- Dots rendering mode disabled in GPU mode (requires expensive GPU→CPU readback)
 
 Key files:
 
-- `src/shaders/simulation.frag.ts` - Customizable rules computation shader
+- `src/shaders/simulation.frag.ts` - Cellular automata computation with age/heat tracking
 - `src/shaders/simulation.vert.ts` - Fullscreen quad vertex shader
+- `src/shaders/gpuOverlay.frag.ts` - Color application shader
+- `src/shaders/gpuSeed.frag.ts` - Pattern seeding shader
 - `src/components/GPUSimulation.tsx` - Buffer management and simulation loop
 
 ## Testing
