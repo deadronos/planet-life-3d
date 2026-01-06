@@ -1,9 +1,10 @@
 import { button, useControls } from 'leva';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { parseRuleDigits } from '../sim/rules';
+import { GPUSimulation } from './GPUSimulation';
 import { ImpactRing } from './ImpactRing';
 import { Meteor } from './Meteor';
 import { useCellColorResolver } from './planetLife/cellColor';
@@ -82,6 +83,7 @@ export function PlanetLife({
 
     debugLogs,
     workerSim,
+    gpuSim,
   } = params;
 
   const rules = useMemo(() => {
@@ -116,6 +118,13 @@ export function PlanetLife({
   const maxInstances = useMemo(() => safeLatCells * safeLonCells, [safeLatCells, safeLonCells]);
 
   const lifeTex = useLifeTexture({ lonCells: safeLonCells, latCells: safeLatCells });
+
+  // GPU simulation state
+  const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
+  const gpuResolution = useMemo(() => {
+    // Use higher resolution for GPU mode
+    return gpuSim ? Math.max(safeLonCells, 512) : safeLonCells;
+  }, [gpuSim, safeLonCells]);
 
   const { resolveCellColor, colorScratch } = useCellColorResolver({
     cellColorMode,
@@ -211,6 +220,15 @@ export function PlanetLife({
 
   return (
     <group>
+      {/* GPU Simulation (invisible component that manages compute shaders) */}
+      {gpuSim && (
+        <GPUSimulation
+          resolution={gpuResolution}
+          running={running}
+          onTextureUpdate={setGpuTexture}
+        />
+      )}
+
       {/* Planet */}
       <mesh onPointerDown={onPlanetPointerDown}>
         <sphereGeometry args={[planetRadius, 64, 64]} />
@@ -231,7 +249,7 @@ export function PlanetLife({
       </mesh>
 
       {/* Life overlay (equirectangular DataTexture mapped onto the sphere UVs) */}
-      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && (
+      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && !gpuSim && (
         <mesh scale={1.01} raycast={() => null}>
           <sphereGeometry args={[planetRadius, 64, 64]} />
           <meshBasicMaterial
@@ -245,8 +263,24 @@ export function PlanetLife({
         </mesh>
       )}
 
+      {/* GPU Life overlay */}
+      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && gpuSim && gpuTexture && (
+        <mesh scale={1.01} raycast={() => null}>
+          <sphereGeometry args={[planetRadius, 64, 64]} />
+          <meshBasicMaterial
+            map={gpuTexture}
+            transparent
+            opacity={cellOverlayOpacity}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
+
       {/* Alive cells as an instanced mesh (only alive instances are rendered) */}
-      {(cellRenderMode === 'Dots' || cellRenderMode === 'Both') && (
+      {/* Note: Dots mode disabled in GPU mode as it requires reading GPU texture back to CPU */}
+      {(cellRenderMode === 'Dots' || cellRenderMode === 'Both') && !gpuSim && (
         <instancedMesh
           ref={cellsRef}
           args={[undefined, undefined, maxInstances]}
