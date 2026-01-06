@@ -122,15 +122,16 @@ export function GPUSimulation({
 
 The `PlanetLife` component conditionally renders either:
 
-1. **CPU Mode** (default):
+1. **CPU/Worker Mode** (default):
    - Uses `usePlanetLifeSim` hook
-   - Writes to DataTexture each frame
-   - Updates instanced mesh for dots
+   - Writes raw simulation data (State, Age, Heat) to a DataTexture each frame
+   - Renders the overlay using the same `gpuOverlayMaterial` for consistent visuals
+   - Optionally updates instanced mesh for "Dots" mode
 
 2. **GPU Mode** (when `gpuSim` is enabled):
    - Renders `<GPUSimulation>` component
    - Receives texture updates via callback
-   - Maps GPU texture to planet sphere
+   - Maps GPU texture to planet sphere using `gpuOverlayMaterial`
    - Disables dots mode (requires GPU→CPU readback)
 
 ## Performance Characteristics

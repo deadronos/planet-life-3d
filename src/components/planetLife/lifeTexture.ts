@@ -1,8 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
-import type { ResolveCellColor } from './cellColor';
-
 export type LifeTexture = {
   data: Uint8Array;
   tex: THREE.DataTexture;
@@ -47,11 +45,11 @@ export function writeLifeTexture(params: {
   ages: Uint8Array;
   heat: Uint8Array;
   lifeTex: LifeTexture;
-  resolveCellColor: ResolveCellColor;
-  colorScratch: THREE.Color;
+
+  gameMode: 'Classic' | 'Colony';
   debugLogs: boolean;
 }): number {
-  const { grid, ages, heat, lifeTex, resolveCellColor, colorScratch, debugLogs } = params;
+  const { grid, ages, heat, lifeTex, gameMode, debugLogs } = params;
   const { data, w, h } = lifeTex;
 
   let aliveCount = 0;
@@ -72,17 +70,38 @@ export function writeLifeTexture(params: {
 
       if (alive) {
         aliveCount++;
-        const intensity = resolveCellColor(idx, grid, ages, heat, colorScratch);
-        data[di + 0] = Math.round(colorScratch.r * 255);
-        data[di + 1] = Math.round(colorScratch.g * 255);
-        data[di + 2] = Math.round(colorScratch.b * 255);
-        data[di + 3] = Math.round(255 * Math.min(1, Math.max(0.05, intensity)));
-      } else {
-        data[di + 0] = 0;
-        data[di + 1] = 0;
-        data[di + 2] = 0;
-        data[di + 3] = 0;
       }
+
+      // Write raw simulation data to texture (R=State, G=Age, B=Heat, A=1.0)
+      // This matches the format used by the GPU simulation shader.
+
+      // R Channel: State
+      if (gameMode === 'Colony') {
+        // Colony Mode: 0=Dead, 1=Colony A (0.33), 2=Colony B (0.67)
+        const val = grid[idx];
+        if (val === 1)
+          data[di] = 84; // ~0.33 * 255
+        else if (val === 2)
+          data[di] = 171; // ~0.67 * 255
+        else data[di] = 0;
+      } else {
+        // Classic Mode: 0=Dead, 1=Alive (1.0)
+        data[di] = alive ? 255 : 0;
+      }
+
+      // G Channel: Age
+      // CPU sim ages are 0-255. Shader reads them as 0-1.
+      data[di + 1] = ages[idx];
+
+      // B Channel: Neighbor Heat
+      // CPU sim heat is neighbor count (0-8). Shader expects normalized heat (0-1).
+      // We map 0-8 count to 0-255 range.
+      // Note: Math.min(255, ...) handles cases where heat might theoretically exceed 8 (unlikely but safe)
+      data[di + 2] = Math.min(255, Math.floor((heat[idx] / 8.0) * 255));
+
+      // A Channel: Always opaque
+      // The fragment shader discard logic handles transparency based on R channel (state < 0.02)
+      data[di + 3] = 255;
     }
   }
 

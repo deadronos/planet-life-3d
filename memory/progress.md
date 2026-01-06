@@ -3,7 +3,7 @@
 ## What works
 
 - Core sim implemented in `LifeSphereSim` with `step()`, `forEachAlive()`, seeding, and `pointToCell()` mapping.
-- `PlanetLife` renders both `Texture` overlay and instanced `Dots` mode; meteors and impact rings are implemented.
+- `PlanetLife` renders `Texture` overlay using GPU-based vertex displacement and pulsing for all simulation modes.
 - Post-TASK005 modular structure is in place: `src/components/PlanetLife.tsx` composes hooks from `src/components/planetLife/`.
 - **Space environment**: Procedural nebula skybox, distant sun with glow/corona, two orbiting moons, and sun lens flare (`src/components/environment/`).
 - UI: Leva controls exist for quick iteration of rules, grid sizing, meteor settings, and seeding.
@@ -30,6 +30,7 @@
 
 ## Recent Completed Items
 
+- **2026-01-06: Vertex Displacement & Unified Rendering** — Implemented pulsing vertex displacement for alive cells. Unified the rendering pipeline so CPU/Worker simulations also use the GPU shader overlay (`gpuOverlayMaterial`), enabling consistent visuals and performance.
 - **2025-12-14: Planet Visual Overhaul** — Custom shader with terminator shading, atmosphere glow, surface noise, and grid. Fixed lighting coordinate space.
 - **2025-12-14: Environment enhancements** — Added procedural nebula skybox (GLSL FBM), distant sun with glow shader, two orbiting moons, and sprite-based lens flare. Components live in `src/components/environment/`.
 - **2025-12-13/14: Overlay & UX** — Added HUD stats (generation / population / births / deaths) powered by `useUIStore`, a one-time onboarding hint (localStorage key `onboardingHintShown`), and `h` hotkey to toggle the Leva controls. (See TASK008)

@@ -66,6 +66,10 @@ export type PlanetLifeControls = {
   // Debug/experiments
   workerSim: boolean;
   gpuSim: boolean;
+
+  // Pulse
+  pulseSpeed: number;
+  pulseIntensity: number;
 };
 
 export type PlanetLifeControlsWithDebug = PlanetLifeControls & { debugLogs: boolean };
@@ -141,6 +145,8 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
           max: 0.25,
           step: 0.005,
         },
+        pulseSpeed: { value: 2.0, min: 0, max: 10, step: 0.1 },
+        pulseIntensity: { value: 0.2, min: 0, max: 1, step: 0.05 },
         cellColor: '#3dd54c',
       },
       { collapsed: true },
