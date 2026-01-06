@@ -92,6 +92,7 @@ export function GpuSimulation({
   const simScene = useMemo(() => {
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    camera.position.z = 1; // Pull camera back to ensure quad is visible
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), simMaterial);
     scene.add(quad);
     return { scene, camera, quad };
@@ -128,6 +129,8 @@ export function GpuSimulation({
     if (randomizeTrigger !== lastRandomizeRef.current) {
         lastRandomizeRef.current = randomizeTrigger;
 
+        // console.log('[GpuSimulation] Randomizing...', { width, height, density: randomDensity });
+
         simScene.quad.material = seedMaterial;
         seedMaterial.uniforms.uSeed.value = Math.random() * 1000;
 
@@ -144,6 +147,8 @@ export function GpuSimulation({
     if (clearTrigger !== lastClearRef.current) {
         lastClearRef.current = clearTrigger;
 
+        // console.log('[GpuSimulation] Clearing...');
+
         const target = bufferRef.current.current;
         gl.setRenderTarget(target);
         gl.clearColor(0, 0, 0, 1); // Clear to black (dead)
@@ -158,11 +163,12 @@ export function GpuSimulation({
 
         updateMaterialMap();
     }
-  }, [randomizeTrigger, clearTrigger, gl, simScene, seedMaterial]);
+  }, [randomizeTrigger, clearTrigger, gl, simScene, seedMaterial, width, height, randomDensity]);
 
 
   // 6. The Render Loop
   const timerRef = useRef(0);
+  const frameCountRef = useRef(0);
 
   useFrame((state, delta) => {
     let shouldStep = false;
@@ -182,13 +188,19 @@ export function GpuSimulation({
     }
 
     if (!shouldStep) {
-        // Even if not stepping, ensure the material map is correct (e.g. after remount or buffer resize)
+        // Even if not stepping, ensure the material map is correct (e.g. after remount)
         // Optimization: Check if map matches current buffer
         if (targetMaterial.current && targetMaterial.current.map !== bufferRef.current.current.texture) {
              updateMaterialMap();
         }
         return;
     }
+
+    // Debug logging (throttled)
+    // frameCountRef.current++;
+    // if (frameCountRef.current % 60 === 0) {
+    //    console.log('[GpuSimulation] Stepping', { tickMs, delta, width, height });
+    // }
 
     const currentBuffer = bufferRef.current.current;
     const nextBuffer = bufferRef.current.next;
