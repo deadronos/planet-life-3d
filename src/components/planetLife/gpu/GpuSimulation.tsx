@@ -36,10 +36,10 @@ export function GpuSimulation({
   const options = useMemo<THREE.RenderTargetOptions>(() => ({
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
-    type: THREE.FloatType, // FloatType for precision
+    type: THREE.UnsignedByteType, // Compatible with all devices
     wrapS: THREE.RepeatWrapping, // Wrap longitude
     wrapT: THREE.ClampToEdgeWrapping, // Clamp latitude
-    format: THREE.RedFormat, // We only need one channel
+    format: THREE.RGBAFormat, // Standard format (RedFormat can be problematic)
   }), []);
 
   const bufferA = useFBO(resolution, resolution, options);
@@ -148,8 +148,7 @@ export function GpuSimulation({
         gl.clear(true, true, true);
         gl.setRenderTarget(null);
 
-        // Also clear the next buffer to be safe? Not strictly necessary if we overwrite it next step,
-        // but cleaner if we want to ensure stable state.
+        // Also clear the next buffer to be safe
         gl.setRenderTarget(bufferRef.current.next);
         gl.clearColor(0, 0, 0, 1);
         gl.clear(true, true, true);
@@ -180,7 +179,14 @@ export function GpuSimulation({
         }
     }
 
-    if (!shouldStep) return;
+    if (!shouldStep) {
+        // Even if not stepping, ensure the material map is correct (e.g. after remount)
+        // Optimization: Check if map matches current buffer
+        if (targetMaterial.current && targetMaterial.current.map !== bufferRef.current.current.texture) {
+             updateMaterialMap();
+        }
+        return;
+    }
 
     const currentBuffer = bufferRef.current.current;
     const nextBuffer = bufferRef.current.next;

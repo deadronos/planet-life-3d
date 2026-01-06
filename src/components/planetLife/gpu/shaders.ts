@@ -15,6 +15,34 @@ uniform bool uSurvive[9];
 
 varying vec2 vUv;
 
+// Helper to safely access uBirth array without dynamic indexing
+bool getBirth(int n) {
+    if (n == 0) return uBirth[0];
+    if (n == 1) return uBirth[1];
+    if (n == 2) return uBirth[2];
+    if (n == 3) return uBirth[3];
+    if (n == 4) return uBirth[4];
+    if (n == 5) return uBirth[5];
+    if (n == 6) return uBirth[6];
+    if (n == 7) return uBirth[7];
+    if (n == 8) return uBirth[8];
+    return false;
+}
+
+// Helper to safely access uSurvive array without dynamic indexing
+bool getSurvive(int n) {
+    if (n == 0) return uSurvive[0];
+    if (n == 1) return uSurvive[1];
+    if (n == 2) return uSurvive[2];
+    if (n == 3) return uSurvive[3];
+    if (n == 4) return uSurvive[4];
+    if (n == 5) return uSurvive[5];
+    if (n == 6) return uSurvive[6];
+    if (n == 7) return uSurvive[7];
+    if (n == 8) return uSurvive[8];
+    return false;
+}
+
 void main() {
     vec2 uv = vUv;
     vec2 onePixel = vec2(1.0) / uResolution;
@@ -34,22 +62,16 @@ void main() {
 
     float neighbors = 0.0;
 
+    // Unrolled loop for safety (though loops are usually fine, dynamic texture lookup inside loop is fine)
     for (int i = 0; i < 8; i++) {
         vec2 neighborUV = uv + offsets[i] * onePixel;
-        // X wraps automatically via RepeatWrapping
-        // Y clamps automatically via ClampToEdgeWrapping
-        // But we want to explicitly ignore neighbors "off the map" vertically
-        // if ClampToEdge wraps to the edge pixel, it acts like the edge pixel is repeated.
-        // We generally treat outside as dead (0.0).
-        // If texture is ClampToEdge, sampling at y > 1.0 returns the value at y=1.0.
-        // This effectively makes the poles "sticky".
-        // To treat off-map as dead:
+        // Treat off-map (Y axis) as dead to simulate poles
         if (neighborUV.y >= 0.0 && neighborUV.y <= 1.0) {
              neighbors += texture2D(uTexture, neighborUV).r;
         }
     }
 
-    int n = int(neighbors);
+    int n = int(neighbors + 0.5); // Round to nearest integer to be safe
 
     // Clamp n to 0-8 just in case
     if (n < 0) n = 0;
@@ -60,13 +82,13 @@ void main() {
     // Standard GoL Logic
     // If Alive (>= 0.5)
     if (current > 0.5) {
-        if (uSurvive[n]) {
+        if (getSurvive(n)) {
             nextState = 1.0;
         } else {
             nextState = 0.0;
         }
     } else {
-        if (uBirth[n]) {
+        if (getBirth(n)) {
             nextState = 1.0;
         } else {
             nextState = 0.0;
