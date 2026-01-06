@@ -32,6 +32,9 @@ export interface GPUSimulationHandle {
     mode: 'set' | 'toggle' | 'clear' | 'random';
     probability?: number;
   }) => void;
+  randomize: () => void;
+  clear: () => void;
+  stepOnce: () => void;
 }
 
 export const GPUSimulation = ({
@@ -126,66 +129,73 @@ export const GPUSimulation = ({
     return { scene, camera, quad };
   }, [seedMaterial]);
 
-  // Initialize with random or empty state
-  useEffect(() => {
-    // Initialize buffer A with random data
-    const size = resolution.width * resolution.height * 4;
-    const data = new Float32Array(size);
-    for (let i = 0; i < size; i += 4) {
-      let state = 0.0;
-      if (Math.random() < randomDensity) {
-        if (gameMode === 'Colony') {
-          // Colony mode: 0.33 for Colony A, 0.67 for Colony B
-          state = Math.random() < 0.5 ? 0.33 : 0.67;
-        } else {
-          // Classic mode: 1.0 for alive
-          state = 1.0;
+  const initializeState = useMemo(() => {
+    return (density: number) => {
+      const size = resolution.width * resolution.height * 4;
+      const data = new Float32Array(size);
+      for (let i = 0; i < size; i += 4) {
+        let state = 0.0;
+        if (Math.random() < density) {
+          if (gameMode === 'Colony') {
+            // Colony mode: 0.33 for Colony A, 0.67 for Colony B
+            state = Math.random() < 0.5 ? 0.33 : 0.67;
+          } else {
+            // Classic mode: 1.0 for alive
+            state = 1.0;
+          }
         }
+        data[i] = state; // R: alive/dead or colony state
+        data[i + 1] = 0.0; // G: age (starts at 0)
+        data[i + 2] = 0.0; // B: neighbor heat (starts at 0)
+        data[i + 3] = 1.0; // A: always 1
       }
-      data[i] = state; // R: alive/dead or colony state
-      data[i + 1] = 0.0; // G: age (starts at 0)
-      data[i + 2] = 0.0; // B: neighbor heat (starts at 0)
-      data[i + 3] = 1.0; // A: always 1
-    }
 
-    const texture = new THREE.DataTexture(
-      data,
-      resolution.width,
-      resolution.height,
-      THREE.RGBAFormat,
-      THREE.FloatType,
-    );
-    texture.needsUpdate = true;
+      const texture = new THREE.DataTexture(
+        data,
+        resolution.width,
+        resolution.height,
+        THREE.RGBAFormat,
+        THREE.FloatType,
+      );
+      texture.needsUpdate = true;
 
-    // Render initial state to both buffers
-    const prevTarget = gl.getRenderTarget();
+      const prevTarget = gl.getRenderTarget();
 
-    // Important: We modify uniforms inside an effect, not during render
-    // This is allowed because it's an intentional side effect
-    gl.setRenderTarget(targetA);
-    gl.clear();
-    // eslint-disable-next-line react-hooks/immutability
-    simMaterial.uniforms.uTexture.value = texture;
-    gl.render(simScene.scene, simScene.camera);
+      gl.setRenderTarget(targetA);
+      gl.clear();
+      // eslint-disable-next-line react-hooks/immutability
+      simMaterial.uniforms.uTexture.value = texture;
+      gl.render(simScene.scene, simScene.camera);
 
-    gl.setRenderTarget(targetB);
-    gl.clear();
-    gl.render(simScene.scene, simScene.camera);
+      gl.setRenderTarget(targetB);
+      gl.clear();
+      gl.render(simScene.scene, simScene.camera);
 
-    gl.setRenderTarget(prevTarget);
+      gl.setRenderTarget(prevTarget);
 
-    texture.dispose();
+      texture.dispose();
+
+      currentBufferRef.current = 'A';
+      if (onTextureUpdate) {
+        onTextureUpdate(targetA.texture);
+      }
+    };
   }, [
-    resolution.height,
-    resolution.width,
-    randomDensity,
     gameMode,
     gl,
-    simScene,
+    onTextureUpdate,
+    resolution.height,
+    resolution.width,
     simMaterial,
+    simScene,
     targetA,
     targetB,
   ]);
+
+  // Initialize with random or empty state
+  useEffect(() => {
+    initializeState(randomDensity);
+  }, [initializeState, randomDensity]);
 
   /* eslint-disable react-hooks/immutability */
   // Update rules and game mode when they change
@@ -258,8 +268,40 @@ export const GPUSimulation = ({
         // Cleanup
         patternTexture.dispose();
       },
+      randomize: () => {
+        initializeState(randomDensity);
+      },
+      clear: () => {
+        initializeState(0);
+      },
+      stepOnce: () => {
+        const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
+        const writeBuffer = currentBufferRef.current === 'A' ? targetB : targetA;
+        const prevTarget = gl.getRenderTarget();
+        gl.setRenderTarget(writeBuffer);
+        simMaterial.uniforms.uTexture.value = readBuffer.texture;
+        gl.render(simScene.scene, simScene.camera);
+        gl.setRenderTarget(prevTarget);
+        currentBufferRef.current = currentBufferRef.current === 'A' ? 'B' : 'A';
+        if (onTextureUpdate) {
+          onTextureUpdate(writeBuffer.texture);
+        }
+      },
     }),
-    [seedMaterial, seedScene, targetA, targetB, currentBufferRef, gl, gameMode, onTextureUpdate],
+    [
+      initializeState,
+      randomDensity,
+      seedMaterial,
+      seedScene,
+      targetA,
+      targetB,
+      currentBufferRef,
+      gl,
+      gameMode,
+      onTextureUpdate,
+      simMaterial,
+      simScene,
+    ],
   );
 
   // Simulation update loop with tick speed throttling

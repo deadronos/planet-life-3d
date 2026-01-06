@@ -1,5 +1,5 @@
 import { button, useControls } from 'leva';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import { gpuOverlayFragmentShader } from '../shaders/gpuOverlay.frag';
@@ -182,7 +182,7 @@ export function PlanetLife({
   ]);
 
   // Update GPU overlay material when texture changes
-  useMemo(() => {
+  useEffect(() => {
     if (gpuTexture && gpuOverlayMaterial) {
       // eslint-disable-next-line react-hooks/immutability
       gpuOverlayMaterial.uniforms.uLifeTexture.value = gpuTexture;
@@ -342,11 +342,29 @@ export function PlanetLife({
   useControls(
     'Actions',
     () => ({
-      Randomize: button(() => randomize()),
-      Clear: button(() => clear()),
-      StepOnce: button(() => stepOnce()),
+      Randomize: button(() => {
+        if (gpuSim && gpuSimRef.current) {
+          gpuSimRef.current.randomize();
+        } else {
+          randomize();
+        }
+      }),
+      Clear: button(() => {
+        if (gpuSim && gpuSimRef.current) {
+          gpuSimRef.current.clear();
+        } else {
+          clear();
+        }
+      }),
+      StepOnce: button(() => {
+        if (gpuSim && gpuSimRef.current) {
+          gpuSimRef.current.stepOnce();
+        } else {
+          stepOnce();
+        }
+      }),
     }),
-    [randomize, clear, stepOnce],
+    [gpuSim, randomize, clear, stepOnce],
   );
 
   return (
