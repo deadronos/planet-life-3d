@@ -44,13 +44,24 @@ Enable GPU simulation in the Debug panel for high-resolution grids (512x512+):
 The GPU simulation uses the following architecture:
 
 - **Ping-Pong Buffers**: Two render targets swap roles each frame (read from A, write to B, then swap)
-- **Fragment Shader**: Computes Game of Life rules for each pixel (cell) in parallel
+- **Fragment Shader**: Computes customizable cellular automata rules for each pixel (cell) in parallel
 - **Sphere Wrapping**: Longitude (U) wraps seamlessly, Latitude (V) clamps at poles
 - **Higher Resolution**: Supports 512x1024+ grids without performance degradation
+- **Parameter Parity**: Supports custom rules, tick speed, and random density (same as CPU mode)
+
+### Supported Parameters
+
+GPU mode now supports:
+- ✅ Custom birth/survive rules (birthDigits, surviveDigits)
+- ✅ Tick speed control (tickMs)
+- ✅ Random density (randomDensity)
+- ✅ Running state (running)
+- ⚠️ Cell colors (future - requires additional texture channels)
+- ⚠️ Colony mode (future - requires multi-state logic)
 
 Key files:
 
-- `src/shaders/simulation.frag.ts` - Game of Life computation shader
+- `src/shaders/simulation.frag.ts` - Customizable rules computation shader
 - `src/shaders/simulation.vert.ts` - Fullscreen quad vertex shader
 - `src/components/GPUSimulation.tsx` - Buffer management and simulation loop
 
