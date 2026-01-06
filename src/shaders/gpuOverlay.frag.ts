@@ -11,17 +11,45 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform float uAgeFadeHalfLife;
   uniform int uColorMode; // 0=Solid, 1=Age Fade, 2=Neighbor Heat
   uniform bool uColonyMode;
+  // Debug override (when true, outputs a solid color instead of sampling texture)
+  uniform bool uDebugOverlay;
+  uniform vec3 uDebugColor;
+  // Channel visualization: 0=off, 1=R, 2=G, 3=B, 4=RGB composite
+  uniform int uDebugMode;
+  uniform float uDebugScale;
   
   varying vec2 vUv;
   
   void main() {
+    // Debug: force a visible color to verify the overlay is rendered
+    if (uDebugOverlay) {
+      gl_FragColor = vec4(uDebugColor, 1.0);
+      return;
+    }
+
     vec4 texel = texture2D(uLifeTexture, vUv);
+
+    // Debug visualization modes
+    if (uDebugMode == 1) {
+      gl_FragColor = vec4(vec3(texel.r * uDebugScale), 1.0);
+      return;
+    } else if (uDebugMode == 2) {
+      gl_FragColor = vec4(vec3(texel.g * uDebugScale), 1.0);
+      return;
+    } else if (uDebugMode == 3) {
+      gl_FragColor = vec4(vec3(texel.b * uDebugScale), 1.0);
+      return;
+    } else if (uDebugMode == 4) {
+      gl_FragColor = vec4(texel.rgb * uDebugScale, 1.0);
+      return;
+    }
+
     float state = texel.r;
     float age = texel.g;
     float heat = texel.b;
     
     // Dead cells are transparent
-    if (state < 0.05) {
+    if (state < 0.02) {
       discard;
     }
     

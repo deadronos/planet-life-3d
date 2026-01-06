@@ -161,12 +161,18 @@ export function PlanetLife({
         uAgeFadeHalfLife: { value: Math.max(1, ageFadeHalfLife) },
         uColorMode: { value: colorModeValue },
         uColonyMode: { value: gameMode === 'Colony' },
+        // Debug controls
+        uDebugOverlay: { value: false },
+        uDebugColor: { value: new THREE.Color('#ff00ff') },
+        uDebugMode: { value: 0 },
+        uDebugScale: { value: 1 },
       },
       vertexShader: gpuOverlayVertexShader,
       fragmentShader: gpuOverlayFragmentShader,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      depthTest: false, // render on top to avoid depth occlusion during debugging
       toneMapped: false,
     });
   }, [
@@ -186,8 +192,16 @@ export function PlanetLife({
     if (gpuTexture && gpuOverlayMaterial) {
       // eslint-disable-next-line react-hooks/immutability
       gpuOverlayMaterial.uniforms.uLifeTexture.value = gpuTexture;
+      // Ensure the shader sees the updated texture data
+      const _tex = gpuOverlayMaterial.uniforms.uLifeTexture.value as THREE.Texture | null;
+      if (_tex) _tex.needsUpdate = true;
+      // Show a debug overlay if debugLogs is enabled so we can validate rendering
+      gpuOverlayMaterial.uniforms.uDebugOverlay.value = false; // leave solid override off
+      // When debug logs are enabled, enable channel visualization (composite RGB)
+      gpuOverlayMaterial.uniforms.uDebugMode.value = debugLogs ? 4 : 0;
+      gpuOverlayMaterial.uniforms.uDebugScale.value = debugLogs ? 4.0 : 1.0;
     }
-  }, [gpuTexture, gpuOverlayMaterial]);
+  }, [gpuTexture, gpuOverlayMaterial, debugLogs]);
 
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,

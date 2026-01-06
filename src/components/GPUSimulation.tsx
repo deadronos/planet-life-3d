@@ -12,7 +12,10 @@ function createRenderTarget(width: number, height: number): THREE.WebGLRenderTar
   return new THREE.WebGLRenderTarget(width, height, {
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
-    type: THREE.FloatType,
+    // Use UnsignedByte texture target so the produced texture can be sampled
+    // and displayed reliably across more WebGL contexts; 8-bit precision is
+    // sufficient for visualization (age/heat/colors are quantized in shaders).
+    type: THREE.UnsignedByteType,
     format: THREE.RGBAFormat,
     stencilBuffer: false,
     depthBuffer: false,
@@ -253,16 +256,23 @@ export const GPUSimulation = ({
         seedMaterial.uniforms.uRandomSeed.value = Math.random();
         seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
 
-        // Render seeding pass to current buffer
+        // Render seeding pass into the *opposite* buffer to avoid feedback loops
+        // (sample from currentBuffer.texture, write into writeBuffer)
         const prevTarget = gl.getRenderTarget();
-        const currentBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
-        gl.setRenderTarget(currentBuffer);
+        const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
+        const writeBuffer = currentBufferRef.current === 'A' ? targetB : targetA;
+        gl.setRenderTarget(writeBuffer);
+        // Ensure the shader sees the current state texture
+        seedMaterial.uniforms.uCurrentState.value = readBuffer.texture;
         gl.render(seedScene.scene, seedScene.camera);
         gl.setRenderTarget(prevTarget);
 
+        // Swap buffers: the newly written buffer becomes the current/read buffer
+        currentBufferRef.current = currentBufferRef.current === 'A' ? 'B' : 'A';
+
         // Notify parent of update
         if (onTextureUpdate) {
-          onTextureUpdate(currentBuffer.texture);
+          onTextureUpdate(writeBuffer.texture);
         }
 
         // Cleanup
