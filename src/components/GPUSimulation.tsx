@@ -2,14 +2,14 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-import type { Rules } from '../sim/rules';
 import { gpuSeedFragmentShader } from '../shaders/gpuSeed.frag';
 import { simulationFragmentShader } from '../shaders/simulation.frag';
 import { simulationVertexShader } from '../shaders/simulation.vert';
+import type { Rules } from '../sim/rules';
 
 // Helper to create FBO (Frame Buffer Object / Render Target)
-function createRenderTarget(resolution: number): THREE.WebGLRenderTarget {
-  return new THREE.WebGLRenderTarget(resolution, resolution, {
+function createRenderTarget(width: number, height: number): THREE.WebGLRenderTarget {
+  return new THREE.WebGLRenderTarget(width, height, {
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
     type: THREE.FloatType,
@@ -35,7 +35,7 @@ export interface GPUSimulationHandle {
 }
 
 export const GPUSimulation = ({
-  resolution = 512,
+  resolution = { width: 512, height: 512 },
   running = true,
   tickMs = 120,
   rules,
@@ -44,7 +44,7 @@ export const GPUSimulation = ({
   onTextureUpdate,
   simRef,
 }: {
-  resolution?: number;
+  resolution?: { width: number; height: number };
   running?: boolean;
   tickMs?: number;
   rules: Rules;
@@ -56,12 +56,18 @@ export const GPUSimulation = ({
   const { gl } = useThree();
 
   // Ping-pong render targets for double buffering
-  const targetA = useMemo(() => createRenderTarget(resolution), [resolution]);
-  const targetB = useMemo(() => createRenderTarget(resolution), [resolution]);
+  const targetA = useMemo(
+    () => createRenderTarget(resolution.width, resolution.height),
+    [resolution.height, resolution.width],
+  );
+  const targetB = useMemo(
+    () => createRenderTarget(resolution.width, resolution.height),
+    [resolution.height, resolution.width],
+  );
 
   // Track which buffer is the current "read" buffer
   const currentBufferRef = useRef<'A' | 'B'>('A');
-  
+
   // Track last tick time for throttling
   const lastTickTimeRef = useRef<number>(0);
 
@@ -73,7 +79,7 @@ export const GPUSimulation = ({
     return new THREE.ShaderMaterial({
       uniforms: {
         uTexture: { value: null },
-        uResolution: { value: new THREE.Vector2(resolution, resolution) },
+        uResolution: { value: new THREE.Vector2(resolution.width, resolution.height) },
         uBirthRules: { value: birthRules },
         uSurviveRules: { value: surviveRules },
         uColonyMode: { value: gameMode === 'Colony' },
@@ -81,7 +87,7 @@ export const GPUSimulation = ({
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
     });
-  }, [resolution, rules, gameMode]);
+  }, [resolution.height, resolution.width, rules, gameMode]);
 
   // Separate scene for simulation rendering (doesn't show in main view)
   const simScene = useMemo(() => {
@@ -99,18 +105,18 @@ export const GPUSimulation = ({
       uniforms: {
         uCurrentState: { value: null },
         uPatternData: { value: null },
-        uResolution: { value: new THREE.Vector2(resolution, resolution) },
+        uResolution: { value: new THREE.Vector2(resolution.width, resolution.height) },
         uSeedCenter: { value: new THREE.Vector2(0.5, 0.5) },
         uPatternSize: { value: new THREE.Vector2(1, 1) },
         uSeedMode: { value: modeMap.set },
         uSeedProbability: { value: 0.5 },
         uColonyMode: { value: gameMode === 'Colony' },
-        uRandomSeed: { value: Math.random() },
+        uRandomSeed: { value: 0 },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: gpuSeedFragmentShader,
     });
-  }, [resolution, gameMode]);
+  }, [resolution.height, resolution.width, gameMode]);
 
   const seedScene = useMemo(() => {
     const scene = new THREE.Scene();
@@ -123,7 +129,7 @@ export const GPUSimulation = ({
   // Initialize with random or empty state
   useEffect(() => {
     // Initialize buffer A with random data
-    const size = resolution * resolution * 4;
+    const size = resolution.width * resolution.height * 4;
     const data = new Float32Array(size);
     for (let i = 0; i < size; i += 4) {
       let state = 0.0;
@@ -144,8 +150,8 @@ export const GPUSimulation = ({
 
     const texture = new THREE.DataTexture(
       data,
-      resolution,
-      resolution,
+      resolution.width,
+      resolution.height,
       THREE.RGBAFormat,
       THREE.FloatType,
     );
@@ -169,19 +175,28 @@ export const GPUSimulation = ({
     gl.setRenderTarget(prevTarget);
 
     texture.dispose();
-  }, [resolution, randomDensity, gameMode, gl, simScene, simMaterial, targetA, targetB]);
+  }, [
+    resolution.height,
+    resolution.width,
+    randomDensity,
+    gameMode,
+    gl,
+    simScene,
+    simMaterial,
+    targetA,
+    targetB,
+  ]);
 
+  /* eslint-disable react-hooks/immutability */
   // Update rules and game mode when they change
   useEffect(() => {
     const birthRules = rulesToFloatArray(rules.birth);
     const surviveRules = rulesToFloatArray(rules.survive);
-    // eslint-disable-next-line react-hooks/immutability
     simMaterial.uniforms.uBirthRules.value = birthRules;
-    // eslint-disable-next-line react-hooks/immutability
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
-    // eslint-disable-next-line react-hooks/immutability
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
   }, [rules, gameMode, simMaterial]);
+  /* eslint-enable react-hooks/immutability */
 
   // Expose seeding method via ref
   useImperativeHandle(
@@ -216,22 +231,16 @@ export const GPUSimulation = ({
 
         // Set seeding uniforms
         const modeMap = { set: 0, toggle: 1, clear: 2, random: 3 };
-        // eslint-disable-next-line react-hooks/immutability
         seedMaterial.uniforms.uCurrentState.value =
           currentBufferRef.current === 'A' ? targetA.texture : targetB.texture;
-        // eslint-disable-next-line react-hooks/immutability
         seedMaterial.uniforms.uPatternData.value = patternTexture;
-        // eslint-disable-next-line react-hooks/immutability
-        seedMaterial.uniforms.uSeedCenter.value.set(u, v);
-        // eslint-disable-next-line react-hooks/immutability
-        seedMaterial.uniforms.uPatternSize.value.set(patternWidth, patternHeight);
-        // eslint-disable-next-line react-hooks/immutability
+        const seedCenter = seedMaterial.uniforms.uSeedCenter.value as THREE.Vector2;
+        seedCenter.set(u, v);
+        const patternSize = seedMaterial.uniforms.uPatternSize.value as THREE.Vector2;
+        patternSize.set(patternWidth, patternHeight);
         seedMaterial.uniforms.uSeedMode.value = modeMap[mode];
-        // eslint-disable-next-line react-hooks/immutability
         seedMaterial.uniforms.uSeedProbability.value = probability;
-        // eslint-disable-next-line react-hooks/immutability
         seedMaterial.uniforms.uRandomSeed.value = Math.random();
-        // eslint-disable-next-line react-hooks/immutability
         seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
 
         // Render seeding pass to current buffer
@@ -250,16 +259,7 @@ export const GPUSimulation = ({
         patternTexture.dispose();
       },
     }),
-    [
-      seedMaterial,
-      seedScene,
-      targetA,
-      targetB,
-      currentBufferRef,
-      gl,
-      gameMode,
-      onTextureUpdate,
-    ],
+    [seedMaterial, seedScene, targetA, targetB, currentBufferRef, gl, gameMode, onTextureUpdate],
   );
 
   // Simulation update loop with tick speed throttling
@@ -308,4 +308,4 @@ export const GPUSimulation = ({
   }, [targetA, targetB, simMaterial, seedMaterial, simScene, seedScene]);
 
   return null; // This component doesn't render anything visible
-}
+};

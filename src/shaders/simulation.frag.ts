@@ -11,7 +11,7 @@ export const simulationFragmentShader = /* glsl */ `
   varying vec2 vUv;
   
   // Sample a neighbor with proper wrapping for sphere topology
-  // Longitude (U) wraps around, Latitude (V) clamps at poles
+  // Longitude (U) wraps around, Latitude (V) treats out-of-range as empty
   // Returns vec4: r=state, g=age, b=heat, a=unused
   vec4 sampleNeighborFull(vec2 uv, vec2 offset) {
     vec2 pixelSize = 1.0 / uResolution;
@@ -20,9 +20,11 @@ export const simulationFragmentShader = /* glsl */ `
     // Wrap U (longitude) - seamless wrapping
     neighborUV.x = fract(neighborUV.x);
     
-    // Clamp V (latitude) - no wrapping at poles
-    neighborUV.y = clamp(neighborUV.y, 0.0, 1.0);
-    
+    // Latitude does not wrap; out-of-range samples contribute 0
+    if (neighborUV.y < 0.0 || neighborUV.y > 1.0) {
+      return vec4(0.0);
+    }
+
     return texture2D(uTexture, neighborUV);
   }
   

@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { computeImpactBasis } from '../../src/components/ImpactRing';
+import { describe, expect, it } from 'vitest';
+
+import { computeImpactBasis } from '../../src/components/impactTypes';
 
 describe('computeImpactBasis', () => {
   it('computes position and quaternion aligning +Z with normal (1,0,0)', () => {

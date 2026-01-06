@@ -28,8 +28,9 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).toContain('sampleNeighbor');
     // Longitude wrapping (fract for U coordinate)
     expect(simulationFragmentShader).toContain('fract');
-    // Latitude clamping (clamp for V coordinate)
-    expect(simulationFragmentShader).toContain('clamp');
+    // Latitude bounds check (out-of-range rows should be empty)
+    expect(simulationFragmentShader).toContain('neighborUV.y < 0.0');
+    expect(simulationFragmentShader).toContain('neighborUV.y > 1.0');
   });
 
   it('should count 8 neighbors in fragment shader', () => {

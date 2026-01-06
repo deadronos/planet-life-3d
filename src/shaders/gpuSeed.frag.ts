@@ -60,7 +60,8 @@ export const gpuSeedFragmentShader = /* glsl */ `
             newCell.b = 0.0;
           } else {
             if (uColonyMode) {
-              newCell.r = rand(vUv) < 0.5 ? 0.33 : 0.67;
+              // Match CPU toggle semantics: toggled-on cells become Colony A
+              newCell.r = 0.33;
             } else {
               newCell.r = 1.0;
             }

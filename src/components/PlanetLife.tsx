@@ -125,10 +125,13 @@ export function PlanetLife({
   // GPU simulation state and ref
   const gpuSimRef = useRef<GPUSimulationHandle>(null);
   const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
-  const gpuResolution = useMemo(() => {
-    // Use higher resolution for GPU mode
-    return gpuSim ? Math.max(safeLonCells, 512) : safeLonCells;
-  }, [gpuSim, safeLonCells]);
+  const gpuResolution = useMemo(
+    () => ({
+      width: safeLonCells,
+      height: safeLatCells,
+    }),
+    [safeLatCells, safeLonCells],
+  );
 
   const { resolveCellColor, colorScratch } = useCellColorResolver({
     cellColorMode,
@@ -145,7 +148,7 @@ export function PlanetLife({
   // GPU overlay material with color support
   const gpuOverlayMaterial = useMemo(() => {
     const colorModeValue = cellColorMode === 'Solid' ? 0 : cellColorMode === 'Age Fade' ? 1 : 2;
-    
+
     return new THREE.ShaderMaterial({
       uniforms: {
         uLifeTexture: { value: null },
@@ -245,42 +248,54 @@ export function PlanetLife({
         // Point is on sphere surface, convert to lat/lon then to UV
         const lat = Math.asin(point.y / planetRadius);
         const lon = Math.atan2(point.z, point.x);
-        
+
         // Convert lat (-π/2 to π/2) and lon (-π to π) to UV (0 to 1)
-        const v = (lat / Math.PI) + 0.5; // 0 at south pole, 1 at north pole
-        const u = (lon / (2 * Math.PI)) + 0.5; // 0 at -π, 1 at π (wraps around)
-        
-        // Get pattern as 2D array
-        let pattern: number[][];
+        const v = lat / Math.PI + 0.5; // 0 at south pole, 1 at north pole
+        const u = lon / (2 * Math.PI) + 0.5; // 0 at -π, 1 at π (wraps around)
+
+        let offsets: Array<readonly [number, number]> = [];
         if (seedPattern === 'Random Disk') {
           const r = Math.max(1, Math.floor(seedScale)) * 2;
-          pattern = [];
+          const diskOffsets: Array<readonly [number, number]> = [];
           for (let dy = -r; dy <= r; dy++) {
-            const row: number[] = [];
             for (let dx = -r; dx <= r; dx++) {
-              row.push(dx * dx + dy * dy <= r * r ? 1 : 0);
+              if (dx * dx + dy * dy <= r * r) diskOffsets.push([dy, dx]);
             }
-            pattern.push(row);
           }
+          offsets = diskOffsets;
+        } else if (seedPattern === 'Custom ASCII') {
+          offsets = parseAsciiPattern(customPattern) as Array<readonly [number, number]>;
         } else {
-          const offsets = seedPattern === 'Custom ASCII' 
-            ? parseAsciiPattern(customPattern)
-            : getBuiltinPatternOffsets(seedPattern);
-          
-          // Convert offsets to 2D array
-          const minX = Math.min(...offsets.map(([_, x]) => x));
-          const maxX = Math.max(...offsets.map(([_, x]) => x));
-          const minY = Math.min(...offsets.map(([y, _]) => y));
-          const maxY = Math.max(...offsets.map(([y, _]) => y));
-          const width = maxX - minX + 1;
-          const height = maxY - minY + 1;
-          
-          pattern = Array.from({ length: height }, () => Array(width).fill(0));
-          offsets.forEach(([y, x]) => {
-            pattern[y - minY][x - minX] = 1;
-          });
+          offsets = getBuiltinPatternOffsets(seedPattern);
         }
-        
+
+        if (offsets.length === 0) return;
+
+        const scale = Math.max(1, Math.floor(seedScale));
+        const jitter = Math.max(0, Math.floor(seedJitter));
+        const scaledOffsets: Array<[number, number]> = offsets.map(([dLa0, dLo0]) => {
+          let dLa = dLa0 * scale;
+          let dLo = dLo0 * scale;
+          if (jitter > 0) {
+            dLa += Math.floor((Math.random() * 2 - 1) * jitter);
+            dLo += Math.floor((Math.random() * 2 - 1) * jitter);
+          }
+          return [dLa, dLo];
+        });
+
+        const minX = Math.min(...scaledOffsets.map(([_, x]) => x));
+        const maxX = Math.max(...scaledOffsets.map(([_, x]) => x));
+        const minY = Math.min(...scaledOffsets.map(([y, _]) => y));
+        const maxY = Math.max(...scaledOffsets.map(([y, _]) => y));
+        const width = maxX - minX + 1;
+        const height = maxY - minY + 1;
+        const pattern: number[][] = Array.from({ length: height }, () =>
+          Array<number>(width).fill(0),
+        );
+
+        scaledOffsets.forEach(([y, x]) => {
+          pattern[y - minY][x - minX] = 1;
+        });
         gpuSimRef.current.seedAtUV({
           u,
           v,
@@ -293,7 +308,17 @@ export function PlanetLife({
         seedAtPointCPU(point);
       }
     };
-  }, [gpuSim, planetRadius, seedPattern, seedScale, seedMode, customPattern, seedProbability, seedAtPointCPU]);
+  }, [
+    gpuSim,
+    planetRadius,
+    seedPattern,
+    seedScale,
+    seedJitter,
+    seedMode,
+    customPattern,
+    seedProbability,
+    seedAtPointCPU,
+  ]);
 
   const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
     meteorSpeed,
