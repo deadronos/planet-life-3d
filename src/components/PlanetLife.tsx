@@ -1,3 +1,4 @@
+import { useFrame } from '@react-three/fiber';
 import { button, useControls } from 'leva';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -50,10 +51,11 @@ export function PlanetLife({
     atmosphereHeight,
 
     cellRenderMode,
-    cellOverlayOpacity,
 
     cellRadius,
     cellLift,
+    pulseSpeed,
+    pulseIntensity,
     cellColor,
     cellColorMode,
     colonyColorA,
@@ -152,6 +154,10 @@ export function PlanetLife({
     return new THREE.ShaderMaterial({
       uniforms: {
         uLifeTexture: { value: null },
+        uCellLift: { value: 0 }, // driven by useFrame
+        uPulseSpeed: { value: 0 }, // driven by useFrame
+        uPulseIntensity: { value: 0 }, // driven by useFrame
+        uTime: { value: 0 },
         uCellColor: { value: new THREE.Color(cellColor) },
         uColonyColorA: { value: new THREE.Color(colonyColorA) },
         uColonyColorB: { value: new THREE.Color(colonyColorB) },
@@ -189,19 +195,32 @@ export function PlanetLife({
 
   // Update GPU overlay material when texture changes
   useEffect(() => {
-    if (gpuTexture && gpuOverlayMaterial) {
-      // eslint-disable-next-line react-hooks/immutability
-      gpuOverlayMaterial.uniforms.uLifeTexture.value = gpuTexture;
-      // Ensure the shader sees the updated texture data
-      const _tex = gpuOverlayMaterial.uniforms.uLifeTexture.value as THREE.Texture | null;
-      if (_tex) _tex.needsUpdate = true;
+    if (gpuOverlayMaterial) {
+      const tex = gpuSim ? gpuTexture : lifeTex.tex;
+      if (tex) {
+        // eslint-disable-next-line react-hooks/immutability
+        gpuOverlayMaterial.uniforms.uLifeTexture.value = tex;
+        // eslint-disable-next-line react-hooks/immutability
+        tex.needsUpdate = true;
+      }
+
       // Show a debug overlay if debugLogs is enabled so we can validate rendering
       gpuOverlayMaterial.uniforms.uDebugOverlay.value = false; // leave solid override off
       // When debug logs are enabled, enable channel visualization (composite RGB)
       gpuOverlayMaterial.uniforms.uDebugMode.value = debugLogs ? 4 : 0;
       gpuOverlayMaterial.uniforms.uDebugScale.value = debugLogs ? 4.0 : 1.0;
     }
-  }, [gpuTexture, gpuOverlayMaterial, debugLogs]);
+  }, [gpuTexture, lifeTex, gpuSim, gpuOverlayMaterial, debugLogs]);
+
+  useFrame((state) => {
+    if (gpuOverlayMaterial) {
+      // eslint-disable-next-line react-hooks/immutability
+      gpuOverlayMaterial.uniforms.uTime.value = state.clock.elapsedTime;
+      gpuOverlayMaterial.uniforms.uCellLift.value = cellLift;
+      gpuOverlayMaterial.uniforms.uPulseSpeed.value = pulseSpeed;
+      gpuOverlayMaterial.uniforms.uPulseIntensity.value = pulseIntensity;
+    }
+  });
 
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,
@@ -416,23 +435,8 @@ export function PlanetLife({
         />
       </mesh>
 
-      {/* Life overlay (equirectangular DataTexture mapped onto the sphere UVs) */}
-      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && !gpuSim && (
-        <mesh scale={1.01} raycast={() => null}>
-          <sphereGeometry args={[planetRadius, 64, 64]} />
-          <meshBasicMaterial
-            map={lifeTex.tex}
-            transparent
-            opacity={cellOverlayOpacity}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
-
-      {/* GPU Life overlay */}
-      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && gpuSim && gpuTexture && (
+      {/* Life overlay (Unified: GPU shader for both CPU and GPU sim modes) */}
+      {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && (
         <mesh scale={1.01} raycast={() => null}>
           <sphereGeometry args={[planetRadius, 64, 64]} />
           <primitive object={gpuOverlayMaterial} attach="material" />

@@ -10,6 +10,7 @@
 
 ## Completed
 
+- [TASK016] Vertex Displacement & Unified Rendering - Implemented pulsing vertex displacement and unified GPU overlay pipeline
 - [TASK015] Workerized simulation PoC - Runs ticks in a Web Worker (opt-in) using transferable typed-array snapshots
 - [TASK014] Tick scheduler + perf benchmark harness - Non-overlapping tick loop + `npm run bench`
 - [TASK013] Add pre-commit hooks & lint-staged - Adds pre-commit linting and `lint-staged` hooks

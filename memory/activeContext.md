@@ -3,11 +3,17 @@
 ## Current Focus
 
 - Keep the Memory Bank (`memory/`) and the implementation spec (`specs/current-state.md`) in sync with the current code.
+- Keep the Memory Bank (`memory/`) and the implementation spec (`specs/current-state.md`) in sync with the current code.
 - Capture the post-TASK005 architecture: `PlanetLife.tsx` is now a composition layer and the heavy logic lives in `src/components/planetLife/`.
-- Track follow-on work after refactor completion (CI, docs drift prevention).
+- Validate the new unified rendering pipeline (Vertex Displacement) across all simulation modes.
 
 ## Recent changes
 
+- **Vertex Displacement & Unified Rendering (2026-01-06)**:
+  - Implemented vertex displacement for alive cells using a custom vertex shader (`gpuOverlay.vert.ts`).
+  - Added a pulsing animation effect controlled by `uPulseSpeed` and `uPulseIntensity`.
+  - Unified the rendering pipeline: both CPU (`Classic`, `Colony`) and GPU simulations now use `gpuOverlayMaterial` for the cell overlay.
+  - Refactored `writeLifeTexture` to output raw simulation data (State, Age, Heat) to texture channels instead of pre-resolved colors.
 - **Environment Enhancements (2025-12-14)**: Added immersive space background with 5 new components in `src/components/environment/`:
   - `NebulaSkybox.tsx` — GLSL procedural nebula using FBM noise with animated purple/blue/pink palette
   - `DistantSun.tsx` — Large yellowish star with glow shader and corona effects
