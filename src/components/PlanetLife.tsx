@@ -267,6 +267,7 @@ export function PlanetLife({
             ref={lifeMaterialRef}
             // If GPU is enabled, we leave map undefined so GpuSimulation can manage it via ref
             map={!gpuEnabled ? lifeTex.tex : undefined}
+            color={gpuEnabled ? cellColor : undefined} // Apply color tint for GPU mode (Texture is B/W)
             transparent
             opacity={cellOverlayOpacity}
             blending={THREE.AdditiveBlending}
@@ -298,7 +299,8 @@ export function PlanetLife({
       {/* GPU Simulation Component (hidden) */}
       {gpuEnabled && (
           <GpuSimulation
-              resolution={safeLonCells} // Use lonCells as square resolution or similar
+              width={safeLonCells}
+              height={safeLatCells}
               birthRules={rules.birth}
               surviveRules={rules.survive}
               running={running}

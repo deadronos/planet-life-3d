@@ -2,39 +2,49 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 let setSpy: ReturnType<typeof vi.fn>;
-let capturedSchema: unknown = null;
+let capturedSchemas: unknown[] = [];
 
 type SchemaShape = { Simulation?: { rulePreset?: { onChange?: (v: string) => void } } };
 
 vi.mock('leva', () => ({
-  useControls: (schemaOrName: unknown, schema?: unknown) => {
-    const s = schema ?? schemaOrName;
-    const obj: unknown = typeof s === 'function' ? (s as (...args: unknown[]) => unknown)() : s;
-    capturedSchema = obj;
+  useControls: (...args: unknown[]) => {
+    let schema: unknown;
+
+    // Detect arguments based on Leva signatures:
+    // 1. useControls(schema)
+    // 2. useControls(folderName, schema)
+    // 3. useControls(schema, deps)
+    // 4. useControls(folderName, schema, deps)
+
+    if (typeof args[0] === 'string') {
+        // Case 2 or 4
+        schema = args[1];
+    } else {
+        // Case 1 or 3
+        schema = args[0];
+    }
+
+    // Evaluate if function
+    const obj: unknown = typeof schema === 'function' ? (schema as (...args: unknown[]) => unknown)() : schema;
+    capturedSchemas.push(obj);
 
     const result: Record<string, unknown> = {};
-    function isValueObject(v: unknown): v is { value: unknown } {
-      return typeof v === 'object' && v !== null && 'value' in v;
-    }
-    function isPlainObject(v: unknown): v is Record<string, unknown> {
-      return typeof v === 'object' && v !== null && !Array.isArray(v);
-    }
-    function flattenSchema(o: Record<string, unknown>) {
-      for (const key of Object.keys(o)) {
-        const val = o[key];
-        if (isValueObject(val)) {
-          result[key] = val.value;
-          continue;
-        }
-        if (isPlainObject(val)) {
-          flattenSchema(val);
-          continue;
-        }
-        result[key] = val;
-      }
+
+    function extractValues(o: Record<string, unknown>) {
+       if (!o) return;
+       for (const key of Object.keys(o)) {
+          const val = o[key];
+          if (val && typeof val === 'object' && 'value' in val) {
+              result[key] = (val as any).value;
+          } else if (val && typeof val === 'object') {
+              extractValues(val as Record<string, unknown>);
+          } else {
+              result[key] = val;
+          }
+       }
     }
 
-    if (typeof obj === 'object' && obj !== null) flattenSchema(obj as Record<string, unknown>);
+    if (obj && typeof obj === 'object') extractValues(obj as Record<string, unknown>);
 
     return [result, setSpy] as [Record<string, unknown>, typeof setSpy];
   },
@@ -48,22 +58,24 @@ import { usePlanetLifeControls } from '../../src/components/planetLife/controls'
 describe('usePlanetLifeControls - onChange handlers', () => {
   beforeEach(() => {
     setSpy = vi.fn();
-    capturedSchema = null;
+    capturedSchemas = [];
   });
 
   it('calls set when rule preset onChange selected (non-Custom)', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
+    renderHook(() => usePlanetLifeControls());
 
-    // The captured schema should include Simulation.rulePreset.onChange
-    expect(capturedSchema).toBeTruthy();
-    const rp = (capturedSchema as SchemaShape).Simulation?.rulePreset;
-    expect(rp).toBeTruthy();
+    // console.log('Captured Schemas:', JSON.stringify(capturedSchemas, null, 2));
+
+    const mainSchema = capturedSchemas.find(s => s && typeof s === 'object' && 'Simulation' in s);
+    expect(mainSchema, 'Main schema with Simulation folder not found').toBeTruthy();
+
+    const rp = (mainSchema as SchemaShape).Simulation?.rulePreset;
+    expect(rp, 'rulePreset not found in schema').toBeTruthy();
     expect(typeof rp!.onChange).toBe('function');
 
     // Now call onChange with 'Conway'
     rp!.onChange!('Conway');
 
-    // setSpy should have been called with birthDigits and surviveDigits
     expect(setSpy).toHaveBeenCalled();
     const calledWith = setSpy.mock.calls[0][0];
     expect(calledWith.birthDigits).toBeDefined();
@@ -71,9 +83,12 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   });
 
   it('does not call set when rule preset set to Custom', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
+    renderHook(() => usePlanetLifeControls());
 
-    const rp = (capturedSchema as SchemaShape).Simulation?.rulePreset;
+    const mainSchema = capturedSchemas.find(s => s && typeof s === 'object' && 'Simulation' in s);
+    expect(mainSchema).toBeTruthy();
+
+    const rp = (mainSchema as SchemaShape).Simulation?.rulePreset;
     expect(rp).toBeTruthy();
     expect(typeof rp!.onChange).toBe('function');
 

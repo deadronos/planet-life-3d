@@ -13,8 +13,20 @@ expect.extend(matchers);
 // Mock Leva controls
 vi.mock('leva', () => {
   return {
-    useControls: (schemaOrName: unknown, schema?: unknown) => {
-      let s = schema ?? schemaOrName;
+    useControls: (...args: unknown[]) => {
+      let schema: unknown;
+      // Handle signatures:
+      // useControls(schema)
+      // useControls(name, schema)
+      // useControls(schema, deps)
+      // useControls(name, schema, deps)
+      if (typeof args[0] === 'string') {
+        schema = args[1];
+      } else {
+        schema = args[0];
+      }
+
+      let s = schema;
       const isFunction = typeof s === 'function';
       if (isFunction) {
         s = (s as Function)();
@@ -24,10 +36,6 @@ vi.mock('leva', () => {
       function isValueObject(v: unknown): v is { value: unknown } {
         return typeof v === 'object' && v !== null && 'value' in v;
       }
-      const getValue = (val: unknown) => {
-        if (isValueObject(val)) return val.value;
-        return val;
-      };
 
       const isPlainObject = (v: unknown): v is Record<string, unknown> => {
         return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -42,7 +50,6 @@ vi.mock('leva', () => {
           }
           if (isPlainObject(val)) {
             // `folder()` returns a nested schema object; flatten it into the top-level result.
-            // This matches how the component destructures the control values.
             flattenSchema(val);
             continue;
           }
@@ -53,6 +60,14 @@ vi.mock('leva', () => {
       if (typeof s === 'object' && s !== null) {
         flattenSchema(s as Record<string, unknown>);
       }
+
+      // Always return [values, set] if the schema was a function (standard useControls pattern in this codebase)
+      // Or if we are mocking based on usage.
+      // The error was "object is not iterable", meaning `useControls` returned an object instead of array.
+      // In `controls.ts`, both calls use function schema: `useControls('Debug', () => ...)` and `useControls(() => ...)`
+      // So checking `isFunction` should be enough, provided we extracted `schema` correctly.
+
+      // If schema was extracted correctly (it's the function), isFunction is true.
 
       if (isFunction) {
         return [result, () => {}];

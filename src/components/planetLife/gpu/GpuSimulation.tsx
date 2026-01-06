@@ -6,7 +6,8 @@ import * as THREE from 'three';
 import { simulationVertexShader, simulationFragmentShader, seedFragmentShader } from './shaders';
 
 interface GpuSimulationProps {
-  resolution: number;
+  width: number;
+  height: number;
   birthRules: boolean[]; // length 9
   surviveRules: boolean[]; // length 9
   running: boolean;
@@ -19,7 +20,8 @@ interface GpuSimulationProps {
 }
 
 export function GpuSimulation({
-  resolution,
+  width,
+  height,
   birthRules,
   surviveRules,
   running,
@@ -39,11 +41,11 @@ export function GpuSimulation({
     type: THREE.UnsignedByteType, // Compatible with all devices
     wrapS: THREE.RepeatWrapping, // Wrap longitude
     wrapT: THREE.ClampToEdgeWrapping, // Clamp latitude
-    format: THREE.RGBAFormat, // Standard format (RedFormat can be problematic)
+    format: THREE.RGBAFormat, // Standard format
   }), []);
 
-  const bufferA = useFBO(resolution, resolution, options);
-  const bufferB = useFBO(resolution, resolution, options);
+  const bufferA = useFBO(width, height, options);
+  const bufferB = useFBO(width, height, options);
 
   // Refs to keep track of current/next buffers
   const bufferRef = useRef({
@@ -55,20 +57,20 @@ export function GpuSimulation({
   const simMaterial = useMemo(() => new THREE.ShaderMaterial({
     uniforms: {
       uTexture: { value: null },
-      uResolution: { value: new THREE.Vector2(resolution, resolution) },
+      uResolution: { value: new THREE.Vector2(width, height) },
       uBirth: { value: birthRules },
       uSurvive: { value: surviveRules },
     },
     vertexShader: simulationVertexShader,
     fragmentShader: simulationFragmentShader,
-  }), [resolution, birthRules, surviveRules]);
+  }), [width, height, birthRules, surviveRules]);
 
-  // Update uniforms when rules change
+  // Update uniforms when rules or size change
   useEffect(() => {
     simMaterial.uniforms.uBirth.value = birthRules;
     simMaterial.uniforms.uSurvive.value = surviveRules;
-    simMaterial.uniforms.uResolution.value.set(resolution, resolution);
-  }, [birthRules, surviveRules, resolution, simMaterial]);
+    simMaterial.uniforms.uResolution.value.set(width, height);
+  }, [birthRules, surviveRules, width, height, simMaterial]);
 
 
   // 3. Create Seed Material
@@ -180,7 +182,7 @@ export function GpuSimulation({
     }
 
     if (!shouldStep) {
-        // Even if not stepping, ensure the material map is correct (e.g. after remount)
+        // Even if not stepping, ensure the material map is correct (e.g. after remount or buffer resize)
         // Optimization: Check if map matches current buffer
         if (targetMaterial.current && targetMaterial.current.map !== bufferRef.current.current.texture) {
              updateMaterialMap();

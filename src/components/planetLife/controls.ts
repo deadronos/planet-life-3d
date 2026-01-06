@@ -78,6 +78,38 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
 
   const setRef = useRef<((value: Partial<PlanetLifeControlsWithDebug>) => void) | null>(null);
 
+  // Use a ref to track gpuEnabled state for conditional max logic inside useControls if needed,
+  // but useControls re-runs when dependencies change.
+  // We need to read the CURRENT value of gpuEnabled to set the max.
+  // However, useControls returns the params including gpuEnabled.
+  // To make the schema dynamic based on gpuEnabled, we rely on the fact that changing gpuEnabled
+  // will trigger a re-render, and we can update the schema?
+  // Actually, Leva's useControls dependency array is [randomize, clear, ...].
+  // If we want the schema to react to `gpuEnabled`, we need `gpuEnabled` to be available.
+  // But `gpuEnabled` is PART of the controls.
+  // We can use a separate useControls for the toggle, or just update the limits imperatively?
+  // Or simpler: Just set the max to the constraint max, but warn the user?
+  // Or: Use a separate `useControls` for the mode, and pass it down?
+  // Let's try to update the schema dynamically.
+  // But `params` is the result of `useControls`.
+  // We can't access `params.gpuEnabled` inside the `useControls` call that creates it.
+
+  // Workaround: We define `gpuEnabled` in a separate useControls or just let it be part of the main one
+  // and accept that the slider max might not update instantly or we use the max constraint always
+  // but set the *default* lower.
+  // Wait, if I set max to 4096, the slider becomes very sensitive for low values.
+  // I will just increase the max to 4096. Users can be careful.
+  // Actually, I can use `render` based on `gpuEnabled`.
+  // But for now, to ensure I don't break the rules of hooks or create infinite loops,
+  // I will just set the max to the SIM_CONSTRAINTS max.
+  // If the user drags it to 4000 on CPU, it will lag. That's life.
+
+  // Better: I can use a separate useControls for the GPU toggle.
+
+  const [gpuParams, setGpu] = useControls('Debug', () => ({
+      gpuEnabled: { value: false, label: 'GPGPU Mode' },
+  }));
+
   const [params, set] = useControls(() => ({
     Simulation: folder(
       {
@@ -91,13 +123,13 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         latCells: {
           value: SIM_DEFAULTS.latCells,
           min: SIM_CONSTRAINTS.latCells.min,
-          max: 140,
+          max: gpuParams.gpuEnabled ? SIM_CONSTRAINTS.latCells.max : 256,
           step: 1,
         },
         lonCells: {
           value: SIM_DEFAULTS.lonCells,
           min: SIM_CONSTRAINTS.lonCells.min,
-          max: 240,
+          max: gpuParams.gpuEnabled ? SIM_CONSTRAINTS.lonCells.max : 512,
           step: 1,
         },
         rulePreset: {
@@ -231,15 +263,15 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         // Experimental: offload simulation ticking to a Web Worker.
         // Rendering still happens on the main thread.
         workerSim: false,
-        gpuEnabled: { value: false, label: 'GPGPU Mode' },
+        // gpuEnabled is handled in separate hook above
       },
       { collapsed: true },
     ),
-  }));
+  }), [gpuParams.gpuEnabled]);
 
   useEffect(() => {
     setRef.current = set;
   }, [set]);
 
-  return params as unknown as PlanetLifeControlsWithDebug;
+  return { ...params, gpuEnabled: gpuParams.gpuEnabled } as unknown as PlanetLifeControlsWithDebug;
 }

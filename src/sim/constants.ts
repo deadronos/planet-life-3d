@@ -6,8 +6,8 @@ export const SIM_DEFAULTS = {
 };
 
 export const SIM_CONSTRAINTS = {
-  latCells: { min: 8, max: 256 },
-  lonCells: { min: 8, max: 512 },
+  latCells: { min: 8, max: 2048 },
+  lonCells: { min: 8, max: 4096 },
   planetRadius: { min: 0.1, max: 100 },
   cellLift: { min: 0, max: 10 },
 };
