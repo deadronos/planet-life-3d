@@ -8,6 +8,13 @@ import { gpuOverlayVertexShader } from '../shaders/gpuOverlay.vert';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
+import {
+  AGE_FADE_BASE,
+  AGE_FADE_MAX,
+  AGE_FADE_MIN,
+  AGE_FADE_SCALE,
+  buildRandomDiskOffsets,
+} from '../sim/utils';
 import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
 import { ImpactRing } from './ImpactRing';
 import { Meteor } from './Meteor';
@@ -165,7 +172,12 @@ export function PlanetLife({
         uHeatMidColor: { value: new THREE.Color(heatMidColor) },
         uHeatHighColor: { value: new THREE.Color(heatHighColor) },
         uAgeFadeHalfLife: { value: Math.max(1, ageFadeHalfLife) },
+        uAgeFadeBase: { value: AGE_FADE_BASE },
+        uAgeFadeScale: { value: AGE_FADE_SCALE },
+        uAgeFadeMin: { value: AGE_FADE_MIN },
+        uAgeFadeMax: { value: AGE_FADE_MAX },
         uColorMode: { value: colorModeValue },
+
         uColonyMode: { value: gameMode === 'Colony' },
         // Debug controls
         uDebugOverlay: { value: false },
@@ -288,14 +300,7 @@ export function PlanetLife({
 
         let offsets: Array<readonly [number, number]> = [];
         if (seedPattern === 'Random Disk') {
-          const r = Math.max(1, Math.floor(seedScale)) * 2;
-          const diskOffsets: Array<readonly [number, number]> = [];
-          for (let dy = -r; dy <= r; dy++) {
-            for (let dx = -r; dx <= r; dx++) {
-              if (dx * dx + dy * dy <= r * r) diskOffsets.push([dy, dx]);
-            }
-          }
-          offsets = diskOffsets;
+          offsets = buildRandomDiskOffsets(seedScale);
         } else if (seedPattern === 'Custom ASCII') {
           offsets = parseAsciiPattern(customPattern) as Array<readonly [number, number]>;
         } else {

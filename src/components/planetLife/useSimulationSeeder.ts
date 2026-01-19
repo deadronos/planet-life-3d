@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { SeedMode } from '../../sim/LifeSimBase';
 import type { Offset } from '../../sim/patterns';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
+import { buildRandomDiskOffsets } from '../../sim/utils';
 
 type SimulationSeederParams = {
   seedAtPointImpl: (params: {
@@ -42,17 +43,7 @@ export function useSimulationSeeder({
     return getBuiltinPatternOffsets(seedPattern);
   }, [seedPattern, customPattern]);
 
-  const randomDiskOffsets = useCallback(() => {
-    // Disk radius uses seedScale as size knob (handy and cheap)
-    const r = Math.max(1, Math.floor(seedScale)) * 2;
-    const offsets: Array<readonly [number, number]> = [];
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy <= r * r) offsets.push([dy, dx]);
-      }
-    }
-    return offsets;
-  }, [seedScale]);
+  const randomDiskOffsets = useCallback(() => buildRandomDiskOffsets(seedScale), [seedScale]);
 
   const seedAtPoint = useCallback(
     (point: THREE.Vector3) => {
