@@ -1,6 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 
+import {
+  AGE_FADE_BASE,
+  AGE_FADE_MAX,
+  AGE_FADE_MIN,
+  AGE_FADE_SCALE,
+  clamp01,
+} from '../../sim/utils';
+
 export type CellColorMode = 'Solid' | 'Age Fade' | 'Neighbor Heat';
 
 export type ResolveCellColor = (
@@ -53,13 +61,17 @@ export function useCellColorResolver(params: {
           case 'Age Fade': {
             const age = ageView[idx];
             const decay = Math.exp(-age / ageHalfLife);
-            const brightness = THREE.MathUtils.clamp(0.35 + decay * 0.75, 0.25, 1.2);
+            const brightness = THREE.MathUtils.clamp(
+              AGE_FADE_BASE + decay * AGE_FADE_SCALE,
+              AGE_FADE_MIN,
+              AGE_FADE_MAX,
+            );
             target.copy(solidColor).multiplyScalar(brightness);
             break;
           }
           case 'Neighbor Heat': {
             const n = neighborHeatView[idx];
-            const t = Math.min(1, Math.max(0, n / 8));
+            const t = clamp01(n / 8);
             if (t <= 0.5) {
               target.copy(heatLowColorObj).lerp(heatMidColorObj, t * 2);
             } else {

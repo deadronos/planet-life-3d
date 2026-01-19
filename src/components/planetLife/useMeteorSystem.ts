@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import type { ImpactSpec } from '../impactTypes';
 import type { MeteorSpec } from '../meteorTypes';
-import { uid } from './utils';
+import { formatVector3, uid } from './utils';
 
 type MeteorSystemParams = {
   meteorSpeed: number;
@@ -146,12 +146,7 @@ export function useMeteorSystem({
     (id: string, impactPoint: THREE.Vector3) => {
       if (debugLogs) {
         // eslint-disable-next-line no-console
-        console.log(
-          `[PlanetLife] onMeteorImpact id=${id} point=${impactPoint
-            .toArray()
-            .map((v) => v.toFixed(2))
-            .join(',')}`,
-        );
+        console.log(`[PlanetLife] onMeteorImpact id=${id} point=${formatVector3(impactPoint)}`);
       }
 
       seedAtPoint(impactPoint);
