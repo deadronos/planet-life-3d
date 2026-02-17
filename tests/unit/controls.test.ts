@@ -86,7 +86,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   });
 
   it('calls set when theme onChange selected (non-Custom)', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
+    renderHook(() => usePlanetLifeControls());
 
     expect(capturedSchema).toBeTruthy();
     const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
@@ -102,7 +102,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   });
 
   it('does not call set when theme set to Custom', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
+    renderHook(() => usePlanetLifeControls());
 
     const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
     expect(theme).toBeTruthy();
