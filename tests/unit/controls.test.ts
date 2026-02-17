@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let setSpy: ReturnType<typeof vi.fn>;
 let capturedSchema: unknown = null;
 
-type SchemaShape = { Simulation?: { rulePreset?: { onChange?: (v: string) => void } } };
+type SchemaShape = {
+  Simulation?: { rulePreset?: { onChange?: (v: string) => void } };
+  Upgrades?: { theme?: { onChange?: (v: string) => void } };
+};
 
 vi.mock('leva', () => ({
   useControls: (schemaOrName: unknown, schema?: unknown) => {
@@ -78,6 +81,34 @@ describe('usePlanetLifeControls - onChange handlers', () => {
     expect(typeof rp!.onChange).toBe('function');
 
     rp!.onChange!('Custom');
+
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls set when theme onChange selected (non-Custom)', () => {
+    renderHook(() => usePlanetLifeControls());
+
+    expect(capturedSchema).toBeTruthy();
+    const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
+    expect(theme).toBeTruthy();
+    expect(typeof theme!.onChange).toBe('function');
+
+    theme!.onChange!('Default');
+
+    expect(setSpy).toHaveBeenCalled();
+    const calledWith = setSpy.mock.calls[0][0];
+    expect(calledWith.cellColor).toBeDefined();
+    expect(calledWith.atmosphereColor).toBeDefined();
+  });
+
+  it('does not call set when theme set to Custom', () => {
+    renderHook(() => usePlanetLifeControls());
+
+    const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
+    expect(theme).toBeTruthy();
+    expect(typeof theme!.onChange).toBe('function');
+
+    theme!.onChange!('Custom');
 
     expect(setSpy).not.toHaveBeenCalled();
   });
