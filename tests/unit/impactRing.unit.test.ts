@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
+import { computeImpactProgress } from '../../src/components/ImpactRing';
 import { computeImpactBasis } from '../../src/components/impactTypes';
 
 describe('computeImpactBasis', () => {
@@ -37,5 +38,15 @@ describe('computeImpactBasis', () => {
     expect(z.x).toBeCloseTo(normal.x, 6);
     expect(z.y).toBeCloseTo(normal.y, 6);
     expect(z.z).toBeCloseTo(normal.z, 6);
+  });
+});
+
+describe('computeImpactProgress', () => {
+  it('progresses in performance.now() time domain', () => {
+    const start = 1000;
+    const duration = 2;
+    const nowSeconds = 1001;
+
+    expect(computeImpactProgress(start, duration, nowSeconds)).toBeCloseTo(0.5, 6);
   });
 });

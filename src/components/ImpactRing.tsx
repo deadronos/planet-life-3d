@@ -5,6 +5,10 @@ import * as THREE from 'three';
 import { clamp01 } from '../sim/utils';
 import { computeImpactBasis, type ImpactSpec } from './impactTypes';
 
+export function computeImpactProgress(start: number, duration: number, nowSeconds: number) {
+  return clamp01((nowSeconds - start) / duration);
+}
+
 export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
   const groupRef = useRef<THREE.Group>(null!);
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -17,9 +21,9 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
     [props.spec.normal, props.planetRadius],
   );
 
-  useFrame(({ clock }) => {
-    const t = (clock.getElapsedTime() - props.spec.start) / props.spec.duration;
-    const u = clamp01(t);
+  useFrame(() => {
+    const nowSeconds = performance.now() / 1000;
+    const u = computeImpactProgress(props.spec.start, props.spec.duration, nowSeconds);
     const scale = THREE.MathUtils.lerp(0.25 * props.spec.ringSize, 2.3 * props.spec.ringSize, u);
 
     groupRef.current.position.copy(basis.pos);
