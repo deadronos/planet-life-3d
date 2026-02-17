@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  parseAsciiPattern,
-  getBuiltinPatternOffsets,
   BUILTIN_PATTERN_NAMES,
+  getBuiltinPatternOffsets,
+  parseAsciiPattern,
 } from '../../src/sim/patterns';
 
 describe('patterns', () => {
@@ -70,6 +71,24 @@ describe('patterns', () => {
       expect(parseAsciiPattern('#')).toEqual([[0, 0]]);
       expect(parseAsciiPattern('@')).toEqual([[0, 0]]);
       expect(parseAsciiPattern('1')).toEqual([[0, 0]]);
+    });
+
+    it('should center even width and height patterns using integer pivots', () => {
+      const offsets = parseAsciiPattern('OO\nOO');
+      expect(offsets).toHaveLength(4);
+      expect(offsets).toContainEqual([-1, -1]);
+      expect(offsets).toContainEqual([-1, 0]);
+      expect(offsets).toContainEqual([0, -1]);
+      expect(offsets).toContainEqual([0, 0]);
+    });
+
+    it('should keep even-width rows contiguous around zero', () => {
+      const offsets = parseAsciiPattern('OOOO');
+      expect(offsets).toHaveLength(4);
+      expect(offsets).toContainEqual([0, -2]);
+      expect(offsets).toContainEqual([0, -1]);
+      expect(offsets).toContainEqual([0, 0]);
+      expect(offsets).toContainEqual([0, 1]);
     });
   });
 
