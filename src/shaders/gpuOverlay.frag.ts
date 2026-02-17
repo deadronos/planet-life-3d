@@ -13,6 +13,7 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform float uAgeFadeScale;
   uniform float uAgeFadeMin;
   uniform float uAgeFadeMax;
+  uniform float uCellOverlayOpacity;
   uniform int uColorMode; // 0=Solid, 1=Age Fade, 2=Neighbor Heat
   uniform bool uColonyMode;
   // Debug override (when true, outputs a solid color instead of sampling texture)
@@ -99,6 +100,6 @@ export const gpuOverlayFragmentShader = /* glsl */ `
     float brightness = max(finalColor.r, max(finalColor.g, finalColor.b));
     alpha = clamp(brightness, 0.05, 1.0);
     
-    gl_FragColor = vec4(finalColor, alpha);
+    gl_FragColor = vec4(finalColor, alpha * uCellOverlayOpacity);
   }
 `;
