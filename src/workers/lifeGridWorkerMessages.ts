@@ -1,4 +1,4 @@
-import type { GameMode, SeedMode } from '../sim/LifeSimBase';
+import type { GameMode, SeedMode } from '../sim/types';
 import type { Offset } from '../sim/patterns';
 import type { Rules } from '../sim/rules';
 

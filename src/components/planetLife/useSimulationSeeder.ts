@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 
-import type { SeedMode } from '../../sim/LifeSimBase';
 import type { Offset } from '../../sim/patterns';
+import type { SeedMode } from '../../sim/types';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
 
 type SimulationSeederParams = {

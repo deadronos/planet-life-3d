@@ -1,15 +1,16 @@
 import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import { LifeSimBase, type SeedMode } from './LifeSimBase';
+import { LifeGridSim } from './LifeGridSim';
 import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { spherePointToCell } from './spherePointToCell';
+import type { SeedMode } from './types';
 import { safeFloat } from './utils';
 
 export type { SeedMode };
 
-export class LifeSphereSim extends LifeSimBase {
+export class LifeSphereSim extends LifeGridSim {
   // Precomputed surface positions (radius + lift), and normals
   readonly normals: THREE.Vector3[];
   readonly positions: THREE.Vector3[];
