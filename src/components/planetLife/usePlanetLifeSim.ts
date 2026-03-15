@@ -65,6 +65,22 @@ export function usePlanetLifeSim({
   } | null>(null);
 
   const workerEnabled = workerSim && typeof Worker !== 'undefined';
+  const publishStats = useCallback(
+    (source: {
+      generation: number;
+      population: number;
+      birthsLastTick: number;
+      deathsLastTick: number;
+    }) => {
+      useUIStore.getState().setStats({
+        generation: source.generation,
+        population: source.population,
+        birthsLastTick: source.birthsLastTick,
+        deathsLastTick: source.deathsLastTick,
+      });
+    },
+    [],
+  );
 
   const updateTexture = useCallback(() => {
     const snap = workerEnabled ? workerSnapshotRef.current : null;
@@ -170,9 +186,11 @@ export function usePlanetLifeSim({
       workerRef.current.postMessage({ type: 'clear' } satisfies LifeGridWorkerInMessage);
       return;
     }
-    simRef.current?.clear();
+    const sim = simRef.current;
+    sim?.clear();
+    if (sim) publishStats(sim);
     updateInstances();
-  }, [updateInstances, workerEnabled]);
+  }, [publishStats, updateInstances, workerEnabled]);
 
   const randomize = useCallback(() => {
     if (workerEnabled && workerRef.current) {
@@ -182,9 +200,11 @@ export function usePlanetLifeSim({
       } satisfies LifeGridWorkerInMessage);
       return;
     }
-    simRef.current?.randomize(randomDensity);
+    const sim = simRef.current;
+    sim?.randomize(randomDensity);
+    if (sim) publishStats(sim);
     updateInstances();
-  }, [randomDensity, updateInstances, workerEnabled]);
+  }, [publishStats, randomDensity, updateInstances, workerEnabled]);
 
   const stepOnce = useCallback(() => {
     if (workerEnabled && workerRef.current) {
@@ -193,9 +213,11 @@ export function usePlanetLifeSim({
       workerRef.current.postMessage({ type: 'tick', steps: 1 } satisfies LifeGridWorkerInMessage);
       return;
     }
-    simRef.current?.step();
+    const sim = simRef.current;
+    sim?.step();
+    if (sim) publishStats(sim);
     updateInstances();
-  }, [updateInstances, workerEnabled]);
+  }, [publishStats, updateInstances, workerEnabled]);
 
   const seedAtPoint = useCallback(
     (params: {
@@ -359,12 +381,7 @@ export function usePlanetLifeSim({
           buffers: { grid: msg.grid, age: msg.age, heat: msg.heat },
         };
 
-        useUIStore.getState().setStats({
-          generation: msg.generation,
-          population: msg.population,
-          birthsLastTick: msg.birthsLastTick,
-          deathsLastTick: msg.deathsLastTick,
-        });
+        publishStats(msg);
 
         updateInstancesRef.current();
       }
@@ -405,7 +422,7 @@ export function usePlanetLifeSim({
       if (workerRef.current === w) workerRef.current = null;
       workerTickInFlightRef.current = false;
     };
-  }, [workerEnabled, safeLatCells, safeLonCells, rules, randomDensity, debugLogs]);
+  }, [workerEnabled, safeLatCells, safeLonCells, rules, randomDensity, debugLogs, publishStats]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // Tick loop
@@ -435,12 +452,7 @@ export function usePlanetLifeSim({
           if (sim) {
             sim.step();
 
-            useUIStore.getState().setStats({
-              generation: sim.generation,
-              population: sim.population,
-              birthsLastTick: sim.birthsLastTick,
-              deathsLastTick: sim.deathsLastTick,
-            });
+            publishStats(sim);
 
             updateInstances();
           }
@@ -458,7 +470,7 @@ export function usePlanetLifeSim({
       cancelled = true;
       if (timeoutId !== null) window.clearTimeout(timeoutId);
     };
-  }, [running, tickMs, updateInstances, workerEnabled]);
+  }, [running, tickMs, updateInstances, workerEnabled, publishStats]);
 
   return {
     simRef,
