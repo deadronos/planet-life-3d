@@ -11,6 +11,7 @@ The main risks are correctness and maintainability issues in a few interaction p
 - Attempted required verification commands.
 
 Verification status:
+
 - `npm run test` failed: `vitest: command not found`
 - `npm run lint` failed: `eslint: command not found`
 - Root cause: dependencies are not installed in this environment (`node_modules` missing), so full validation could not be executed.
@@ -20,7 +21,7 @@ Verification status:
 ### Runtime Layers
 
 - App shell and scene composition: `src/App.tsx`, `src/main.tsx`
-- Simulation core (CPU, framework-agnostic): `src/sim/LifeSimBase.ts`, `src/sim/LifeSphereSim.ts`, `src/sim/LifeGridSim.ts`
+- Simulation core (CPU, framework-agnostic): `src/sim/LifeGridSim.ts`, `src/sim/LifeSphereSim.ts`, and worker logic in `src/workers/`.
 - Rendering integration and orchestration: `src/components/PlanetLife.tsx`, `src/components/planetLife/*`
 - Optional worker simulation path: `src/workers/lifeGridWorkerImpl.ts`, `src/workers/simWorker.ts`
 - Optional GPU simulation path: `src/components/GPUSimulation.tsx` + shader modules in `src/shaders/`
@@ -30,8 +31,10 @@ Verification status:
 1. Leva controls (`usePlanetLifeControls`) produce sim/render/runtime parameters.
 2. `PlanetLife` builds rules, creates materials/textures, and chooses CPU, worker, or GPU simulation pathways.
 3. CPU/worker simulation writes state into:
+
 - `DataTexture` (texture mode)
 - instanced mesh matrices/colors (dots mode)
+
 4. Meteor impacts invoke seeding; stats flow through Zustand store (`useUIStore`) into `Overlay`.
 
 ### Architectural Strengths
@@ -61,12 +64,14 @@ Verification status:
 ### High
 
 1. Impact ring animation likely never progresses due mixed time bases.
+
 - `src/components/planetLife/useMeteorSystem.ts:163` sets `start` using `performance.now()/1000`.
 - `src/components/ImpactRing.tsx:21` computes elapsed using `clock.getElapsedTime()`.
 - These clocks have different origins, so `t` can remain negative, keeping ring at initial state until it is pruned.
 - Recommendation: use one time source end-to-end (prefer R3F clock timestamps, or store start in elapsed-time domain).
 
 2. CPU-mode stats are stale for manual actions (`Clear`, `Randomize`, `StepOnce`).
+
 - In `src/components/planetLife/usePlanetLifeSim.ts:168-198`, CPU path updates sim and visuals, but does not call `useUIStore.getState().setStats(...)`.
 - Tick loop does update stats (`src/components/planetLife/usePlanetLifeSim.ts:438-443`), so UI is inconsistent depending on action path.
 - Recommendation: factor a shared `publishStats(sim)` helper and call it from clear/randomize/stepOnce and tick.
@@ -74,16 +79,19 @@ Verification status:
 ### Medium
 
 3. ASCII pattern centering distorts even-width/even-height patterns.
+
 - `src/sim/patterns.ts:32-42` uses `Math.round(x - cx)` / `Math.round(y - cy)` with half-cell centers.
 - For even dimensions, offsets can skip zero and stretch spacing (e.g., width 2 maps to -1 and +1).
 - Recommendation: center with integer pivot (`Math.floor(width/2)`, `Math.floor(height/2)`) or preserve half-offsets and convert consistently later.
 
 4. Dead or partially wired controls increase maintenance burden.
+
 - `cellOverlayOpacity` exists in controls/type (`src/components/planetLife/controls.ts:34`, `src/components/planetLife/controls.ts:140`) but is not used by rendering code.
 - `theme` and `rulePreset` exist primarily for side effects; not consumed directly by `PlanetLife` logic.
 - Recommendation: either wire these into render/sim state explicitly, or remove/hide until implemented.
 
 5. Rendering tests are heavily mocked and may miss real integration failures.
+
 - Many component tests mock `@react-three/fiber` and Leva aggressively (`tests/setup.ts`, `tests/component/PlanetLife.test.tsx`, `tests/component/PlanetLife.features.test.tsx`).
 - This is fine for unit-level assertions but weak for verifying actual Three/R3F behavior and shader/material wiring.
 - Recommendation: add a small integration test layer (minimal real renderer smoke tests) and/or Playwright visual sanity checks for key modes.
@@ -91,6 +99,7 @@ Verification status:
 ### Low
 
 6. Seeding logic is duplicated across CPU/GPU paths.
+
 - CPU seeding flow in `useSimulationSeeder` and GPU conversion logic in `PlanetLife` duplicate pattern scaling/jitter behavior.
 - Recommendation: extract shared pattern-to-offset/pattern-matrix transformation utilities to reduce divergence risk.
 

@@ -3,7 +3,7 @@
 ## Simulation rules
 
 - Rule parsing (UI digits): `src/sim/rules.ts` (`parseRuleDigits`)
-- Applying rules to simulation: `src/sim/LifeSphereSim.ts` / `src/sim/LifeSimBase.ts`
+- Applying rules to simulation: `src/sim/LifeSphereSim.ts` / `src/sim/LifeGridSim.ts`
 
 ## Built-in patterns
 

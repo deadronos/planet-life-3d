@@ -349,7 +349,7 @@ export class LifeGridSim {
     if (params.debug) {
       // eslint-disable-next-line no-console
       console.log(
-        `[LifeSimBase] seedAtCell: mode=${params.mode} offsets=${params.offsets.length} scale=${scale} p=${p} jitter=${jitter}`,
+        `[LifeGridSim] seedAtCell: mode=${params.mode} offsets=${params.offsets.length} scale=${scale} p=${p} jitter=${jitter}`,
       );
     }
 

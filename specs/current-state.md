@@ -8,7 +8,7 @@ Scope: Describes the current architecture, behaviors, data flow, and interfaces 
 
 Planet Life 3D is a single-page React + TypeScript application that renders a spherical cellular automata simulation (Conway-like rules) using three.js and @react-three/fiber. The simulation grid is defined over latitude/longitude on a sphere, updated on a configurable interval, and visualized via either a texture overlay or instanced dot mesh.
 
-- Core simulation: `src/sim/LifeSimBase.ts`, `src/sim/LifeSphereSim.ts`, `src/sim/LifeGridSim.ts`
+- Core simulation: `src/sim/LifeGridSim.ts`, `src/sim/LifeSphereSim.ts`
 - Rules & Utils: `src/sim/rules.ts`, `src/sim/utils.ts`
 - Patterns and ASCII parsing: `src/sim/patterns.ts`
 - Rendering & UI (composition): `src/components/PlanetLife.tsx`
@@ -28,24 +28,21 @@ Planet Life 3D is a single-page React + TypeScript application that renders a sp
 
 ## Architecture
 
-### Simulation (LifeSimBase & Subclasses)
+### Simulation (LifeGridSim & Subclasses)
 
 The simulation logic is consolidated in a class hierarchy to share code between the main thread and Web Workers:
 
-- **LifeSimBase** (`src/sim/LifeSimBase.ts`):
-  - Abstract-like base class containing the pure Game of Life logic.
+- **LifeGridSim** (`src/sim/LifeGridSim.ts`):
+  - Base class containing the pure Game of Life logic.
   - Manages grid state (`grid`, `next`, `age`, `neighborHeat`) using `Uint8Array` buffers.
   - Implements the optimized `step()` algorithm (unrolled loops for "safe zones" to minimize modulo operations).
   - Handles seeding (`seedAtCell`) and clearing.
   - Provides read-only views for rendering.
-- **LifeSphereSim** (`src/sim/LifeSphereSim.ts`) extends `LifeSimBase`:
+- **LifeSphereSim** (`src/sim/LifeSphereSim.ts`) extends `LifeGridSim`:
   - Adds three.js specific functionality for the main thread.
   - Precomputes `normals[]` and `positions[]` based on `planetRadius` and `cellLift`.
   - Implements `pointToCell(Vector3)` using `spherePointToCell` utility.
   - Adds `seedAtPoint()` convenience method.
-- **LifeGridSim** (`src/sim/LifeGridSim.ts`) extends `LifeSimBase`:
-  - A pure-logic version for use in Web Workers (no three.js dependency).
-  - Inherits the optimized `step()` and state management from `LifeSimBase`.
 
 ### Rendering & UI (PlanetLife)
 
@@ -163,7 +160,7 @@ Space environment components providing an immersive background:
 
 ## Recent Refactor Notes
 
-- **2025-12-17 Refactor**: Simulation logic consolidated into `LifeSimBase` to share core logic and performance optimizations between `LifeSphereSim` and `LifeGridSim`.
+- **2025-12-17 Refactor**: Simulation logic consolidated into `LifeGridSim` to share core logic and performance optimizations between `LifeSphereSim` and worker usage.
 
 ## Build & Run
 
@@ -186,7 +183,7 @@ npm run test     # Run Vitest suite
 
 - Add new built-in patterns in `src/sim/patterns.ts` and reuse `parseAsciiPattern`.
 - Add or modify rule presets and color themes in `src/sim/presets.ts` and wire them into `usePlanetLifeControls()` for UX-friendly presets.
-- Modify rules parsing or neighbor logic in `LifeSimBase`.
+- Modify rules parsing or neighbor logic in `LifeGridSim`.
 - Update rendering parity across `Texture` and `Dots` modes when changing overlay logic.
 - Expose additional parameters via `leva` controls in `PlanetLife`.
 

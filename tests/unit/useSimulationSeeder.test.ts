@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useSimulationSeeder } from '../../src/components/planetLife/useSimulationSeeder';
 import * as THREE from 'three';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useSimulationSeeder } from '../../src/components/planetLife/useSimulationSeeder';
 import type { Offset } from '../../src/sim/patterns';
-import type { SeedMode } from '../../src/sim/LifeSimBase';
+import type { SeedMode } from '../../src/sim/types';
 
 describe('useSimulationSeeder', () => {
   let mockSeedAtPointImpl: ReturnType<
