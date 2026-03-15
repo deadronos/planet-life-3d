@@ -9,6 +9,8 @@ const globals = require('globals');
 const simpleImportSort = require('eslint-plugin-simple-import-sort');
 const unusedImports = require('eslint-plugin-unused-imports');
 const reactRefresh = require('eslint-plugin-react-refresh');
+// Detect if the plugin exposes the optional rule (protects older/newer versions)
+const reactRefreshHasRule = !!(reactRefresh && reactRefresh.rules && 'only-export-components' in reactRefresh.rules);
 
 module.exports = [
   // Global ignore patterns (replaces .eslintignore)
@@ -99,8 +101,10 @@ module.exports = [
         },
       ],
 
-      // React Refresh
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // React Refresh (only enable if rule exists in installed plugin)
+      ...(reactRefreshHasRule
+        ? { 'react-refresh/only-export-components': ['warn', { allowConstantExport: true }] }
+        : {}),
     },
   },
 ].filter(Boolean);

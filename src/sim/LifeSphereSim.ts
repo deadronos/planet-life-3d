@@ -6,7 +6,7 @@ import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { spherePointToCell } from './spherePointToCell';
 import type { SeedMode } from './types';
-import { safeFloat } from './utils';
+import { formatVector3, safeFloat } from './utils';
 
 export type { SeedMode };
 
@@ -84,10 +84,7 @@ export class LifeSphereSim extends LifeGridSim {
     if (params.debug) {
       // eslint-disable-next-line no-console
       console.log(
-        `[LifeSphereSim] seedAtPoint: point=${params.point
-          .toArray()
-          .map((v) => v.toFixed(2))
-          .join(',')} -> cell=[${lat}, ${lon}]`,
+        `[LifeSphereSim] seedAtPoint: point=${formatVector3(params.point)} -> cell=[${lat}, ${lon}]`,
       );
     }
     this.seedAtCell({ ...params, lat, lon });

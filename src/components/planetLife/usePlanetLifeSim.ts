@@ -3,9 +3,9 @@ import * as THREE from 'three';
 
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
-import type { SeedMode } from '../../sim/types';
 import type { Rules } from '../../sim/rules';
 import { spherePointToCell } from '../../sim/spherePointToCell';
+import type { SeedMode } from '../../sim/types';
 import { useUIStore } from '../../store/useUIStore';
 import type {
   LifeGridWorkerInMessage,

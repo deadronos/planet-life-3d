@@ -9,6 +9,10 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform vec3 uHeatMidColor;
   uniform vec3 uHeatHighColor;
   uniform float uAgeFadeHalfLife;
+  uniform float uAgeFadeBase;
+  uniform float uAgeFadeScale;
+  uniform float uAgeFadeMin;
+  uniform float uAgeFadeMax;
   uniform int uColorMode; // 0=Solid, 1=Age Fade, 2=Neighbor Heat
   uniform bool uColonyMode;
   // Debug override (when true, outputs a solid color instead of sampling texture)
@@ -70,7 +74,11 @@ export const gpuOverlayFragmentShader = /* glsl */ `
         // Age Fade mode
         float ageNormalized = age * 255.0; // De-normalize from 0-1 to 0-255
         float decay = exp(-ageNormalized / max(1.0, uAgeFadeHalfLife));
-        float brightness = clamp(0.35 + decay * 0.75, 0.25, 1.2);
+        float brightness = clamp(
+          uAgeFadeBase + decay * uAgeFadeScale,
+          uAgeFadeMin,
+          uAgeFadeMax
+        );
         finalColor = uCellColor * brightness;
       } else if (uColorMode == 2) {
         // Neighbor Heat mode

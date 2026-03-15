@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { clamp01 } from '../sim/utils';
 import { computeImpactBasis, type ImpactSpec } from './impactTypes';
 
 export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
@@ -18,7 +19,7 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
 
   useFrame(({ clock }) => {
     const t = (clock.getElapsedTime() - props.spec.start) / props.spec.duration;
-    const u = Math.min(1, Math.max(0, t));
+    const u = clamp01(t);
     const scale = THREE.MathUtils.lerp(0.25 * props.spec.ringSize, 2.3 * props.spec.ringSize, u);
 
     groupRef.current.position.copy(basis.pos);
