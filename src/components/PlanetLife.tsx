@@ -58,6 +58,7 @@ export function PlanetLife({
     atmosphereHeight,
 
     cellRenderMode,
+    cellOverlayOpacity,
 
     cellRadius,
     cellLift,
@@ -177,6 +178,7 @@ export function PlanetLife({
         uAgeFadeMin: { value: AGE_FADE_MIN },
         uAgeFadeMax: { value: AGE_FADE_MAX },
         uColorMode: { value: colorModeValue },
+        uCellOverlayOpacity: { value: cellOverlayOpacity },
 
         uColonyMode: { value: gameMode === 'Colony' },
         // Debug controls
@@ -202,6 +204,7 @@ export function PlanetLife({
     heatMidColor,
     heatHighColor,
     ageFadeHalfLife,
+    cellOverlayOpacity,
     gameMode,
   ]);
 
@@ -231,6 +234,7 @@ export function PlanetLife({
       gpuOverlayMaterial.uniforms.uCellLift.value = cellLift;
       gpuOverlayMaterial.uniforms.uPulseSpeed.value = pulseSpeed;
       gpuOverlayMaterial.uniforms.uPulseIntensity.value = pulseIntensity;
+      gpuOverlayMaterial.uniforms.uCellOverlayOpacity.value = cellOverlayOpacity;
     }
   });
 

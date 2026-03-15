@@ -29,16 +29,16 @@ export function parseAsciiPattern(ascii: string): Offset[] {
 
   const height = lines.length;
   const width = Math.max(...lines.map((l) => l.length));
-  const cy = (height - 1) / 2;
-  const cx = (width - 1) / 2;
+  const cy = Math.floor(height / 2);
+  const cx = Math.floor(width / 2);
 
   const offsets: Offset[] = [];
   for (let y = 0; y < height; y++) {
     const line = lines[y];
     for (let x = 0; x < line.length; x++) {
       if (!LIVE_CHARS.has(line[x])) continue;
-      const dLon = Math.round(x - cx);
-      const dLat = Math.round(y - cy);
+      const dLon = x - cx;
+      const dLat = y - cy;
       offsets.push([dLat, dLon]);
     }
   }
