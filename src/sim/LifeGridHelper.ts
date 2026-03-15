@@ -1,4 +1,4 @@
-import type { GameMode, SeedMode } from './LifeSimBase';
+import type { GameMode, SeedMode } from './types';
 
 export type ColonyStats = {
   neighbors: number;
