@@ -45,6 +45,69 @@ export function parseAsciiPattern(ascii: string): Offset[] {
   return offsets;
 }
 
+/**
+ * Transforms a list of relative offsets by scaling and applying jitter.
+ */
+export function transformOffsets(
+  offsets: Offset[],
+  scale: number,
+  jitter: number,
+  rng: () => number = Math.random,
+): Offset[] {
+  const s = Math.max(1, Math.floor(scale));
+  const j = Math.max(0, Math.floor(jitter));
+
+  return offsets.map(([dLa0, dLo0]) => {
+    let dLa = dLa0 * s;
+    let dLo = dLo0 * s;
+
+    if (j > 0) {
+      dLa += Math.floor((rng() * 2 - 1) * j);
+      dLo += Math.floor((rng() * 2 - 1) * j);
+    }
+
+    return [dLa, dLo] as const;
+  });
+}
+
+/**
+ * Converts a list of relative offsets into a 2D matrix (number[][]).
+ * The matrix will be as small as possible while containing all offsets.
+ * The (0,0) offset will be at a specific [row, col] in the returned object.
+ */
+export function offsetsToMatrix(offsets: Offset[]): {
+  matrix: number[][];
+  originRow: number;
+  originCol: number;
+} {
+  if (offsets.length === 0) {
+    return { matrix: [], originRow: 0, originCol: 0 };
+  }
+
+  const lats = offsets.map((o) => o[0]);
+  const lons = offsets.map((o) => o[1]);
+
+  const minLat = Math.min(...lats, 0); // Include 0 to ensure we know where the origin is
+  const maxLat = Math.max(...lats, 0);
+  const minLon = Math.min(...lons, 0);
+  const maxLon = Math.max(...lons, 0);
+
+  const height = maxLat - minLat + 1;
+  const width = maxLon - minLon + 1;
+
+  const matrix: number[][] = Array.from({ length: height }, () => new Array<number>(width).fill(0));
+
+  for (const [lat, lon] of offsets) {
+    matrix[lat - minLat][lon - minLon] = 1;
+  }
+
+  return {
+    matrix,
+    originRow: -minLat,
+    originCol: -minLon,
+  };
+}
+
 // Built-ins as ASCII (easy to tweak / share)
 const BUILTIN_ASCII: Record<string, string> = {
   Cross: `

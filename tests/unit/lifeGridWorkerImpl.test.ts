@@ -33,6 +33,7 @@ describe('lifeGridWorkerImpl', () => {
     expect(snap!.grid.byteLength).toBe(8 * 16);
     expect(snap!.age.byteLength).toBe(8 * 16);
     expect(snap!.heat.byteLength).toBe(8 * 16);
+    expect(snap!.aliveIndices.byteLength).toBe(8 * 16 * 4);
   });
 
   it('recycles snapshot buffers for reuse', () => {
@@ -46,25 +47,28 @@ describe('lifeGridWorkerImpl', () => {
       rules: GOL_RULES,
       randomDensity: 0,
     });
-    const first = out.find(
-      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
-    );
+    const first = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(first).toBeTruthy();
 
     // Simulate main-thread returning the buffers.
-    handler.onMessage({ type: 'recycle', grid: first!.grid, age: first!.age, heat: first!.heat });
+    handler.onMessage({
+      type: 'recycle',
+      grid: first!.grid,
+      age: first!.age,
+      heat: first!.heat,
+      aliveIndices: first!.aliveIndices,
+    });
 
     out.length = 0;
     handler.onMessage({ type: 'tick', steps: 1 });
-    const second = out.find(
-      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
-    );
+    const second = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(second).toBeTruthy();
 
     // Implementation uses a pool pop, so we should see the same buffers reused.
     expect(second!.grid).toBe(first!.grid);
     expect(second!.age).toBe(first!.age);
     expect(second!.heat).toBe(first!.heat);
+    expect(second!.aliveIndices).toBe(first!.aliveIndices);
   });
 
   it('sends an error for commands before init', () => {
@@ -90,16 +94,12 @@ describe('lifeGridWorkerImpl', () => {
     out.length = 0;
 
     handler.onMessage({ type: 'randomize', density: 1 } as LifeGridWorkerInMessage);
-    let snap = out.find(
-      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
-    );
+    let snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(snap).toBeTruthy();
 
     out.length = 0;
     handler.onMessage({ type: 'tick' } as LifeGridWorkerInMessage);
-    snap = out.find(
-      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
-    );
+    snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(snap).toBeTruthy();
     expect(typeof snap!.generation).toBe('number');
   });
@@ -126,9 +126,7 @@ describe('lifeGridWorkerImpl', () => {
       jitter: 0,
       probability: 1,
     } as LifeGridWorkerInMessage);
-    const snap = out.find(
-      (m): m is Extract<LifeGridWorkerOutMessage, { type: 'snapshot' }> => m.type === 'snapshot',
-    );
+    const snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(snap).toBeTruthy();
   });
 });

@@ -6,6 +6,7 @@ export const gpuSeedFragmentShader = /* glsl */ `
   uniform vec2 uResolution;          // Simulation texture resolution
   uniform vec2 uSeedCenter;          // Center UV coordinates for seeding
   uniform vec2 uPatternSize;         // Pattern size in pixels
+  uniform vec2 uPatternOrigin;       // Origin within the pattern matrix (where the seed center maps)
   uniform float uSeedMode;           // 0=set, 1=toggle, 2=clear, 3=random
   uniform float uSeedProbability;    // For random mode
   uniform bool uColonyMode;          // Whether colony mode is enabled
@@ -21,19 +22,25 @@ export const gpuSeedFragmentShader = /* glsl */ `
   void main() {
     vec4 currentCell = texture2D(uCurrentState, vUv);
     
-    // Calculate distance from seed center
-    vec2 pixelPos = vUv * uResolution;
-    vec2 seedPixelPos = uSeedCenter * uResolution;
-    vec2 offset = pixelPos - seedPixelPos;
+    // Calculate integer grid positions
+    vec2 pixelPos = floor(vUv * uResolution);
+    vec2 seedPixelPos = floor(uSeedCenter * uResolution);
+
+    // Calculate relative grid offset from seed center
+    vec2 gridOffset = pixelPos - seedPixelPos;
+
+    // Map grid offset to pattern matrix coordinates using the pattern origin
+    // patternCoord.y corresponds to the row index, patternCoord.x to the column index
+    vec2 patternCoord = uPatternOrigin + gridOffset;
     
     // Check if we're within the pattern bounds
-    vec2 halfPattern = uPatternSize * 0.5;
-    bool inPattern = abs(offset.x) <= halfPattern.x && abs(offset.y) <= halfPattern.y;
+    bool inPattern = patternCoord.x >= 0.0 && patternCoord.x < uPatternSize.x &&
+                     patternCoord.y >= 0.0 && patternCoord.y < uPatternSize.y;
     
     if (inPattern) {
-      // Calculate pattern UV (0-1) based on offset
-      vec2 patternUV = (offset + halfPattern) / uPatternSize;
-      patternUV.y = 1.0 - patternUV.y;  // Flip Y for correct orientation
+      // Calculate pattern UV (0-1) based on pattern coordinates
+      // We add 0.5 to sample from the center of the pattern texel
+      vec2 patternUV = (patternCoord + 0.5) / uPatternSize;
       
       // Sample pattern (pattern texture has 1.0 for alive cells, 0.0 for dead)
       float patternValue = texture2D(uPatternData, patternUV).r;
@@ -92,7 +99,7 @@ export const gpuSeedFragmentShader = /* glsl */ `
         
         gl_FragColor = newCell;
       } else {
-        // Outside pattern area, keep current state
+        // Pattern value is 0, keep current state
         gl_FragColor = currentCell;
       }
     } else {

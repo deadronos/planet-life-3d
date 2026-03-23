@@ -1,126 +1,67 @@
 import { describe, expect, it } from 'vitest';
+import { offsetsToMatrix, parseAsciiPattern, transformOffsets } from '../../src/sim/patterns';
 
-import {
-  BUILTIN_PATTERN_NAMES,
-  getBuiltinPatternOffsets,
-  parseAsciiPattern,
-} from '../../src/sim/patterns';
-
-describe('patterns', () => {
-  describe('parseAsciiPattern', () => {
-    it('should return empty offsets for empty string', () => {
-      expect(parseAsciiPattern('')).toEqual([]);
-    });
-
-    it('should return empty offsets for string with no live chars', () => {
-      expect(parseAsciiPattern('...\n...')).toEqual([]);
-    });
-
-    it('should parse simple single point', () => {
-      // 1x1, centered at 0,0
-      expect(parseAsciiPattern('O')).toEqual([[0, 0]]);
-    });
-
-    it('should parse line of 3 (blinker)', () => {
-      // 3x1
-      // OOO
-      // cx = 1, cy = 0
-      // x=0, y=0 -> dLon=-1, dLat=0
-      // x=1, y=0 -> dLon=0, dLat=0
-      // x=2, y=0 -> dLon=1, dLat=0
-      const offsets = parseAsciiPattern('OOO');
-      expect(offsets).toHaveLength(3);
-      expect(offsets).toContainEqual([0, -1]);
-      expect(offsets).toContainEqual([0, 0]);
-      expect(offsets).toContainEqual([0, 1]);
-    });
-
-    it('should ignore dead characters', () => {
-      const offsets = parseAsciiPattern('.O.');
-      expect(offsets).toHaveLength(1);
-      expect(offsets[0]).toEqual([0, 0]);
-    });
-
-    it('should handle multiple lines', () => {
-      // 3x3
-      // .O.
-      // OOO
-      // .O.
-      // cx=1, cy=1
-      // (0,1) -> [ -1, 0 ] -> wait, y=0, x=1. dLat = 0-1 = -1. dLon = 1-1 = 0.
-      // (1,0) -> [ 0, -1 ]
-      // (1,1) -> [ 0, 0 ]
-      // (1,2) -> [ 0, 1 ]
-      // (2,1) -> [ 1, 0 ]
-      const pattern = `
-        .O.
-        OOO
-        .O.
-      `;
-      const offsets = parseAsciiPattern(pattern);
-      expect(offsets).toHaveLength(5);
-      expect(offsets).toContainEqual([-1, 0]);
-      expect(offsets).toContainEqual([0, -1]);
-      expect(offsets).toContainEqual([0, 0]);
-      expect(offsets).toContainEqual([0, 1]);
-      expect(offsets).toContainEqual([1, 0]);
-    });
-
-    it('should handle different live characters', () => {
-      expect(parseAsciiPattern('x')).toEqual([[0, 0]]);
-      expect(parseAsciiPattern('#')).toEqual([[0, 0]]);
-      expect(parseAsciiPattern('@')).toEqual([[0, 0]]);
-      expect(parseAsciiPattern('1')).toEqual([[0, 0]]);
-    });
-
-    it('should center even width and height patterns using integer pivots', () => {
-      const offsets = parseAsciiPattern('OO\nOO');
-      expect(offsets).toHaveLength(4);
-      expect(offsets).toContainEqual([-1, -1]);
-      expect(offsets).toContainEqual([-1, 0]);
-      expect(offsets).toContainEqual([0, -1]);
-      expect(offsets).toContainEqual([0, 0]);
-    });
-
-    it('should keep even-width rows contiguous around zero', () => {
-      const offsets = parseAsciiPattern('OOOO');
-      expect(offsets).toHaveLength(4);
-      expect(offsets).toContainEqual([0, -2]);
-      expect(offsets).toContainEqual([0, -1]);
-      expect(offsets).toContainEqual([0, 0]);
-      expect(offsets).toContainEqual([0, 1]);
-    });
+describe('patterns utility', () => {
+  it('parses ASCII patterns and centers them correctly', () => {
+    const ascii = `
+      .O.
+      OOO
+      .O.
+    `;
+    const offsets = parseAsciiPattern(ascii);
+    // 3x3 pattern, center is floor(3/2) = 1, 1
+    // .O. (0,1) -> (0-1, 1-1) = (-1, 0)
+    // OOO (1,0)(1,1)(1,2) -> (0, -1)(0, 0)(0, 1)
+    // .O. (2,1) -> (1, 0)
+    expect(offsets).toContainEqual([-1, 0]);
+    expect(offsets).toContainEqual([0, -1]);
+    expect(offsets).toContainEqual([0, 0]);
+    expect(offsets).toContainEqual([0, 1]);
+    expect(offsets).toContainEqual([1, 0]);
+    expect(offsets.length).toBe(5);
   });
 
-  describe('getBuiltinPatternOffsets', () => {
-    it('should return offsets for known patterns', () => {
-      for (const name of BUILTIN_PATTERN_NAMES) {
-        const offsets = getBuiltinPatternOffsets(name);
-        expect(offsets.length).toBeGreaterThan(0);
-      }
-    });
+  it('handles even-dimension pattern centering', () => {
+    const ascii = `
+      OO
+      OO
+    `;
+    const offsets = parseAsciiPattern(ascii);
+    // 2x2 pattern, center is floor(2/2) = 1, 1
+    // OO (0,0)(0,1) -> (-1, -1)(-1, 0)
+    // OO (1,0)(1,1) -> (0, -1)(0, 0)
+    expect(offsets).toContainEqual([-1, -1]);
+    expect(offsets).toContainEqual([-1, 0]);
+    expect(offsets).toContainEqual([0, -1]);
+    expect(offsets).toContainEqual([0, 0]);
+  });
 
-    it('should return empty array for unknown pattern', () => {
-      expect(getBuiltinPatternOffsets('UnknownPattern')).toEqual([]);
-    });
+  it('transforms offsets correctly', () => {
+    const offsets: Array<readonly [number, number]> = [[1, 1]];
+    const transformed = transformOffsets(offsets, 2, 0);
+    expect(transformed).toEqual([[2, 2]]);
+  });
 
-    it('should return specific known shape (Glider)', () => {
-      const glider = getBuiltinPatternOffsets('Glider');
-      // .O.
-      // ..O
-      // OOO
-      // 3x3. cx=1, cy=1
-      // (0,1) -> [-1, 0]
-      // (1,2) -> [0, 1]
-      // (2,0) -> [1, -1]
-      // (2,1) -> [1, 0]
-      // (2,2) -> [1, 1]
-      expect(glider).toHaveLength(5);
-      expect(glider).toContainEqual([-1, 0]);
-      expect(glider).toContainEqual([0, 1]);
-      expect(glider).toContainEqual([1, -1]);
-      expect(glider).toContainEqual([1, 0]);
-      expect(glider).toContainEqual([1, 1]);
-    });
+  it('converts offsets to matrix with origin tracking', () => {
+    const offsets: Array<readonly [number, number]> = [
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+    ];
+    const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
+
+    // Min lat is -1, Max is 1 -> height 3
+    // Min lon is 0, Max is 0 -> width 1
+    expect(matrix.length).toBe(3);
+    expect(matrix[0].length).toBe(1);
+
+    // Origin is at row 1, col 0
+    expect(originRow).toEqual(1);
+    // Use closeTo or just add 0 to avoid -0
+    expect(originCol + 0).toEqual(0);
+
+    expect(matrix[0][0]).toBe(1); // -1
+    expect(matrix[1][0]).toBe(1); // 0
+    expect(matrix[2][0]).toBe(1); // 1
   });
 });

@@ -407,4 +407,12 @@ export class LifeGridSim {
   getNeighborHeatView(): Uint8Array {
     return this.neighborHeat;
   }
+
+  getAliveIndicesView(): Int32Array {
+    return this.aliveIndices;
+  }
+
+  getAliveCount(): number {
+    return this.aliveCount;
+  }
 }
