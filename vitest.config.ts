@@ -12,6 +12,7 @@ export default defineConfig({
       'tests/**/*.spec.tsx',
       'tests/**/*.test.tsx',
     ],
+    exclude: ['tests/e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

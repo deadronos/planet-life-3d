@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { offsetsToMatrix, parseAsciiPattern, transformOffsets } from '../../src/sim/patterns';
+
+import {
+  BUILTIN_PATTERN_NAMES,
+  getBuiltinPatternOffsets,
+  offsetsToMatrix,
+  parseAsciiPattern,
+  transformOffsets,
+} from '../../src/sim/patterns';
 
 describe('patterns utility', () => {
+  it('returns empty offsets for empty or dead-only patterns', () => {
+    expect(parseAsciiPattern('')).toEqual([]);
+    expect(parseAsciiPattern('...\n...')).toEqual([]);
+  });
+
   it('parses ASCII patterns and centers them correctly', () => {
     const ascii = `
       .O.
@@ -19,6 +31,11 @@ describe('patterns utility', () => {
     expect(offsets).toContainEqual([0, 1]);
     expect(offsets).toContainEqual([1, 0]);
     expect(offsets.length).toBe(5);
+  });
+
+  it('parses built-in patterns by name', () => {
+    expect(BUILTIN_PATTERN_NAMES).toContain('Glider');
+    expect(getBuiltinPatternOffsets('Glider')).toHaveLength(5);
   });
 
   it('handles even-dimension pattern centering', () => {
@@ -40,6 +57,12 @@ describe('patterns utility', () => {
     const offsets: Array<readonly [number, number]> = [[1, 1]];
     const transformed = transformOffsets(offsets, 2, 0);
     expect(transformed).toEqual([[2, 2]]);
+  });
+
+  it('applies deterministic jitter when provided with an rng', () => {
+    const offsets: Array<readonly [number, number]> = [[1, 1]];
+    const transformed = transformOffsets(offsets, 1, 2, () => 1);
+    expect(transformed).toEqual([[3, 3]]);
   });
 
   it('converts offsets to matrix with origin tracking', () => {

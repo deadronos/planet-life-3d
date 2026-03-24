@@ -13,6 +13,7 @@ import {
   transformOffsets,
 } from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
+import { spherePointToCell } from '../sim/spherePointToCell';
 import {
   AGE_FADE_BASE,
   AGE_FADE_MAX,
@@ -298,14 +299,11 @@ export function PlanetLife({
   const seedAtPoint = useMemo(() => {
     return (point: THREE.Vector3) => {
       if (gpuSim && gpuSimRef.current) {
-        // GPU seeding: convert point to UV coordinates
-        // Point is on sphere surface, convert to lat/lon then to UV
-        const lat = Math.asin(point.y / planetRadius);
-        const lon = Math.atan2(point.z, point.x);
-
-        // Convert lat (-π/2 to π/2) and lon (-π to π) to UV (0 to 1)
-        const v = lat / Math.PI + 0.5; // 0 at south pole, 1 at north pole
-        const u = lon / (2 * Math.PI) + 0.5; // 0 at -π, 1 at π (wraps around)
+        // GPU seeding: convert the impact point to the same discrete cell the CPU path uses,
+        // then map that cell back to a UV center so we seed the exact same texel.
+        const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
+        const v = (lat + 0.5) / safeLatCells;
+        const u = (lon + 0.5) / safeLonCells;
 
         let offsets =
           seedPattern === 'Random Disk'
@@ -338,7 +336,8 @@ export function PlanetLife({
     };
   }, [
     gpuSim,
-    planetRadius,
+    safeLatCells,
+    safeLonCells,
     seedPattern,
     seedScale,
     seedJitter,
