@@ -61,7 +61,14 @@ export function usePlanetLifeSim({
     grid: Uint8Array;
     age: Uint8Array;
     heat: Uint8Array;
-    buffers: { grid: ArrayBuffer; age: ArrayBuffer; heat: ArrayBuffer };
+    aliveIndices: Int32Array;
+    population: number;
+    buffers: {
+      grid: ArrayBuffer;
+      age: ArrayBuffer;
+      heat: ArrayBuffer;
+      aliveIndices: ArrayBuffer;
+    };
   } | null>(null);
 
   const workerEnabled = workerSim && typeof Worker !== 'undefined';
@@ -131,12 +138,14 @@ export function usePlanetLifeSim({
 
     let i = 0;
 
-    if (workerEnabled) {
+    if (workerEnabled && snap) {
       // Worker path: we render from the latest snapshot buffers.
       // We still use a main-thread LifeSphereSim instance for precomputed positions.
       const positions = sim.positions;
-      for (let idx = 0; idx < grid.length; idx++) {
-        if (grid[idx] === 0) continue;
+      const alive = snap.aliveIndices;
+      const count = snap.population;
+      for (let j = 0; j < count; j++) {
+        const idx = alive[j];
         dummy.position.copy(positions[idx]);
         dummy.scale.setScalar(1);
         dummy.updateMatrix();
@@ -145,7 +154,7 @@ export function usePlanetLifeSim({
         mesh.setColorAt(i, colorScratch);
         i++;
       }
-    } else {
+    } else if (!workerEnabled) {
       const currentGrid = sim.getGridView();
       sim.forEachAlive((idx) => {
         dummy.position.copy(sim.positions[idx]);
@@ -338,8 +347,9 @@ export function usePlanetLifeSim({
               grid: held.buffers.grid,
               age: held.buffers.age,
               heat: held.buffers.heat,
+              aliveIndices: held.buffers.aliveIndices,
             } satisfies LifeGridWorkerInMessage,
-            [held.buffers.grid, held.buffers.age, held.buffers.heat],
+            [held.buffers.grid, held.buffers.age, held.buffers.heat, held.buffers.aliveIndices],
           );
           workerSnapshotRef.current = null;
         }
@@ -369,8 +379,9 @@ export function usePlanetLifeSim({
               grid: prev.buffers.grid,
               age: prev.buffers.age,
               heat: prev.buffers.heat,
+              aliveIndices: prev.buffers.aliveIndices,
             } satisfies LifeGridWorkerInMessage,
-            [prev.buffers.grid, prev.buffers.age, prev.buffers.heat],
+            [prev.buffers.grid, prev.buffers.age, prev.buffers.heat, prev.buffers.aliveIndices],
           );
         }
 
@@ -378,7 +389,14 @@ export function usePlanetLifeSim({
           grid: new Uint8Array(msg.grid),
           age: new Uint8Array(msg.age),
           heat: new Uint8Array(msg.heat),
-          buffers: { grid: msg.grid, age: msg.age, heat: msg.heat },
+          aliveIndices: new Int32Array(msg.aliveIndices),
+          population: msg.population,
+          buffers: {
+            grid: msg.grid,
+            age: msg.age,
+            heat: msg.heat,
+            aliveIndices: msg.aliveIndices,
+          },
         };
 
         publishStats(msg);
@@ -413,8 +431,9 @@ export function usePlanetLifeSim({
             grid: held.buffers.grid,
             age: held.buffers.age,
             heat: held.buffers.heat,
+            aliveIndices: held.buffers.aliveIndices,
           } satisfies LifeGridWorkerInMessage,
-          [held.buffers.grid, held.buffers.age, held.buffers.heat],
+          [held.buffers.grid, held.buffers.age, held.buffers.heat, held.buffers.aliveIndices],
         );
         workerSnapshotRef.current = null;
       }

@@ -50,6 +50,7 @@ export type LifeGridWorkerRecycle = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  aliveIndices: ArrayBuffer;
 };
 
 export type LifeGridWorkerInMessage =
@@ -67,6 +68,7 @@ export type LifeGridWorkerSnapshot = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  aliveIndices: ArrayBuffer;
   generation: number;
   population: number;
   birthsLastTick: number;

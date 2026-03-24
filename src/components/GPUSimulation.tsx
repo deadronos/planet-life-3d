@@ -34,6 +34,8 @@ export interface GPUSimulationHandle {
     pattern: number[][];
     mode: 'set' | 'toggle' | 'clear' | 'random';
     probability?: number;
+    originRow: number;
+    originCol: number;
   }) => void;
   randomize: () => void;
   clear: () => void;
@@ -114,6 +116,7 @@ export const GPUSimulation = ({
         uResolution: { value: new THREE.Vector2(resolution.width, resolution.height) },
         uSeedCenter: { value: new THREE.Vector2(0.5, 0.5) },
         uPatternSize: { value: new THREE.Vector2(1, 1) },
+        uPatternOrigin: { value: new THREE.Vector2(0, 0) },
         uSeedMode: { value: modeMap.set },
         uSeedProbability: { value: 0.5 },
         uColonyMode: { value: gameMode === 'Colony' },
@@ -215,7 +218,7 @@ export const GPUSimulation = ({
   useImperativeHandle(
     simRef,
     () => ({
-      seedAtUV: ({ u, v, pattern, mode, probability = 0.5 }) => {
+      seedAtUV: ({ u, v, pattern, mode, probability = 0.5, originRow, originCol }) => {
         // Create pattern texture from 2D array
         const patternHeight = pattern.length;
         const patternWidth = pattern[0]?.length || 0;
@@ -251,6 +254,8 @@ export const GPUSimulation = ({
         seedCenter.set(u, v);
         const patternSize = seedMaterial.uniforms.uPatternSize.value as THREE.Vector2;
         patternSize.set(patternWidth, patternHeight);
+        const patternOrigin = seedMaterial.uniforms.uPatternOrigin.value as THREE.Vector2;
+        patternOrigin.set(originCol, originRow);
         seedMaterial.uniforms.uSeedMode.value = modeMap[mode];
         seedMaterial.uniforms.uSeedProbability.value = probability;
         seedMaterial.uniforms.uRandomSeed.value = Math.random();

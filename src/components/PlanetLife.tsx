@@ -6,8 +6,14 @@ import * as THREE from 'three';
 import { gpuOverlayFragmentShader } from '../shaders/gpuOverlay.frag';
 import { gpuOverlayVertexShader } from '../shaders/gpuOverlay.vert';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
-import { getBuiltinPatternOffsets, parseAsciiPattern } from '../sim/patterns';
+import {
+  getBuiltinPatternOffsets,
+  offsetsToMatrix,
+  parseAsciiPattern,
+  transformOffsets,
+} from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
+import { spherePointToCell } from '../sim/spherePointToCell';
 import {
   AGE_FADE_BASE,
   AGE_FADE_MAX,
@@ -293,57 +299,35 @@ export function PlanetLife({
   const seedAtPoint = useMemo(() => {
     return (point: THREE.Vector3) => {
       if (gpuSim && gpuSimRef.current) {
-        // GPU seeding: convert point to UV coordinates
-        // Point is on sphere surface, convert to lat/lon then to UV
-        const lat = Math.asin(point.y / planetRadius);
-        const lon = Math.atan2(point.z, point.x);
+        // GPU seeding: convert the impact point to the same discrete cell the CPU path uses,
+        // then map that cell back to a UV center so we seed the exact same texel.
+        const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
+        const v = (lat + 0.5) / safeLatCells;
+        const u = (lon + 0.5) / safeLonCells;
 
-        // Convert lat (-π/2 to π/2) and lon (-π to π) to UV (0 to 1)
-        const v = lat / Math.PI + 0.5; // 0 at south pole, 1 at north pole
-        const u = lon / (2 * Math.PI) + 0.5; // 0 at -π, 1 at π (wraps around)
-
-        let offsets: Array<readonly [number, number]> = [];
-        if (seedPattern === 'Random Disk') {
-          offsets = buildRandomDiskOffsets(seedScale);
-        } else if (seedPattern === 'Custom ASCII') {
-          offsets = parseAsciiPattern(customPattern) as Array<readonly [number, number]>;
-        } else {
-          offsets = getBuiltinPatternOffsets(seedPattern);
-        }
+        let offsets =
+          seedPattern === 'Random Disk'
+            ? buildRandomDiskOffsets(seedScale)
+            : seedPattern === 'Custom ASCII'
+              ? parseAsciiPattern(customPattern)
+              : getBuiltinPatternOffsets(seedPattern);
 
         if (offsets.length === 0) return;
 
-        const scale = Math.max(1, Math.floor(seedScale));
-        const jitter = Math.max(0, Math.floor(seedJitter));
-        const scaledOffsets: Array<[number, number]> = offsets.map(([dLa0, dLo0]) => {
-          let dLa = dLa0 * scale;
-          let dLo = dLo0 * scale;
-          if (jitter > 0) {
-            dLa += Math.floor((Math.random() * 2 - 1) * jitter);
-            dLo += Math.floor((Math.random() * 2 - 1) * jitter);
-          }
-          return [dLa, dLo];
-        });
+        // Apply transformations (scale and jitter)
+        offsets = transformOffsets(offsets, seedScale, seedJitter);
 
-        const minX = Math.min(...scaledOffsets.map(([_, x]) => x));
-        const maxX = Math.max(...scaledOffsets.map(([_, x]) => x));
-        const minY = Math.min(...scaledOffsets.map(([y, _]) => y));
-        const maxY = Math.max(...scaledOffsets.map(([y, _]) => y));
-        const width = maxX - minX + 1;
-        const height = maxY - minY + 1;
-        const pattern: number[][] = Array.from({ length: height }, () =>
-          Array<number>(width).fill(0),
-        );
+        // Convert to a 2D matrix for the GPU seeder
+        const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
 
-        scaledOffsets.forEach(([y, x]) => {
-          pattern[y - minY][x - minX] = 1;
-        });
         gpuSimRef.current.seedAtUV({
           u,
           v,
-          pattern,
+          pattern: matrix,
           mode: seedMode,
           probability: seedProbability,
+          originRow,
+          originCol,
         });
       } else {
         // CPU seeding (existing logic)
@@ -352,7 +336,8 @@ export function PlanetLife({
     };
   }, [
     gpuSim,
-    planetRadius,
+    safeLatCells,
+    safeLonCells,
     seedPattern,
     seedScale,
     seedJitter,

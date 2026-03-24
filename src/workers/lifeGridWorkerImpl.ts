@@ -7,27 +7,29 @@ import type {
 
 type PostMessage = (message: LifeGridWorkerOutMessage, transfer?: Transferable[]) => void;
 
-type BufferTriple = {
+type BufferQuad = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  aliveIndices: ArrayBuffer;
 };
 
 export function createLifeGridWorkerHandler(postMessage: PostMessage) {
   let sim: LifeGridSim | null = null;
-  let pool: BufferTriple[] = [];
+  let pool: BufferQuad[] = [];
 
   const sendError = (message: string) => {
     postMessage({ type: 'error', message });
   };
 
-  const takeBuffers = (cellCount: number): BufferTriple => {
+  const takeBuffers = (cellCount: number): BufferQuad => {
     const candidate = pool.pop();
     if (
       candidate &&
       candidate.grid.byteLength === cellCount &&
       candidate.age.byteLength === cellCount &&
-      candidate.heat.byteLength === cellCount
+      candidate.heat.byteLength === cellCount &&
+      candidate.aliveIndices.byteLength === cellCount * 4
     ) {
       return candidate;
     }
@@ -35,6 +37,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       grid: new ArrayBuffer(cellCount),
       age: new ArrayBuffer(cellCount),
       heat: new ArrayBuffer(cellCount),
+      aliveIndices: new ArrayBuffer(cellCount * 4), // Int32Array
     };
   };
 
@@ -48,18 +51,24 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
     new Uint8Array(buffers.age).set(sim.getAgeView());
     new Uint8Array(buffers.heat).set(sim.getNeighborHeatView());
 
+    // Copy only the active portion of the alive indices or the whole buffer?
+    // For simplicity and to maintain fixed size buffers for the pool, we copy the whole thing.
+    // The main thread will use the population count to know how much to read.
+    new Int32Array(buffers.aliveIndices).set(sim.getAliveIndicesView());
+
     const payload: LifeGridWorkerSnapshot = {
       type: 'snapshot',
       grid: buffers.grid,
       age: buffers.age,
       heat: buffers.heat,
+      aliveIndices: buffers.aliveIndices,
       generation: sim.generation,
       population: sim.population,
       birthsLastTick: sim.birthsLastTick,
       deathsLastTick: sim.deathsLastTick,
     };
 
-    postMessage(payload, [buffers.grid, buffers.age, buffers.heat]);
+    postMessage(payload, [buffers.grid, buffers.age, buffers.heat, buffers.aliveIndices]);
   };
 
   const onMessage = (msg: LifeGridWorkerInMessage) => {
@@ -124,7 +133,12 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
         }
         case 'recycle': {
           // Main thread returns transferred buffers for re-use.
-          pool.push({ grid: msg.grid, age: msg.age, heat: msg.heat });
+          pool.push({
+            grid: msg.grid,
+            age: msg.age,
+            heat: msg.heat,
+            aliveIndices: msg.aliveIndices,
+          });
           return;
         }
       }
