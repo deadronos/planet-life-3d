@@ -45,22 +45,24 @@ export function useMeteorSystem({
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
-
-  const addMeteor = (origin: THREE.Vector3, direction: THREE.Vector3) => {
-    setMeteors((list) => [
-      ...list,
-      {
-        id: uid('meteor'),
-        origin,
-        direction,
-        speed: meteorSpeed,
-        radius: meteorRadius,
-        trailLength: meteorTrailLength,
-        trailWidth: meteorTrailWidth,
-        emissiveIntensity: meteorEmissive,
-      },
-    ]);
-  };
+  const addMeteor = useCallback(
+    (origin: THREE.Vector3, direction: THREE.Vector3) => {
+      setMeteors((list) => [
+        ...list,
+        {
+          id: uid('meteor'),
+          origin,
+          direction,
+          speed: meteorSpeed,
+          radius: meteorRadius,
+          trailLength: meteorTrailLength,
+          trailWidth: meteorTrailWidth,
+          emissiveIntensity: meteorEmissive,
+        },
+      ]);
+    },
+    [meteorSpeed, meteorRadius, meteorTrailLength, meteorTrailWidth, meteorEmissive],
+  );
 
   // Meteor shower logic
   useEffect(() => {
@@ -93,15 +95,7 @@ export function useMeteorSystem({
 
     const id = window.setInterval(spawnMeteor, showerInterval);
     return () => window.clearInterval(id);
-  }, [
-    showerEnabled,
-    showerInterval,
-    meteorSpeed,
-    meteorRadius,
-    meteorTrailLength,
-    meteorTrailWidth,
-    meteorEmissive,
-  ]);
+  }, [showerEnabled, showerInterval, addMeteor]);
 
   const onPlanetPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -125,14 +119,7 @@ export function useMeteorSystem({
 
       addMeteor(origin, direction);
     },
-    [
-      meteorCooldownMs,
-      meteorSpeed,
-      meteorRadius,
-      meteorTrailLength,
-      meteorTrailWidth,
-      meteorEmissive,
-    ],
+    [meteorCooldownMs, addMeteor],
   );
 
   const onMeteorImpact = useCallback(

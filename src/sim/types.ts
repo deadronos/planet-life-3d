@@ -1,3 +1,5 @@
+/* eslint-disable simple-import-sort/imports */
+
 import type * as THREE from 'three';
 import type { Offset } from './patterns';
 

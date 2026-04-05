@@ -2,10 +2,9 @@ import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import { LifeGridSim } from './LifeGridSim';
-import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { spherePointToCell } from './spherePointToCell';
-import type { SeedMode, SeedAtPointParams } from './types';
+import type { SeedAtPointParams, SeedMode } from './types';
 import { formatVector3, safeFloat } from './utils';
 
 export type { SeedMode };
