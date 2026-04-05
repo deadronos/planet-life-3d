@@ -347,7 +347,7 @@ export function PlanetLife({
     seedAtPointCPU,
   ]);
 
-  const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
+    const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
     meteorSpeed,
     meteorRadius,
     meteorCooldownMs,

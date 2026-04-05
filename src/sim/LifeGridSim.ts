@@ -168,20 +168,16 @@ export class LifeGridSim {
       const hasTop = la > 0;
       const hasBot = la < L - 1;
 
-      // 1. Left Edge (lo = 0)
-      {
-        const lo = 0;
-        const left = W - 1;
-        const right = 1;
-
+      const processEdge = (lo: number, left: number, right: number) => {
         const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
-
         const idx = rowOffset + lo;
         const alive = grid[idx];
         const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
-
         this.applyCellUpdate(idx, alive, nextAlive, neighbors);
-      }
+      };
+
+      // 1. Left Edge (lo = 0)
+      processEdge(0, W - 1, 1);
 
       // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
@@ -219,19 +215,7 @@ export class LifeGridSim {
       }
 
       // 3. Right Edge (lo = W - 1)
-      {
-        const lo = W - 1;
-        const left = W - 2;
-        const right = 0;
-
-        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
-
-        const idx = rowOffset + lo;
-        const alive = grid[idx];
-        const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
-
-        this.applyCellUpdate(idx, alive, nextAlive, neighbors);
-      }
+      processEdge(W - 1, W - 2, 0);
     }
 
     this.swapBuffers();
@@ -270,17 +254,14 @@ export class LifeGridSim {
       const hasTop = la > 0;
       const hasBot = la < L - 1;
 
-      // 1. Left Edge (lo = 0)
-      {
-        const lo = 0;
+      const processEdgeColony = (lo: number, left: number, right: number) => {
         const stats = { neighbors: 0, countA: 0 };
-        const left = W - 1;
-        const right = 1;
-
         countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
-
         process(lo, stats.neighbors, stats.countA, rowOffset);
-      }
+      };
+
+      // 1. Left Edge (lo = 0)
+      processEdgeColony(0, W - 1, 1);
 
       // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
@@ -294,16 +275,7 @@ export class LifeGridSim {
       }
 
       // 3. Right Edge (lo = W - 1)
-      {
-        const lo = W - 1;
-        const stats = { neighbors: 0, countA: 0 };
-        const left = W - 2;
-        const right = 0;
-
-        countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
-
-        process(lo, stats.neighbors, stats.countA, rowOffset);
-      }
+      processEdgeColony(W - 1, W - 2, 0);
     }
 
     this.swapBuffers();

@@ -47,52 +47,27 @@ export function countNeighborsColony(
   right: number,
   stats: ColonyStats,
 ): void {
-  // Inline-like checks for performance
+  const addNeighbor = (idx: number) => {
+    const v = grid[idx];
+    if (v) {
+      stats.neighbors++;
+      if (v === 1) stats.countA++;
+    }
+  };
+
   if (hasTop) {
-    let v = grid[rTop + left];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
-    v = grid[rTop + lo];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
-    v = grid[rTop + right];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
+    addNeighbor(rTop + left);
+    addNeighbor(rTop + lo);
+    addNeighbor(rTop + right);
   }
 
-  let v = grid[rMid + left];
-  if (v) {
-    stats.neighbors++;
-    if (v === 1) stats.countA++;
-  }
-  v = grid[rMid + right];
-  if (v) {
-    stats.neighbors++;
-    if (v === 1) stats.countA++;
-  }
+  addNeighbor(rMid + left);
+  addNeighbor(rMid + right);
 
   if (hasBot) {
-    v = grid[rBot + left];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
-    v = grid[rBot + lo];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
-    v = grid[rBot + right];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
+    addNeighbor(rBot + left);
+    addNeighbor(rBot + lo);
+    addNeighbor(rBot + right);
   }
 }
 

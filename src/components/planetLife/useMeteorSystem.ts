@@ -45,6 +45,23 @@ export function useMeteorSystem({
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
+
+  const addMeteor = (origin: THREE.Vector3, direction: THREE.Vector3) => {
+    setMeteors((list) => [
+      ...list,
+      {
+        id: uid('meteor'),
+        origin,
+        direction,
+        speed: meteorSpeed,
+        radius: meteorRadius,
+        trailLength: meteorTrailLength,
+        trailWidth: meteorTrailWidth,
+        emissiveIntensity: meteorEmissive,
+      },
+    ]);
+  };
+
   // Meteor shower logic
   useEffect(() => {
     if (!showerEnabled) return;
@@ -71,19 +88,7 @@ export function useMeteorSystem({
       const origin = originDir.multiplyScalar(12);
       const direction = target.sub(origin).normalize();
 
-      setMeteors((list) => [
-        ...list,
-        {
-          id: uid('meteor'),
-          origin,
-          direction,
-          speed: meteorSpeed,
-          radius: meteorRadius,
-          trailLength: meteorTrailLength,
-          trailWidth: meteorTrailWidth,
-          emissiveIntensity: meteorEmissive,
-        },
-      ]);
+      addMeteor(origin, direction);
     };
 
     const id = window.setInterval(spawnMeteor, showerInterval);
@@ -118,19 +123,7 @@ export function useMeteorSystem({
 
       const direction = point.clone().sub(origin).normalize();
 
-      setMeteors((list) => [
-        ...list,
-        {
-          id: uid('meteor'),
-          origin,
-          direction,
-          speed: meteorSpeed,
-          radius: meteorRadius,
-          trailLength: meteorTrailLength,
-          trailWidth: meteorTrailWidth,
-          emissiveIntensity: meteorEmissive,
-        },
-      ]);
+      addMeteor(origin, direction);
     },
     [
       meteorCooldownMs,
