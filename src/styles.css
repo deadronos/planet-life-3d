@@ -25,15 +25,20 @@ body,
   gap: 16px;
 }
 
-.title-card {
+
+.title-card,
+.hud-stats {
   background: rgba(13, 17, 28, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 1.5rem 2rem;
   border-radius: 4px;
   border-left: 4px solid #6366f1;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   pointer-events: auto;
+}
+
+.title-card {
+  padding: 1.5rem 2rem;
   transition: transform 0.3s ease;
 }
 
@@ -125,14 +130,7 @@ body,
 }
 
 .hud-stats {
-  background: rgba(13, 17, 28, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   padding: 1rem 1.5rem;
-  border-radius: 4px;
-  border-left: 4px solid #6366f1;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  pointer-events: auto;
   min-width: 140px;
 }
 

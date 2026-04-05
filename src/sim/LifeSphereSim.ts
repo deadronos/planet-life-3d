@@ -2,10 +2,9 @@ import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import { LifeGridSim } from './LifeGridSim';
-import type { Offset } from './patterns';
 import type { Rules } from './rules';
 import { spherePointToCell } from './spherePointToCell';
-import type { SeedMode } from './types';
+import type { SeedAtPointParams, SeedMode } from './types';
 import { formatVector3, safeFloat } from './utils';
 
 export type { SeedMode };
@@ -70,16 +69,7 @@ export class LifeSphereSim extends LifeGridSim {
   }
 
   /** Convenience: seed using a world impact point (e.g., meteor hit). */
-  seedAtPoint(params: {
-    point: THREE.Vector3;
-    offsets: Offset[];
-    mode: SeedMode;
-    scale: number;
-    jitter: number;
-    probability: number;
-    rng?: () => number;
-    debug?: boolean;
-  }) {
+  seedAtPoint(params: SeedAtPointParams) {
     const { lat, lon } = this.pointToCell(params.point);
     if (params.debug) {
       // eslint-disable-next-line no-console

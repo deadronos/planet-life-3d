@@ -1,21 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 
-import type { Offset } from '../../sim/patterns';
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
-import type { SeedMode } from '../../sim/types';
+import type { SeedAtPointParams, SeedMode } from '../../sim/types';
 import { buildRandomDiskOffsets } from '../../sim/utils';
 
 type SimulationSeederParams = {
-  seedAtPointImpl: (params: {
-    point: THREE.Vector3;
-    offsets: Offset[];
-    mode: SeedMode;
-    scale: number;
-    jitter: number;
-    probability: number;
-    debug?: boolean;
-  }) => void;
+  seedAtPointImpl: (params: SeedAtPointParams) => void;
   updateInstances: () => void;
   seedPattern: string;
   seedScale: number;
