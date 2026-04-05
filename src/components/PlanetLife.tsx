@@ -1,10 +1,7 @@
-import { useFrame } from '@react-three/fiber';
 import { button, useControls } from 'leva';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-import { gpuOverlayFragmentShader } from '../shaders/gpuOverlay.frag';
-import { gpuOverlayVertexShader } from '../shaders/gpuOverlay.vert';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import {
   getBuiltinPatternOffsets,
@@ -14,19 +11,15 @@ import {
 } from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
-import {
-  AGE_FADE_BASE,
-  AGE_FADE_MAX,
-  AGE_FADE_MIN,
-  AGE_FADE_SCALE,
-  buildRandomDiskOffsets,
-} from '../sim/utils';
+import { buildRandomDiskOffsets } from '../sim/utils';
 import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
-import { ImpactRing } from './ImpactRing';
-import { Meteor } from './Meteor';
+import { Atmosphere } from './planetLife/Atmosphere';
 import { useCellColorResolver } from './planetLife/cellColor';
+import { CellsInstancedMesh } from './planetLife/CellsInstancedMesh';
 import { usePlanetLifeControls } from './planetLife/controls';
+import { createGpuOverlayMaterial, LifeOverlay } from './planetLife/LifeOverlay';
 import { useLifeTexture } from './planetLife/lifeTexture';
+import { MeteorEffects } from './planetLife/MeteorEffects';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
@@ -138,7 +131,6 @@ export function PlanetLife({
 
   const lifeTex = useLifeTexture({ lonCells: safeLonCells, latCells: safeLatCells });
 
-  // GPU simulation state and ref
   const gpuSimRef = useRef<GPUSimulationHandle>(null);
   const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
   const gpuResolution = useMemo(
@@ -161,88 +153,33 @@ export function PlanetLife({
     colonyColorB,
   });
 
-  // GPU overlay material with color support
-  const gpuOverlayMaterial = useMemo(() => {
-    const colorModeValue = cellColorMode === 'Solid' ? 0 : cellColorMode === 'Age Fade' ? 1 : 2;
-
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        uLifeTexture: { value: null },
-        uCellLift: { value: 0 }, // driven by useFrame
-        uPulseSpeed: { value: 0 }, // driven by useFrame
-        uPulseIntensity: { value: 0 }, // driven by useFrame
-        uTime: { value: 0 },
-        uCellColor: { value: new THREE.Color(cellColor) },
-        uColonyColorA: { value: new THREE.Color(colonyColorA) },
-        uColonyColorB: { value: new THREE.Color(colonyColorB) },
-        uHeatLowColor: { value: new THREE.Color(heatLowColor) },
-        uHeatMidColor: { value: new THREE.Color(heatMidColor) },
-        uHeatHighColor: { value: new THREE.Color(heatHighColor) },
-        uAgeFadeHalfLife: { value: Math.max(1, ageFadeHalfLife) },
-        uAgeFadeBase: { value: AGE_FADE_BASE },
-        uAgeFadeScale: { value: AGE_FADE_SCALE },
-        uAgeFadeMin: { value: AGE_FADE_MIN },
-        uAgeFadeMax: { value: AGE_FADE_MAX },
-        uColorMode: { value: colorModeValue },
-        uCellOverlayOpacity: { value: cellOverlayOpacity },
-
-        uColonyMode: { value: gameMode === 'Colony' },
-        // Debug controls
-        uDebugOverlay: { value: false },
-        uDebugColor: { value: new THREE.Color('#ff00ff') },
-        uDebugMode: { value: 0 },
-        uDebugScale: { value: 1 },
-      },
-      vertexShader: gpuOverlayVertexShader,
-      fragmentShader: gpuOverlayFragmentShader,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      depthTest: false, // render on top to avoid depth occlusion during debugging
-      toneMapped: false,
-    });
-  }, [
-    cellColorMode,
-    cellColor,
-    colonyColorA,
-    colonyColorB,
-    heatLowColor,
-    heatMidColor,
-    heatHighColor,
-    ageFadeHalfLife,
-    cellOverlayOpacity,
-    gameMode,
-  ]);
-
-  // Update GPU overlay material when texture changes
-  useEffect(() => {
-    if (gpuOverlayMaterial) {
-      const tex = gpuSim ? gpuTexture : lifeTex.tex;
-      if (tex) {
-        // eslint-disable-next-line react-hooks/immutability
-        gpuOverlayMaterial.uniforms.uLifeTexture.value = tex;
-        // eslint-disable-next-line react-hooks/immutability
-        tex.needsUpdate = true;
-      }
-
-      // Show a debug overlay if debugLogs is enabled so we can validate rendering
-      gpuOverlayMaterial.uniforms.uDebugOverlay.value = false; // leave solid override off
-      // When debug logs are enabled, enable channel visualization (composite RGB)
-      gpuOverlayMaterial.uniforms.uDebugMode.value = debugLogs ? 4 : 0;
-      gpuOverlayMaterial.uniforms.uDebugScale.value = debugLogs ? 4.0 : 1.0;
-    }
-  }, [gpuTexture, lifeTex, gpuSim, gpuOverlayMaterial, debugLogs]);
-
-  useFrame((state) => {
-    if (gpuOverlayMaterial) {
-      // eslint-disable-next-line react-hooks/immutability
-      gpuOverlayMaterial.uniforms.uTime.value = state.clock.elapsedTime;
-      gpuOverlayMaterial.uniforms.uCellLift.value = cellLift;
-      gpuOverlayMaterial.uniforms.uPulseSpeed.value = pulseSpeed;
-      gpuOverlayMaterial.uniforms.uPulseIntensity.value = pulseIntensity;
-      gpuOverlayMaterial.uniforms.uCellOverlayOpacity.value = cellOverlayOpacity;
-    }
-  });
+  const gpuOverlayMaterial = useMemo(
+    () =>
+      createGpuOverlayMaterial({
+        cellColor,
+        cellColorMode,
+        colonyColorA,
+        colonyColorB,
+        heatLowColor,
+        heatMidColor,
+        heatHighColor,
+        ageFadeHalfLife,
+        cellOverlayOpacity,
+        gameMode,
+      }),
+    [
+      cellColorMode,
+      cellColor,
+      colonyColorA,
+      colonyColorB,
+      heatLowColor,
+      heatMidColor,
+      heatHighColor,
+      ageFadeHalfLife,
+      cellOverlayOpacity,
+      gameMode,
+    ],
+  );
 
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,
@@ -295,12 +232,9 @@ export function PlanetLife({
     debugLogs,
   });
 
-  // Unified seeding that works for both CPU and GPU modes
   const seedAtPoint = useMemo(() => {
     return (point: THREE.Vector3) => {
       if (gpuSim && gpuSimRef.current) {
-        // GPU seeding: convert the impact point to the same discrete cell the CPU path uses,
-        // then map that cell back to a UV center so we seed the exact same texel.
         const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
         const v = (lat + 0.5) / safeLatCells;
         const u = (lon + 0.5) / safeLonCells;
@@ -314,10 +248,8 @@ export function PlanetLife({
 
         if (offsets.length === 0) return;
 
-        // Apply transformations (scale and jitter)
         offsets = transformOffsets(offsets, seedScale, seedJitter);
 
-        // Convert to a 2D matrix for the GPU seeder
         const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
 
         gpuSimRef.current.seedAtUV({
@@ -330,7 +262,6 @@ export function PlanetLife({
           originCol,
         });
       } else {
-        // CPU seeding (existing logic)
         seedAtPointCPU(point);
       }
     };
@@ -347,7 +278,7 @@ export function PlanetLife({
     seedAtPointCPU,
   ]);
 
-    const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
+  const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
     meteorSpeed,
     meteorRadius,
     meteorCooldownMs,
@@ -365,7 +296,6 @@ export function PlanetLife({
     debugLogs,
   });
 
-  // Actions folder (buttons)
   useControls(
     'Actions',
     () => ({
@@ -394,9 +324,10 @@ export function PlanetLife({
     [gpuSim, randomize, clear, stepOnce],
   );
 
+  const texture = gpuSim ? gpuTexture : lifeTex.tex;
+
   return (
     <group>
-      {/* GPU Simulation (invisible component that manages compute shaders) */}
       {gpuSim && (
         <GPUSimulation
           resolution={gpuResolution}
@@ -410,62 +341,49 @@ export function PlanetLife({
         />
       )}
 
-      {/* Planet */}
-      <mesh onPointerDown={onPlanetPointerDown}>
-        <sphereGeometry args={[planetRadius, 64, 64]} />
-        <primitive object={planetMaterial} attach="material" />
-      </mesh>
+      <PlanetMesh
+        planetRadius={planetRadius}
+        material={planetMaterial}
+        onPointerDown={onPlanetPointerDown}
+      />
 
-      {/* Atmosphere glow */}
-      <mesh raycast={() => null}>
-        <sphereGeometry args={[planetRadius * (1 + atmosphereHeight), 64, 64]} />
-        <meshBasicMaterial
-          color={atmosphereColor}
-          transparent
-          opacity={Math.max(0, atmosphereIntensity) * 0.35}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          side={THREE.BackSide}
-        />
-      </mesh>
+      <Atmosphere
+        planetRadius={planetRadius}
+        atmosphereColor={atmosphereColor}
+        atmosphereIntensity={atmosphereIntensity}
+        atmosphereHeight={atmosphereHeight}
+      />
 
-      {/* Life overlay (Unified: GPU shader for both CPU and GPU sim modes) */}
       {(cellRenderMode === 'Texture' || cellRenderMode === 'Both') && (
-        <mesh scale={1.01} raycast={() => null}>
-          <sphereGeometry args={[planetRadius, 64, 64]} />
-          <primitive object={gpuOverlayMaterial} attach="material" />
-        </mesh>
+        <LifeOverlay
+          planetRadius={planetRadius}
+          cellLift={cellLift}
+          pulseSpeed={pulseSpeed}
+          pulseIntensity={pulseIntensity}
+          cellOverlayOpacity={cellOverlayOpacity}
+          lifeTexture={texture}
+          gpuOverlayMaterial={gpuOverlayMaterial}
+          debugLogs={debugLogs}
+        />
       )}
 
-      {/* Alive cells as an instanced mesh (only alive instances are rendered) */}
-      {/* Note: Dots mode disabled in GPU mode as it requires reading GPU texture back to CPU */}
       {(cellRenderMode === 'Dots' || cellRenderMode === 'Both') && !gpuSim && (
-        <instancedMesh
-          ref={cellsRef}
-          args={[undefined, undefined, maxInstances]}
-          frustumCulled={false}
-        >
-          <sphereGeometry args={[cellRadius, 10, 10]} />
-          <meshStandardMaterial
-            color={cellColor}
-            emissive={cellColor}
-            emissiveIntensity={0.7}
-            roughness={0.35}
-            metalness={0.05}
-            vertexColors
-          />
-        </instancedMesh>
+        <CellsInstancedMesh
+          cellsRef={cellsRef}
+          maxInstances={maxInstances}
+          cellRadius={cellRadius}
+          cellColor={cellColor}
+        />
       )}
 
-      {/* Meteors */}
-      {meteors.map((m) => (
-        <Meteor key={m.id} spec={m} planetRadius={planetRadius} onImpact={onMeteorImpact} />
-      ))}
-
-      {/* Impact rings */}
-      {impacts.map((i) => (
-        <ImpactRing key={i.id} spec={i} planetRadius={planetRadius} />
-      ))}
+      <MeteorEffects
+        meteors={meteors}
+        impacts={impacts}
+        planetRadius={planetRadius}
+        onMeteorImpact={onMeteorImpact}
+      />
     </group>
   );
 }
+
+import { PlanetMesh } from './planetLife/PlanetMesh';
