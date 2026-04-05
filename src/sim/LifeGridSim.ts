@@ -11,7 +11,6 @@ export class LifeGridSim {
   readonly lonCells: number;
   readonly cellCount: number;
 
-  // Protected state (accessible by subclasses)
   protected grid: Uint8Array;
   protected next: Uint8Array;
   protected age: Uint8Array;
@@ -20,13 +19,11 @@ export class LifeGridSim {
   protected neighborHeatNext: Uint8Array;
   protected rules: Rules;
 
-  // Optimizations
   protected aliveIndices: Int32Array;
   protected nextAliveIndices: Int32Array;
   protected aliveCount = 0;
   protected nextAliveCount = 0;
 
-  // Stats
   generation = 0;
   population = 0;
   birthsLastTick = 0;
@@ -113,7 +110,6 @@ export class LifeGridSim {
       }
       this.setCellState(i, alive);
     }
-    // Recompute stats after randomizing
     this.rebuildAliveIndices();
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
@@ -144,7 +140,6 @@ export class LifeGridSim {
     const { birth, survive } = this.rules;
     const grid = this.grid;
 
-    // Convert rules to bitmasks for faster lookup
     let birthMask = 0;
     let surviveMask = 0;
     for (let i = 0; i < 9; i++) {
@@ -160,7 +155,6 @@ export class LifeGridSim {
     for (let la = 0; la < L; la++) {
       const rowOffset = la * W;
 
-      // Pre-calculate neighbor row indices
       const rTop = (la - 1) * W;
       const rMid = rowOffset;
       const rBot = (la + 1) * W;
@@ -168,7 +162,6 @@ export class LifeGridSim {
       const hasTop = la > 0;
       const hasBot = la < L - 1;
 
-      // 1. Left Edge (lo = 0)
       {
         const lo = 0;
         const left = W - 1;
@@ -183,28 +176,22 @@ export class LifeGridSim {
         this.applyCellUpdate(idx, alive, nextAlive, neighbors);
       }
 
-      // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
 
-      // Sliding window sums for column (lo - 1), (lo), (lo + 1)
-      // Initialize sLeft (at lo=0)
       let sLeft = grid[rMid];
       if (hasTop) sLeft += grid[rTop];
       if (hasBot) sLeft += grid[rBot];
 
-      // Initialize sCurr (at lo=1)
       let sCurr = grid[rMid + 1];
       if (hasTop) sCurr += grid[rTop + 1];
       if (hasBot) sCurr += grid[rBot + 1];
 
       for (let lo = 1; lo < centerEnd; lo++) {
-        // Calculate sRight (at lo + 1)
         const nextCol = lo + 1;
         let sRight = grid[rMid + nextCol];
         if (hasTop) sRight += grid[rTop + nextCol];
         if (hasBot) sRight += grid[rBot + nextCol];
 
-        // neighbors = sum of 3x3 block - center cell
         const neighbors = sLeft + sCurr + sRight - grid[rMid + lo];
 
         const idx = rowOffset + lo;
@@ -213,12 +200,10 @@ export class LifeGridSim {
 
         this.applyCellUpdate(idx, alive, nextAlive, neighbors);
 
-        // Shift window
         sLeft = sCurr;
         sCurr = sRight;
       }
 
-      // 3. Right Edge (lo = W - 1)
       {
         const lo = W - 1;
         const left = W - 2;
@@ -247,7 +232,6 @@ export class LifeGridSim {
     this.population = 0;
     this.nextAliveCount = 0;
 
-    // Helper to process a single cell after neighbors are counted
     const process = (lo: number, neighbors: number, countA: number, rowOffset: number) => {
       const idx = rowOffset + lo;
       const current = grid[idx];
@@ -270,7 +254,6 @@ export class LifeGridSim {
       const hasTop = la > 0;
       const hasBot = la < L - 1;
 
-      // 1. Left Edge (lo = 0)
       {
         const lo = 0;
         const stats = { neighbors: 0, countA: 0 };
@@ -282,18 +265,14 @@ export class LifeGridSim {
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
 
-      // 2. Safe Center (lo = 1 .. W - 2)
       const centerEnd = W - 1;
       for (let lo = 1; lo < centerEnd; lo++) {
         const stats = { neighbors: 0, countA: 0 };
-        // We know indices are safe here, so we can unroll/optimize if needed,
-        // but for deduplication we use the same structure.
         countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, lo - 1, lo, lo + 1, stats);
 
         process(lo, stats.neighbors, stats.countA, rowOffset);
       }
 
-      // 3. Right Edge (lo = W - 1)
       {
         const lo = W - 1;
         const stats = { neighbors: 0, countA: 0 };
@@ -368,7 +347,6 @@ export class LifeGridSim {
       this.setCellState(idx, nextVal);
     }
 
-    // We should recompute stats if we are modifying the grid outside of step()
     this.rebuildAliveIndices();
   }
 
@@ -384,7 +362,6 @@ export class LifeGridSim {
     this.population = pop;
   }
 
-  /** Iterate alive cells (for rendering) */
   forEachAlive(fn: (idx: number) => void) {
     const count = this.aliveCount;
     const indices = this.aliveIndices;
@@ -393,17 +370,14 @@ export class LifeGridSim {
     }
   }
 
-  /** Read-only view of the grid (0/1 per cell). Useful for texture-based rendering. */
   getGridView(): Uint8Array {
     return this.grid;
   }
 
-  /** Read-only view of ages (frames alive, clamped to 255) */
   getAgeView(): Uint8Array {
     return this.age;
   }
 
-  /** Read-only view of neighbor counts for alive cells (0..8) */
   getNeighborHeatView(): Uint8Array {
     return this.neighborHeat;
   }

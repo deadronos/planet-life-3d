@@ -7,12 +7,12 @@ import type { Rules } from '../../sim/rules';
 import { spherePointToCell } from '../../sim/spherePointToCell';
 import type { SeedMode } from '../../sim/types';
 import { useUIStore } from '../../store/useUIStore';
-import type {
-  LifeGridWorkerInMessage,
-  LifeGridWorkerOutMessage,
-} from '../../workers/lifeGridWorkerMessages';
+import type { LifeGridWorkerInMessage } from '../../workers/lifeGridWorkerMessages';
 import type { ResolveCellColor } from './cellColor';
-import { type LifeTexture, writeLifeTexture } from './lifeTexture';
+import { type LifeTexture } from './lifeTexture';
+import { useSimInstances } from './useSimInstances';
+import { useSimTickLoop } from './useSimTickLoop';
+import { useSimWorker } from './useSimWorker';
 
 export function usePlanetLifeSim({
   running,
@@ -53,25 +53,12 @@ export function usePlanetLifeSim({
 }) {
   const simRef = useRef<LifeSphereSim | null>(null);
   const geometrySimRef = useRef<LifeSphereSim | null>(null);
-  const instancingConfiguredRef = useRef(false);
-
-  const workerRef = useRef<Worker | null>(null);
-  const workerTickInFlightRef = useRef(false);
-  const workerSnapshotRef = useRef<{
-    grid: Uint8Array;
-    age: Uint8Array;
-    heat: Uint8Array;
-    aliveIndices: Int32Array;
-    population: number;
-    buffers: {
-      grid: ArrayBuffer;
-      age: ArrayBuffer;
-      heat: ArrayBuffer;
-      aliveIndices: ArrayBuffer;
-    };
-  } | null>(null);
+  const updateInstancesRef = useRef<() => void>(() => {
+    /* noop */
+  });
 
   const workerEnabled = workerSim && typeof Worker !== 'undefined';
+
   const publishStats = useCallback(
     (source: {
       generation: number;
@@ -89,121 +76,71 @@ export function usePlanetLifeSim({
     [],
   );
 
-  const updateTexture = useCallback(() => {
-    const snap = workerEnabled ? workerSnapshotRef.current : null;
-    const sim = workerEnabled ? null : simRef.current;
-    const grid = snap ? snap.grid : sim?.getGridView();
-    const ages = snap ? snap.age : sim?.getAgeView();
-    const heat = snap ? snap.heat : sim?.getNeighborHeatView();
-    if (!grid || !ages || !heat) return;
-
-    writeLifeTexture({
-      grid,
-      ages,
-      heat,
-      lifeTex,
-      gameMode,
-      debugLogs,
-    });
-  }, [lifeTex, gameMode, debugLogs, workerEnabled]);
-
-  // Keep a ref to the latest updateInstances so effects that should only depend
-  // on sizing don't accidentally re-create the simulation.
-  const updateInstancesRef = useRef<() => void>(() => {
-    /* noop */
-  });
-
-  const updateInstances = useCallback(() => {
-    const sim = workerEnabled ? geometrySimRef.current : simRef.current;
-    if (!sim) return;
-
-    const snap = workerEnabled ? workerSnapshotRef.current : null;
-    const grid = workerEnabled ? snap?.grid : simRef.current?.getGridView();
-    const ages = workerEnabled ? snap?.age : simRef.current?.getAgeView();
-    const heat = workerEnabled ? snap?.heat : simRef.current?.getNeighborHeatView();
-    if (!grid || !ages || !heat) return;
-
-    // This avoids a full per-cell RGBA write + GPU upload when in Dots mode.
-    const overlayEnabled = cellRenderMode === 'Texture' || cellRenderMode === 'Both';
-    if (overlayEnabled) updateTexture();
-
-    const mesh = cellsRef.current;
-    if (!mesh) return;
-
-    if (!instancingConfiguredRef.current) {
-      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      if (mesh.instanceColor) mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
-      instancingConfiguredRef.current = true;
-    }
-
-    let i = 0;
-
-    if (workerEnabled && snap) {
-      // Worker path: we render from the latest snapshot buffers.
-      // We still use a main-thread LifeSphereSim instance for precomputed positions.
-      const positions = sim.positions;
-      const alive = snap.aliveIndices;
-      const count = snap.population;
-      for (let j = 0; j < count; j++) {
-        const idx = alive[j];
-        dummy.position.copy(positions[idx]);
-        dummy.scale.setScalar(1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, grid, ages, heat, colorScratch);
-        mesh.setColorAt(i, colorScratch);
-        i++;
-      }
-    } else if (!workerEnabled) {
-      const currentGrid = sim.getGridView();
-      sim.forEachAlive((idx) => {
-        dummy.position.copy(sim.positions[idx]);
-        dummy.scale.setScalar(1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-        resolveCellColor(idx, currentGrid, ages, heat, colorScratch);
-        mesh.setColorAt(i, colorScratch);
-        i++;
-      });
-    }
-
-    mesh.count = i;
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [
+  const { updateInstances, updateTexture } = useSimInstances({
+    workerEnabled,
+    workerSnapshotRef: { current: null },
+    geometrySimRef,
+    simRef,
     cellRenderMode,
     cellsRef,
-    colorScratch,
+    lifeTex,
     dummy,
+    colorScratch,
     resolveCellColor,
-    updateTexture,
-    workerEnabled,
-  ]);
+    gameMode,
+    debugLogs,
+  });
 
   useEffect(() => {
     updateInstancesRef.current = updateInstances;
   }, [updateInstances]);
 
-  // If the user switches to a mode that shows the overlay while paused,
-  // ensure the texture reflects the current grid.
+  const onSnapshot = useCallback(
+    (msg: {
+      generation: number;
+      population: number;
+      birthsLastTick: number;
+      deathsLastTick: number;
+    }) => {
+      publishStats(msg);
+      updateInstancesRef.current();
+    },
+    [publishStats],
+  );
+
+  const {
+    workerRef,
+    workerTickInFlightRef,
+    postMessage: workerPostMessage,
+  } = useSimWorker({
+    workerEnabled,
+    safeLatCells,
+    safeLonCells,
+    rules,
+    randomDensity,
+    gameMode,
+    debugLogs,
+    onSnapshot,
+  });
+
   useEffect(() => {
     if (cellRenderMode === 'Texture' || cellRenderMode === 'Both') updateTexture();
   }, [cellRenderMode, updateTexture]);
 
   const clear = useCallback(() => {
     if (workerEnabled && workerRef.current) {
-      workerRef.current.postMessage({ type: 'clear' } satisfies LifeGridWorkerInMessage);
+      workerPostMessage({ type: 'clear' } satisfies LifeGridWorkerInMessage);
       return;
     }
     const sim = simRef.current;
     sim?.clear();
     if (sim) publishStats(sim);
     updateInstances();
-  }, [publishStats, updateInstances, workerEnabled]);
+  }, [publishStats, updateInstances, workerEnabled, workerRef, workerPostMessage]);
 
   const randomize = useCallback(() => {
     if (workerEnabled && workerRef.current) {
-      workerRef.current.postMessage({
+      workerPostMessage({
         type: 'randomize',
         density: randomDensity,
       } satisfies LifeGridWorkerInMessage);
@@ -213,20 +150,27 @@ export function usePlanetLifeSim({
     sim?.randomize(randomDensity);
     if (sim) publishStats(sim);
     updateInstances();
-  }, [publishStats, randomDensity, updateInstances, workerEnabled]);
+  }, [publishStats, randomDensity, updateInstances, workerEnabled, workerRef, workerPostMessage]);
 
   const stepOnce = useCallback(() => {
     if (workerEnabled && workerRef.current) {
       if (workerTickInFlightRef.current) return;
       workerTickInFlightRef.current = true;
-      workerRef.current.postMessage({ type: 'tick', steps: 1 } satisfies LifeGridWorkerInMessage);
+      workerPostMessage({ type: 'tick', steps: 1 } satisfies LifeGridWorkerInMessage);
       return;
     }
     const sim = simRef.current;
     sim?.step();
     if (sim) publishStats(sim);
     updateInstances();
-  }, [publishStats, updateInstances, workerEnabled]);
+  }, [
+    publishStats,
+    updateInstances,
+    workerEnabled,
+    workerRef,
+    workerTickInFlightRef,
+    workerPostMessage,
+  ]);
 
   const seedAtPoint = useCallback(
     (params: {
@@ -240,7 +184,7 @@ export function usePlanetLifeSim({
     }) => {
       if (workerEnabled && workerRef.current) {
         const { lat, lon } = spherePointToCell(params.point, safeLatCells, safeLonCells);
-        workerRef.current.postMessage({
+        workerPostMessage({
           type: 'seedAtCell',
           lat,
           lon,
@@ -265,17 +209,14 @@ export function usePlanetLifeSim({
       });
       updateInstances();
     },
-    [updateInstances, workerEnabled, safeLatCells, safeLonCells],
+    [updateInstances, workerEnabled, workerRef, workerPostMessage, safeLatCells, safeLonCells],
   );
 
-  // (Re)create sim when grid or planet sizing changes
   /* eslint-disable react-hooks/exhaustive-deps */
   // Intentionally omit `gameMode` from the dependency array: we update it in a separate
   // effect to avoid recreating the full simulation (and re-randomizing) when only
   // the game mode changes.
   useEffect(() => {
-    instancingConfiguredRef.current = false;
-
     if (workerEnabled) {
       geometrySimRef.current = new LifeSphereSim({
         latCells: safeLatCells,
@@ -305,191 +246,36 @@ export function usePlanetLifeSim({
     sim.randomize(randomDensity);
     updateInstancesRef.current();
   }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity, workerEnabled]);
-  /* eslint-enable react-hooks/exhaustive-deps */
 
-  // Update rules without resetting the grid
   useEffect(() => {
     if (workerEnabled && workerRef.current) {
-      workerRef.current.postMessage({ type: 'setRules', rules } satisfies LifeGridWorkerInMessage);
+      workerPostMessage({ type: 'setRules', rules } satisfies LifeGridWorkerInMessage);
       return;
     }
     simRef.current?.setRules(rules);
-  }, [rules, workerEnabled]);
+  }, [rules, workerEnabled, workerRef, workerPostMessage]);
 
-  // Update gameMode
   useEffect(() => {
     if (workerEnabled && workerRef.current) {
-      workerRef.current.postMessage({
+      workerPostMessage({
         type: 'setGameMode',
         mode: gameMode,
       } satisfies LifeGridWorkerInMessage);
       return;
     }
     simRef.current?.setGameMode(gameMode);
-  }, [gameMode, workerEnabled]);
+  }, [gameMode, workerEnabled, workerRef, workerPostMessage]);
 
-  // Worker lifecycle
-  /* eslint-disable react-hooks/exhaustive-deps */
-  // Intentionally omit `gameMode` from the dependency array: we post updates to the
-  // worker via a dedicated effect to avoid restarting the worker when only the
-  // game mode changes.
-  useEffect(() => {
-    if (!workerEnabled) {
-      // Disable worker if it was previously enabled.
-      workerTickInFlightRef.current = false;
-      if (workerRef.current) {
-        const w = workerRef.current;
-        const held = workerSnapshotRef.current;
-        if (held) {
-          w.postMessage(
-            {
-              type: 'recycle',
-              grid: held.buffers.grid,
-              age: held.buffers.age,
-              heat: held.buffers.heat,
-              aliveIndices: held.buffers.aliveIndices,
-            } satisfies LifeGridWorkerInMessage,
-            [held.buffers.grid, held.buffers.age, held.buffers.heat, held.buffers.aliveIndices],
-          );
-          workerSnapshotRef.current = null;
-        }
-        w.terminate();
-        workerRef.current = null;
-      }
-      return;
-    }
-
-    const w = new Worker(new URL('../../workers/simWorker.ts', import.meta.url), {
-      type: 'module',
-    });
-    workerRef.current = w;
-    workerTickInFlightRef.current = false;
-
-    const onMessage = (event: MessageEvent<LifeGridWorkerOutMessage>) => {
-      const msg = event.data;
-      if (msg.type === 'snapshot') {
-        workerTickInFlightRef.current = false;
-
-        // Return previously held buffers before replacing.
-        const prev = workerSnapshotRef.current;
-        if (prev) {
-          w.postMessage(
-            {
-              type: 'recycle',
-              grid: prev.buffers.grid,
-              age: prev.buffers.age,
-              heat: prev.buffers.heat,
-              aliveIndices: prev.buffers.aliveIndices,
-            } satisfies LifeGridWorkerInMessage,
-            [prev.buffers.grid, prev.buffers.age, prev.buffers.heat, prev.buffers.aliveIndices],
-          );
-        }
-
-        workerSnapshotRef.current = {
-          grid: new Uint8Array(msg.grid),
-          age: new Uint8Array(msg.age),
-          heat: new Uint8Array(msg.heat),
-          aliveIndices: new Int32Array(msg.aliveIndices),
-          population: msg.population,
-          buffers: {
-            grid: msg.grid,
-            age: msg.age,
-            heat: msg.heat,
-            aliveIndices: msg.aliveIndices,
-          },
-        };
-
-        publishStats(msg);
-
-        updateInstancesRef.current();
-      }
-
-      if (msg.type === 'error' && debugLogs) {
-        // eslint-disable-next-line no-console
-        console.warn(`[PlanetLife] Worker sim error: ${msg.message}`);
-      }
-    };
-
-    w.addEventListener('message', onMessage as EventListener);
-
-    w.postMessage({
-      type: 'init',
-      latCells: safeLatCells,
-      lonCells: safeLonCells,
-      rules,
-      gameMode,
-      randomDensity,
-    } satisfies LifeGridWorkerInMessage);
-
-    return () => {
-      w.removeEventListener('message', onMessage as EventListener);
-      const held = workerSnapshotRef.current;
-      if (held) {
-        w.postMessage(
-          {
-            type: 'recycle',
-            grid: held.buffers.grid,
-            age: held.buffers.age,
-            heat: held.buffers.heat,
-            aliveIndices: held.buffers.aliveIndices,
-          } satisfies LifeGridWorkerInMessage,
-          [held.buffers.grid, held.buffers.age, held.buffers.heat, held.buffers.aliveIndices],
-        );
-        workerSnapshotRef.current = null;
-      }
-      w.terminate();
-      if (workerRef.current === w) workerRef.current = null;
-      workerTickInFlightRef.current = false;
-    };
-  }, [workerEnabled, safeLatCells, safeLonCells, rules, randomDensity, debugLogs, publishStats]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-
-  // Tick loop
-  useEffect(() => {
-    if (!running) return;
-    let cancelled = false;
-    let timeoutId: number | null = null;
-    const safeTickMs = Number.isFinite(tickMs) ? Math.max(0, tickMs) : 0;
-    let nextAt = performance.now() + safeTickMs;
-
-    const scheduleNext = () => {
-      if (cancelled) return;
-      const delay = Math.max(0, nextAt - performance.now());
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) return;
-        if (workerEnabled && workerRef.current) {
-          // Prevent message backlog: only request the next tick when the previous one has returned.
-          if (!workerTickInFlightRef.current) {
-            workerTickInFlightRef.current = true;
-            workerRef.current.postMessage({
-              type: 'tick',
-              steps: 1,
-            } satisfies LifeGridWorkerInMessage);
-          }
-        } else {
-          const sim = simRef.current;
-          if (sim) {
-            sim.step();
-
-            publishStats(sim);
-
-            updateInstances();
-          }
-        }
-
-        // Schedule from "now" to avoid interval backlog when ticks are slow.
-        nextAt = performance.now() + safeTickMs;
-        scheduleNext();
-      }, delay);
-    };
-
-    scheduleNext();
-
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-    };
-  }, [running, tickMs, updateInstances, workerEnabled, publishStats]);
+  useSimTickLoop({
+    running,
+    tickMs,
+    workerEnabled,
+    workerRef,
+    workerTickInFlightRef,
+    simRef,
+    onPublishStats: publishStats,
+    onTick: updateInstances,
+  });
 
   return {
     simRef,
