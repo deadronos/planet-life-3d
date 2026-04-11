@@ -1,4 +1,5 @@
 // eslint.config.cjs — flat config (ESLint v9+)
+const { fixupConfigRules, fixupPluginRules } = require('@eslint/compat');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
 const reactPlugin = require('eslint-plugin-react');
@@ -27,22 +28,22 @@ module.exports = [
   },
 
   // TypeScript recommended rules (flat)
-  ...tsPlugin.configs['flat/recommended'],
+  ...fixupConfigRules(tsPlugin.configs['flat/recommended']),
   // Enable extra type-checked rules from typescript-eslint (requires project)
-  ...tsPlugin.configs['flat/recommended-type-checked'],
+  ...fixupConfigRules(tsPlugin.configs['flat/recommended-type-checked']),
 
   // React plugin recommended (flat)
-  reactPlugin.configs?.flat?.recommended,
+  ...fixupConfigRules(reactPlugin.configs?.flat?.recommended),
   // React plugin JSX runtime config (auto React JSX runtime)
-  reactPlugin.configs?.flat?.['jsx-runtime'],
+  ...fixupConfigRules(reactPlugin.configs?.flat?.['jsx-runtime']),
   // React Hooks recommended (flat)
-  reactHooksPlugin.configs?.flat?.recommended,
+  ...fixupConfigRules(reactHooksPlugin.configs?.flat?.recommended),
   // JSX accessibility plugin recommended (flat)
-  jsxA11yPlugin.flatConfigs?.recommended,
+  ...fixupConfigRules(jsxA11yPlugin.flatConfigs?.recommended),
 
   // Prettier as the last configuration to disable formatting-related rules
   // and enable the prettier/prettier rule
-  prettierRecommended,
+  ...fixupConfigRules(prettierRecommended),
 
   // Custom base configuration overrides/rules that apply to all JS/TS files
   {
@@ -68,9 +69,9 @@ module.exports = [
       },
     },
     plugins: {
-      'simple-import-sort': simpleImportSort,
-      'unused-imports': unusedImports,
-      'react-refresh': reactRefresh,
+      'simple-import-sort': fixupPluginRules(simpleImportSort),
+      'unused-imports': fixupPluginRules(unusedImports),
+      'react-refresh': fixupPluginRules(reactRefresh),
     },
     rules: {
       'no-console': 'warn',
