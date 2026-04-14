@@ -70,6 +70,7 @@ desktop.ini
 .packages
 .npm/
 .npmrc
+!.npmrc
 # Note: lock files (package-lock.json, yarn.lock, pnpm-lock.yaml) are usually committed.
 
 # Yarn (v1/v2/berry) caches
