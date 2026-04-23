@@ -9,6 +9,10 @@ Click the planet to shoot a meteor. On impact it seeds the grid using a configur
 - **GPU Simulation**: High-performance GPU-based simulation using WebGL shaders for massive grid sizes
 - Multiple rendering modes (Texture, Dots, or Both)
 - Custom rule sets and patterns
+- Biome/ecology profiles that bias CPU and worker simulation growth
+- Named world presets for garden, harsh, colony, meteor, and extinction scenarios
+- Player-facing HUD with population, ecology, selected tool, and impact probe readouts
+- Meteor toolbelt with life, sterilizer, mutation, comet, and probe modes
 - Meteor impacts with visual effects
 - Real-time configuration via Leva UI
 
@@ -27,7 +31,9 @@ npm run dev
 
 - Orbit with mouse (right drag to pan, wheel zoom).
 - Click the planet to fire a meteor at the clicked spot.
-- Tune grid/rules/speed/meteor + seeding parameters via the Leva UI.
+- Pick a meteor tool from the bottom HUD.
+- Tune world presets, ecology, grid/rules/speed/meteor + seeding parameters via the Leva UI.
+- Press `H` to hide or show the Leva debug panel.
 
 ### GPU Mode
 
@@ -47,11 +53,12 @@ The GPU simulation uses the following architecture:
 - **Fragment Shader**: Computes customizable cellular automata rules for each pixel (cell) in parallel
 - **Sphere Wrapping**: Longitude (U) wraps seamlessly, Latitude (V) clamps at poles
 - **Higher Resolution**: Supports 512x1024+ grids without performance degradation
-- **100% Parameter Parity**: All Leva controls work identically in GPU mode
+- **High Parameter Parity**: Core simulation and seeding controls work in GPU mode
 
 ### Supported Features
 
-GPU mode has complete parity with CPU mode:
+GPU mode has high parity with CPU mode:
+
 - ✅ Custom birth/survive rules (birthDigits, surviveDigits)
 - ✅ Tick speed control (tickMs)
 - ✅ Random density (randomDensity)
@@ -65,6 +72,7 @@ GPU mode has complete parity with CPU mode:
 ### Limitations
 
 - Dots rendering mode disabled in GPU mode (requires expensive GPU→CPU readback)
+- Ecology profiles are visual-only in GPU mode; CPU and worker simulation modes use them to bias effective neighbor counts.
 
 Key files:
 

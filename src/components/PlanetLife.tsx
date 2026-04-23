@@ -1,8 +1,9 @@
 import { button, useControls } from 'leva';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
+import { computeEcologySample } from '../sim/ecology';
 import {
   getBuiltinPatternOffsets,
   offsetsToMatrix,
@@ -11,7 +12,9 @@ import {
 } from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
+import type { SeedMode } from '../sim/types';
 import { buildRandomDiskOffsets } from '../sim/utils';
+import { type MeteorTool, useUIStore } from '../store/useUIStore';
 import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
 import { Atmosphere } from './planetLife/Atmosphere';
 import { useCellColorResolver } from './planetLife/cellColor';
@@ -21,6 +24,7 @@ import { createGpuOverlayMaterial, LifeOverlay } from './planetLife/LifeOverlay'
 import { useLifeTexture } from './planetLife/lifeTexture';
 import { MeteorEffects } from './planetLife/MeteorEffects';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
+import { PlanetMesh } from './planetLife/PlanetMesh';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
 import { useSimulationSeeder } from './planetLife/useSimulationSeeder';
@@ -40,14 +44,17 @@ export function PlanetLife({
     tickMs,
     latCells,
     lonCells,
+    worldPreset,
     birthDigits,
     surviveDigits,
+    ecologyProfile,
     gameMode,
     randomDensity,
 
     planetRadius,
     planetWireframe,
     planetRoughness,
+    ecologyIntensity,
     rimIntensity,
     rimPower,
     terminatorSharpness,
@@ -97,6 +104,9 @@ export function PlanetLife({
     workerSim,
     gpuSim,
   } = params;
+  const activeTool = useUIStore((state) => state.activeTool);
+  const setPlanetStatus = useUIStore((state) => state.setPlanetStatus);
+  const setProbe = useUIStore((state) => state.setProbe);
 
   const rules = useMemo(() => {
     return {
@@ -191,6 +201,7 @@ export function PlanetLife({
     planetWireframe,
     latCells: safeLatCells,
     lonCells: safeLonCells,
+    ecologyIntensity,
     lightPosition,
   });
 
@@ -210,6 +221,7 @@ export function PlanetLife({
     cellRenderMode,
     gameMode,
     rules,
+    ecologyProfile,
     randomDensity,
     workerSim,
     lifeTex,
@@ -232,10 +244,113 @@ export function PlanetLife({
     debugLogs,
   });
 
+  useEffect(() => {
+    setPlanetStatus({
+      preset: worldPreset,
+      ecologyProfile,
+      gameMode,
+      seedPattern,
+      gpuSim,
+    });
+  }, [ecologyProfile, gameMode, gpuSim, seedPattern, setPlanetStatus, worldPreset]);
+
+  const buildToolSeed = useMemo(() => {
+    return (tool: MeteorTool) => {
+      if (tool === 'Probe') return undefined;
+
+      const toolScale =
+        tool === 'Sterilizer' ? Math.max(3, seedScale + 2) : tool === 'Mutation' ? 3 : seedScale;
+      const toolPattern =
+        tool === 'Sterilizer' || tool === 'Mutation' || tool === 'Comet'
+          ? 'Random Disk'
+          : seedPattern;
+      const toolMode: SeedMode =
+        tool === 'Sterilizer'
+          ? 'clear'
+          : tool === 'Mutation'
+            ? 'random'
+            : tool === 'Comet'
+              ? 'set'
+              : seedMode;
+      const toolProbability =
+        tool === 'Sterilizer'
+          ? 1
+          : tool === 'Mutation'
+            ? 0.55
+            : tool === 'Comet'
+              ? 0.95
+              : seedProbability;
+
+      let offsets =
+        toolPattern === 'Random Disk'
+          ? buildRandomDiskOffsets(toolScale)
+          : toolPattern === 'Custom ASCII'
+            ? parseAsciiPattern(customPattern)
+            : getBuiltinPatternOffsets(toolPattern);
+
+      if (offsets.length === 0) return undefined;
+      offsets = transformOffsets(
+        offsets,
+        toolScale,
+        tool === 'Mutation' ? Math.max(1, seedJitter) : seedJitter,
+      );
+
+      return {
+        offsets,
+        mode: toolMode,
+        scale: toolScale,
+        jitter: tool === 'Mutation' ? Math.max(1, seedJitter) : seedJitter,
+        probability: toolProbability,
+      };
+    };
+  }, [customPattern, seedJitter, seedMode, seedPattern, seedProbability, seedScale]);
+
   const seedAtPoint = useMemo(() => {
     return (point: THREE.Vector3) => {
+      const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
+      const sample = computeEcologySample({
+        lat,
+        lon,
+        latCells: safeLatCells,
+        lonCells: safeLonCells,
+        profile: ecologyProfile,
+      });
+      setProbe({ lat, lon, sample });
+
+      if (activeTool === 'Probe') return;
+
+      if (activeTool !== 'Life') {
+        const toolSeed = buildToolSeed(activeTool);
+        if (!toolSeed) return;
+
+        if (gpuSim && gpuSimRef.current) {
+          const v = (lat + 0.5) / safeLatCells;
+          const u = (lon + 0.5) / safeLonCells;
+          const { matrix, originRow, originCol } = offsetsToMatrix(toolSeed.offsets);
+          gpuSimRef.current.seedAtUV({
+            u,
+            v,
+            pattern: matrix,
+            mode: toolSeed.mode,
+            probability: toolSeed.probability,
+            originRow,
+            originCol,
+          });
+        } else {
+          seedAtPointImpl({
+            point,
+            offsets: toolSeed.offsets,
+            mode: toolSeed.mode,
+            scale: toolSeed.scale,
+            jitter: toolSeed.jitter,
+            probability: toolSeed.probability,
+            debug: debugLogs,
+          });
+        }
+        return;
+      }
+
       if (gpuSim && gpuSimRef.current) {
-        const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
         const v = (lat + 0.5) / safeLatCells;
         const u = (lon + 0.5) / safeLonCells;
 
@@ -267,6 +382,10 @@ export function PlanetLife({
     };
   }, [
     gpuSim,
+    activeTool,
+    buildToolSeed,
+    debugLogs,
+    ecologyProfile,
     safeLatCells,
     safeLonCells,
     seedPattern,
@@ -276,6 +395,8 @@ export function PlanetLife({
     customPattern,
     seedProbability,
     seedAtPointCPU,
+    seedAtPointImpl,
+    setProbe,
   ]);
 
   const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
@@ -385,5 +506,3 @@ export function PlanetLife({
     </group>
   );
 }
-
-import { PlanetMesh } from './planetLife/PlanetMesh';

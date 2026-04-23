@@ -62,6 +62,7 @@ describe('usePlanetLifeSim stats publishing', () => {
         cellRenderMode: 'Dots',
         gameMode: 'Classic',
         rules: RULES,
+        ecologyProfile: 'None',
         randomDensity: 1,
         workerSim: false,
         lifeTex,

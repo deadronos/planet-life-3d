@@ -2,12 +2,15 @@ import { folder, useControls } from 'leva';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
+import { ECOLOGY_PROFILE_NAMES, type EcologyProfileName } from '../../sim/ecology';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 import {
   COLOR_THEME_NAMES,
   COLOR_THEMES,
   RULE_PRESET_NAMES,
   RULE_PRESETS,
+  WORLD_PRESET_NAMES,
+  WORLD_PRESETS,
 } from '../../sim/presets';
 
 export type PlanetLifeControls = {
@@ -15,13 +18,16 @@ export type PlanetLifeControls = {
   tickMs: number;
   latCells: number;
   lonCells: number;
+  worldPreset: string;
   rulePreset: string;
   birthDigits: string;
   surviveDigits: string;
+  ecologyProfile: EcologyProfileName;
   randomDensity: number;
   planetRadius: number;
   planetWireframe: boolean;
   planetRoughness: number;
+  ecologyIntensity: number;
   theme: string;
   rimIntensity: number;
   rimPower: number;
@@ -104,6 +110,40 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
           max: 240,
           step: 1,
         },
+        worldPreset: {
+          label: 'World Preset',
+          value: 'Custom',
+          options: ['Custom', ...WORLD_PRESET_NAMES],
+          onChange: (v: string) => {
+            if (v === 'Custom' || !setRef.current) return;
+            const p = WORLD_PRESETS[v];
+            const theme = COLOR_THEMES[p.theme];
+            setRef.current({
+              rulePreset: 'Custom',
+              birthDigits: p.birth,
+              surviveDigits: p.survive,
+              randomDensity: p.randomDensity,
+              gameMode: p.gameMode,
+              ecologyProfile: p.ecologyProfile,
+              theme: p.theme,
+              cellColorMode: p.cellColorMode,
+              seedPattern: p.seedPattern,
+              seedScale: p.seedScale,
+              showerEnabled: p.showerEnabled,
+              showerInterval: p.showerInterval,
+              ...(theme
+                ? {
+                    cellColor: theme.cellColor,
+                    atmosphereColor: theme.atmosphereColor,
+                    heatLowColor: theme.heatLowColor,
+                    heatMidColor: theme.heatMidColor,
+                    heatHighColor: theme.heatHighColor,
+                    impactRingColor: theme.impactRingColor,
+                  }
+                : {}),
+            });
+          },
+        },
         rulePreset: {
           label: 'Rule Preset',
           value: 'Conway',
@@ -118,6 +158,11 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         },
         birthDigits: { value: '3' },
         surviveDigits: { value: '23' },
+        ecologyProfile: {
+          label: 'Ecology',
+          value: 'Garden World' as EcologyProfileName,
+          options: ECOLOGY_PROFILE_NAMES,
+        },
         randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
       },
       { collapsed: false },
@@ -133,6 +178,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         },
         planetWireframe: false,
         planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
+        ecologyIntensity: { value: 0.65, min: 0, max: 1, step: 0.01 },
         cellRenderMode: {
           value: 'Texture' as const,
           options: ['Texture', 'Dots', 'Both'] as const,

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
-import React from 'react';
 import { render } from '@testing-library/react';
+import React from 'react';
 import * as THREE from 'three';
+import { describe, expect, it, vi } from 'vitest';
 
 // Ensure leva does not inject CSS/stitches during tests
 vi.mock('leva', () => ({
@@ -18,14 +18,17 @@ vi.mock('../../src/components/planetLife/controls', () => ({
     tickMs: 120,
     latCells: 10,
     lonCells: 10,
+    worldPreset: 'Custom',
     birthDigits: '3',
     surviveDigits: '23',
+    ecologyProfile: 'None',
     gameMode: 'Classic',
     randomDensity: 0.1,
 
     planetRadius: 5,
     planetWireframe: false,
     planetRoughness: 0.9,
+    ecologyIntensity: 0.65,
     rimIntensity: 0.65,
     rimPower: 2.6,
     terminatorSharpness: 1.4,
@@ -71,6 +74,7 @@ vi.mock('../../src/components/planetLife/controls', () => ({
 
     debugLogs: false,
     workerSim: false,
+    gpuSim: false,
   }),
 }));
 

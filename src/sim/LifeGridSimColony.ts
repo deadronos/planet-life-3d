@@ -1,3 +1,4 @@
+import { adjustNeighborsForEcology } from './ecology';
 import { countNeighborsColony } from './LifeGridHelper';
 import { LifeGridSimBase } from './LifeGridSimBase';
 
@@ -12,18 +13,32 @@ export class LifeGridSimColony extends LifeGridSimBase {
     this.population = 0;
     this.nextAliveCount = 0;
 
-    const process = (lo: number, neighbors: number, countA: number, rowOffset: number) => {
+    const process = (
+      lo: number,
+      la: number,
+      neighbors: number,
+      countA: number,
+      rowOffset: number,
+    ) => {
       const idx = rowOffset + lo;
       const current = grid[idx];
+      const effectiveNeighbors = adjustNeighborsForEcology(
+        neighbors,
+        la,
+        lo,
+        L,
+        W,
+        this.ecologyProfile,
+      );
       let nextVal = 0;
 
       if (current > 0) {
-        if (neighbors === 2 || neighbors === 3) nextVal = current;
+        if (effectiveNeighbors === 2 || effectiveNeighbors === 3) nextVal = current;
       } else {
-        if (neighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+        if (effectiveNeighbors === 3) nextVal = countA >= 2 ? 1 : 2;
       }
 
-      this.applyCellUpdate(idx, current, nextVal, neighbors);
+      this.applyCellUpdate(idx, current, nextVal, effectiveNeighbors);
     };
 
     for (let la = 0; la < L; la++) {
@@ -42,7 +57,7 @@ export class LifeGridSimColony extends LifeGridSimBase {
 
         countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
-        process(lo, stats.neighbors, stats.countA, rowOffset);
+        process(lo, la, stats.neighbors, stats.countA, rowOffset);
       }
 
       const centerEnd = W - 1;
@@ -50,7 +65,7 @@ export class LifeGridSimColony extends LifeGridSimBase {
         const stats = { neighbors: 0, countA: 0 };
         countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, lo - 1, lo, lo + 1, stats);
 
-        process(lo, stats.neighbors, stats.countA, rowOffset);
+        process(lo, la, stats.neighbors, stats.countA, rowOffset);
       }
 
       {
@@ -61,7 +76,7 @@ export class LifeGridSimColony extends LifeGridSimBase {
 
         countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
 
-        process(lo, stats.neighbors, stats.countA, rowOffset);
+        process(lo, la, stats.neighbors, stats.countA, rowOffset);
       }
     }
 

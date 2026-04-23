@@ -5,7 +5,10 @@ let setSpy: ReturnType<typeof vi.fn>;
 let capturedSchema: unknown = null;
 
 type SchemaShape = {
-  Simulation?: { rulePreset?: { onChange?: (v: string) => void } };
+  Simulation?: {
+    rulePreset?: { onChange?: (v: string) => void };
+    worldPreset?: { onChange?: (v: string) => void };
+  };
   Upgrades?: { theme?: { onChange?: (v: string) => void } };
 };
 
@@ -111,5 +114,21 @@ describe('usePlanetLifeControls - onChange handlers', () => {
     theme!.onChange!('Custom');
 
     expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls set when world preset onChange selected (non-Custom)', () => {
+    renderHook(() => usePlanetLifeControls());
+
+    const worldPreset = (capturedSchema as SchemaShape).Simulation?.worldPreset;
+    expect(worldPreset).toBeTruthy();
+    expect(typeof worldPreset!.onChange).toBe('function');
+
+    worldPreset!.onChange!('Garden World');
+
+    expect(setSpy).toHaveBeenCalled();
+    const calledWith = setSpy.mock.calls[0][0];
+    expect(calledWith.birthDigits).toBe('3');
+    expect(calledWith.ecologyProfile).toBe('Garden World');
+    expect(calledWith.seedPattern).toBe('Glider');
   });
 });

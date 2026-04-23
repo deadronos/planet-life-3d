@@ -18,16 +18,20 @@ body,
   position: absolute;
   top: 24px;
   left: 24px;
+  right: 24px;
+  bottom: 24px;
   z-index: 10;
   pointer-events: none;
   display: flex;
+  align-items: flex-start;
   flex-direction: column;
   gap: 16px;
 }
 
-
 .title-card,
-.hud-stats {
+.hud-stats,
+.probe-card,
+.meteor-toolbelt {
   background: rgba(13, 17, 28, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -78,6 +82,7 @@ body,
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   pointer-events: auto;
   font-size: 0.95rem;
+  max-width: min(560px, calc(100vw - 48px));
   color: #cbd5e1;
   font-weight: 500;
   line-height: 1.4;
@@ -131,7 +136,16 @@ body,
 
 .hud-stats {
   padding: 1rem 1.5rem;
-  min-width: 140px;
+  width: min(280px, calc(100vw - 48px));
+}
+
+.hud-kicker {
+  margin-bottom: 0.65rem;
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .hud-row {
@@ -158,4 +172,126 @@ body,
   color: #ffffff;
   font-variant-numeric: tabular-nums;
   font-family: 'Rajdhani', monospace;
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-divider {
+  height: 1px;
+  margin: 0.65rem 0;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.probe-card {
+  width: min(280px, calc(100vw - 48px));
+  padding: 1rem 1.5rem;
+}
+
+.probe-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem 1rem;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.probe-grid strong {
+  color: #ffffff;
+  font-family: 'Rajdhani', monospace;
+  font-weight: 700;
+}
+
+.meteor-toolbelt {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: min(680px, calc(100vw - 48px));
+  padding: 0.65rem;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.tool-button {
+  min-width: 86px;
+  height: 38px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.tool-button:hover {
+  border-color: rgba(165, 180, 252, 0.72);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.tool-button.active {
+  border-color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.28);
+  color: #ffffff;
+}
+
+.tool-button:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .overlay-panel {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    gap: 10px;
+  }
+
+  .title-card {
+    padding: 1rem 1.2rem;
+  }
+
+  .title-card h1 {
+    font-size: 1.55rem;
+  }
+
+  .title-card p {
+    font-size: 0.82rem;
+  }
+
+  .hud-stats,
+  .probe-card {
+    width: min(240px, calc(100vw - 28px));
+    padding: 0.85rem 1rem;
+  }
+
+  .meteor-toolbelt {
+    max-width: calc(100vw - 28px);
+  }
+
+  .tool-button {
+    min-width: 76px;
+    height: 34px;
+    font-size: 0.78rem;
+  }
 }

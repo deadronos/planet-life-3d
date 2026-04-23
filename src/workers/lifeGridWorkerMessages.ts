@@ -1,3 +1,4 @@
+import type { EcologyProfileName } from '../sim/ecology';
 import type { Offset } from '../sim/patterns';
 import type { Rules } from '../sim/rules';
 import type { GameMode, SeedMode } from '../sim/types';
@@ -8,6 +9,7 @@ export type LifeGridWorkerInit = {
   lonCells: number;
   rules: Rules;
   gameMode?: GameMode;
+  ecologyProfile?: EcologyProfileName;
   randomDensity?: number;
 };
 
@@ -24,6 +26,11 @@ export type LifeGridWorkerSetRules = {
 export type LifeGridWorkerSetGameMode = {
   type: 'setGameMode';
   mode: GameMode;
+};
+
+export type LifeGridWorkerSetEcologyProfile = {
+  type: 'setEcologyProfile';
+  profile: EcologyProfileName;
 };
 
 export type LifeGridWorkerClear = { type: 'clear' };
@@ -58,6 +65,7 @@ export type LifeGridWorkerInMessage =
   | LifeGridWorkerTick
   | LifeGridWorkerSetRules
   | LifeGridWorkerSetGameMode
+  | LifeGridWorkerSetEcologyProfile
   | LifeGridWorkerClear
   | LifeGridWorkerRandomize
   | LifeGridWorkerSeedAtCell
