@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem';
-import * as THREE from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
+import { act, renderHook } from '@testing-library/react';
+import * as THREE from 'three';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem';
 
 describe('useMeteorSystem', () => {
   const mockSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
@@ -190,6 +191,21 @@ describe('useMeteorSystem', () => {
     expect(mockSeedAtPoint).toHaveBeenCalled();
     expect(result.current.meteors.find((m) => m.id === id)).toBeUndefined();
     expect(result.current.impacts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('records impact start time in the same performance.now seconds domain used by rings', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const { result, unmount } = renderHook(() => useMeteorSystem(defaultParams));
+
+    act(() => {
+      result.current.onMeteorImpact('missing', new THREE.Vector3(1, 0, 0));
+    });
+
+    expect(result.current.impacts[0].start).toBeCloseTo(performance.now() / 1000, 6);
+
+    unmount();
+    vi.useRealTimers();
   });
 
   it('shower should spawn meteors when enabled', () => {

@@ -1,6 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
+import type { EcologyProfileName } from '../../sim/ecology';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
 import type { Rules } from '../../sim/rules';
@@ -24,6 +25,7 @@ export function usePlanetLifeSim({
   cellRenderMode,
   gameMode,
   rules,
+  ecologyProfile,
   randomDensity,
   workerSim,
   lifeTex,
@@ -42,6 +44,7 @@ export function usePlanetLifeSim({
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
   gameMode: 'Classic' | 'Colony';
   rules: Rules;
+  ecologyProfile: EcologyProfileName;
   randomDensity: number;
   workerSim: boolean;
   lifeTex: LifeTexture;
@@ -76,25 +79,6 @@ export function usePlanetLifeSim({
     [],
   );
 
-  const { updateInstances, updateTexture } = useSimInstances({
-    workerEnabled,
-    workerSnapshotRef: { current: null },
-    geometrySimRef,
-    simRef,
-    cellRenderMode,
-    cellsRef,
-    lifeTex,
-    dummy,
-    colorScratch,
-    resolveCellColor,
-    gameMode,
-    debugLogs,
-  });
-
-  useEffect(() => {
-    updateInstancesRef.current = updateInstances;
-  }, [updateInstances]);
-
   const onSnapshot = useCallback(
     (msg: {
       generation: number;
@@ -111,17 +95,38 @@ export function usePlanetLifeSim({
   const {
     workerRef,
     workerTickInFlightRef,
+    workerSnapshotRef,
     postMessage: workerPostMessage,
   } = useSimWorker({
     workerEnabled,
     safeLatCells,
     safeLonCells,
     rules,
+    ecologyProfile,
     randomDensity,
     gameMode,
     debugLogs,
     onSnapshot,
   });
+
+  const { updateInstances, updateTexture } = useSimInstances({
+    workerEnabled,
+    workerSnapshotRef,
+    geometrySimRef,
+    simRef,
+    cellRenderMode,
+    cellsRef,
+    lifeTex,
+    dummy,
+    colorScratch,
+    resolveCellColor,
+    gameMode,
+    debugLogs,
+  });
+
+  useEffect(() => {
+    updateInstancesRef.current = updateInstances;
+  }, [updateInstances]);
 
   useEffect(() => {
     if (cellRenderMode === 'Texture' || cellRenderMode === 'Both') updateTexture();
@@ -226,6 +231,7 @@ export function usePlanetLifeSim({
         rules,
       });
       geometrySimRef.current.setGameMode(gameMode);
+      geometrySimRef.current.setEcologyProfile(ecologyProfile);
       simRef.current = null;
       updateInstancesRef.current();
       return;
@@ -239,13 +245,23 @@ export function usePlanetLifeSim({
       rules,
     });
     sim.setGameMode(gameMode);
+    sim.setEcologyProfile(ecologyProfile);
 
     simRef.current = sim;
     geometrySimRef.current = sim;
 
     sim.randomize(randomDensity);
     updateInstancesRef.current();
-  }, [safeLatCells, safeLonCells, planetRadius, cellLift, rules, randomDensity, workerEnabled]);
+  }, [
+    safeLatCells,
+    safeLonCells,
+    planetRadius,
+    cellLift,
+    rules,
+    ecologyProfile,
+    randomDensity,
+    workerEnabled,
+  ]);
 
   useEffect(() => {
     if (workerEnabled && workerRef.current) {
@@ -265,6 +281,17 @@ export function usePlanetLifeSim({
     }
     simRef.current?.setGameMode(gameMode);
   }, [gameMode, workerEnabled, workerRef, workerPostMessage]);
+
+  useEffect(() => {
+    if (workerEnabled && workerRef.current) {
+      workerPostMessage({
+        type: 'setEcologyProfile',
+        profile: ecologyProfile,
+      } satisfies LifeGridWorkerInMessage);
+      return;
+    }
+    simRef.current?.setEcologyProfile(ecologyProfile);
+  }, [ecologyProfile, workerEnabled, workerRef, workerPostMessage]);
 
   useSimTickLoop({
     running,

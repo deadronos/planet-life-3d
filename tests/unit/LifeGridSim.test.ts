@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+
+import {
+  adjustNeighborsForEcology,
+  computeEcologySample,
+  type EcologyProfileName,
+} from '../../src/sim/ecology';
 import { LifeGridSim } from '../../src/sim/LifeGridSim';
 import type { Offset } from '../../src/sim/patterns';
 import type { Rules } from '../../src/sim/rules';
@@ -65,5 +71,34 @@ describe('LifeGridSim', () => {
     expect(sim.getCell(5, 5)).toBe(1);
     expect(sim.getCell(5, 6)).toBe(1);
     expect(sim.getCell(5, 7)).toBe(0);
+  });
+
+  it('can bias birth thresholds from ecology layers', () => {
+    const profile: EcologyProfileName = 'Garden World';
+    let target: { lat: number; lon: number } | undefined;
+
+    for (let lat = 1; lat < latCells - 1 && !target; lat++) {
+      for (let lon = 1; lon < lonCells - 1; lon++) {
+        if (computeEcologySample({ lat, lon, latCells, lonCells, profile }).neighborBias === 1) {
+          target = { lat, lon };
+          break;
+        }
+      }
+    }
+
+    expect(target).toBeDefined();
+    if (!target) return;
+
+    sim.setEcologyProfile(profile);
+    sim.setCell(target.lat, target.lon - 1, 1);
+    sim.setCell(target.lat, target.lon + 1, 1);
+
+    expect(adjustNeighborsForEcology(2, target.lat, target.lon, latCells, lonCells, profile)).toBe(
+      3,
+    );
+
+    sim.step();
+
+    expect(sim.getCell(target.lat, target.lon)).toBe(1);
   });
 });

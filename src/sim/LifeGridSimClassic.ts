@@ -1,3 +1,4 @@
+import { adjustNeighborsForEcology } from './ecology';
 import { sumNeighborsEdge } from './LifeGridHelper';
 import { LifeGridSimBase } from './LifeGridSimBase';
 
@@ -35,7 +36,25 @@ export class LifeGridSimClassic extends LifeGridSimBase {
         const left = W - 1;
         const right = 1;
 
-        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
+        const rawNeighbors = sumNeighborsEdge(
+          grid,
+          rTop,
+          rMid,
+          rBot,
+          hasTop,
+          hasBot,
+          left,
+          lo,
+          right,
+        );
+        const neighbors = adjustNeighborsForEcology(
+          rawNeighbors,
+          la,
+          lo,
+          L,
+          W,
+          this.ecologyProfile,
+        );
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -60,7 +79,15 @@ export class LifeGridSimClassic extends LifeGridSimBase {
         if (hasTop) sRight += grid[rTop + nextCol];
         if (hasBot) sRight += grid[rBot + nextCol];
 
-        const neighbors = sLeft + sCurr + sRight - grid[rMid + lo];
+        const rawNeighbors = sLeft + sCurr + sRight - grid[rMid + lo];
+        const neighbors = adjustNeighborsForEcology(
+          rawNeighbors,
+          la,
+          lo,
+          L,
+          W,
+          this.ecologyProfile,
+        );
 
         const idx = rowOffset + lo;
         const alive = grid[idx];
@@ -77,7 +104,25 @@ export class LifeGridSimClassic extends LifeGridSimBase {
         const left = W - 2;
         const right = 0;
 
-        const neighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
+        const rawNeighbors = sumNeighborsEdge(
+          grid,
+          rTop,
+          rMid,
+          rBot,
+          hasTop,
+          hasBot,
+          left,
+          lo,
+          right,
+        );
+        const neighbors = adjustNeighborsForEcology(
+          rawNeighbors,
+          la,
+          lo,
+          L,
+          W,
+          this.ecologyProfile,
+        );
 
         const idx = rowOffset + lo;
         const alive = grid[idx];

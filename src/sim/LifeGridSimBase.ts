@@ -1,4 +1,5 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
+import type { EcologyProfileName } from './ecology';
 import { calculateNextCellState } from './LifeGridHelper';
 import type { Offset } from './patterns';
 import type { Rules } from './rules';
@@ -7,6 +8,7 @@ import { clampInt, safeInt } from './utils';
 
 export class LifeGridSimBase {
   gameMode: GameMode = 'Classic';
+  protected ecologyProfile: EcologyProfileName = 'None';
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -63,6 +65,10 @@ export class LifeGridSimBase {
 
   setGameMode(mode: GameMode) {
     this.gameMode = mode;
+  }
+
+  setEcologyProfile(profile: EcologyProfileName) {
+    this.ecologyProfile = profile;
   }
 
   protected coordsToIdx(lat: number, lon: number): number {

@@ -24,6 +24,7 @@ export interface UseSimWorkerOptions {
   safeLatCells: number;
   safeLonCells: number;
   rules: import('../../sim/rules').Rules;
+  ecologyProfile: import('../../sim/ecology').EcologyProfileName;
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   debugLogs: boolean;
@@ -35,6 +36,7 @@ export function useSimWorker({
   safeLatCells,
   safeLonCells,
   rules,
+  ecologyProfile,
   randomDensity,
   gameMode,
   debugLogs,
@@ -126,6 +128,7 @@ export function useSimWorker({
       lonCells: safeLonCells,
       rules,
       gameMode,
+      ecologyProfile,
       randomDensity,
     } satisfies LifeGridWorkerInMessage);
 
@@ -141,6 +144,7 @@ export function useSimWorker({
     safeLatCells,
     safeLonCells,
     rules,
+    ecologyProfile,
     randomDensity,
     debugLogs,
     gameMode,

@@ -9,6 +9,7 @@ export function usePlanetMaterial(params: {
   terminatorBoost: number;
   planetRoughness: number;
   planetWireframe: boolean;
+  ecologyIntensity: number;
   latCells: number;
   lonCells: number;
   lightPosition: [number, number, number];
@@ -32,6 +33,7 @@ export function usePlanetMaterial(params: {
       uAmbientFloor: { value: ambientFloor },
       uGridSize: { value: new THREE.Vector2(params.lonCells, params.latCells) },
       uRoughnessBase: { value: params.planetRoughness },
+      uEcologyIntensity: { value: params.ecologyIntensity },
       uSunColor: { value: new THREE.Color('#fff0d0') }, // Warm sun specular
     } satisfies Record<string, { value: THREE.Vector3 | THREE.Color | number | THREE.Vector2 }>;
 
@@ -68,6 +70,7 @@ export function usePlanetMaterial(params: {
         uniform float uAmbientFloor;
         uniform vec2 uGridSize;
         uniform float uRoughnessBase;
+        uniform float uEcologyIntensity;
 
         varying vec3 vNormal;
         varying vec3 vViewDir;
@@ -135,6 +138,8 @@ export function usePlanetMaterial(params: {
           // 1. Noise
           float noiseHigh = snoise(vWorldPos * 8.0);
           float noiseLow = snoise(vWorldPos * 1.5);
+          float basinNoise = snoise(vWorldPos * 2.2 + vec3(3.1, 0.4, 1.7)) * 0.5 + 0.5;
+          float ridgeNoise = snoise(vWorldPos * 4.5 + vec3(0.2, 2.8, 1.1)) * 0.5 + 0.5;
           vec3 bumpParams = vec3(noiseHigh * 0.05); 
           n = normalize(n + bumpParams * 0.2);
 
@@ -165,6 +170,19 @@ export function usePlanetMaterial(params: {
           
           vec3 dayColor = uDayColor + vec3(noiseLow * 0.02);
           vec3 nightColor = uNightColor - vec3(noiseLow * 0.01);
+          float equator = 1.0 - abs(n.y);
+          float temperature = clamp(equator * 0.78 + basinNoise * 0.22, 0.0, 1.0);
+          float moisture = clamp(basinNoise * 0.62 + equator * 0.24 - max(0.0, ridgeNoise - 0.62) * 0.35, 0.0, 1.0);
+          vec3 desertColor = vec3(0.54, 0.34, 0.21);
+          vec3 wetlandColor = vec3(0.08, 0.29, 0.24);
+          vec3 highlandColor = vec3(0.33, 0.34, 0.36);
+          vec3 iceColor = vec3(0.62, 0.78, 0.86);
+          vec3 coastColor = vec3(0.20, 0.43, 0.39);
+          vec3 biomeColor = mix(iceColor, coastColor, temperature);
+          biomeColor = mix(biomeColor, wetlandColor, smoothstep(0.66, 0.92, moisture));
+          biomeColor = mix(biomeColor, desertColor, smoothstep(0.34, 0.12, moisture));
+          biomeColor = mix(biomeColor, highlandColor, smoothstep(0.68, 0.9, ridgeNoise));
+          dayColor = mix(dayColor, biomeColor, uEcologyIntensity);
           
           vec3 surfaceColor = mix(nightColor, dayColor, shade);
           vec3 sunset = uTerminatorColor * terminatorBand * 0.4;
@@ -200,6 +218,7 @@ export function usePlanetMaterial(params: {
     params.terminatorBoost,
     params.planetRoughness,
     params.planetWireframe,
+    params.ecologyIntensity,
     params.latCells,
     params.lonCells,
     params.lightPosition,
