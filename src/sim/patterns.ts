@@ -162,9 +162,15 @@ const BUILTIN_ASCII: Record<string, string> = {
   `,
 };
 
+// Module-level cache for builtin patterns (pure/deterministic, safe to cache)
+const builtinCache: Record<string, Offset[]> = {};
+
 export const BUILTIN_PATTERN_NAMES = Object.keys(BUILTIN_ASCII);
 
 export function getBuiltinPatternOffsets(name: string): Offset[] {
-  const ascii = BUILTIN_ASCII[name];
-  return ascii ? parseAsciiPattern(ascii) : [];
+  if (!builtinCache[name]) {
+    const ascii = BUILTIN_ASCII[name];
+    builtinCache[name] = ascii ? parseAsciiPattern(ascii) : [];
+  }
+  return builtinCache[name];
 }
