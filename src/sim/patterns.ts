@@ -164,7 +164,12 @@ const BUILTIN_ASCII: Record<string, string> = {
 
 export const BUILTIN_PATTERN_NAMES = Object.keys(BUILTIN_ASCII);
 
+// Cache for builtin patterns (pure/deterministic, safe to memoize)
+const builtinCache: Record<string, Offset[]> = {};
+
 export function getBuiltinPatternOffsets(name: string): Offset[] {
-  const ascii = BUILTIN_ASCII[name];
-  return ascii ? parseAsciiPattern(ascii) : [];
+  if (!builtinCache[name]) {
+    builtinCache[name] = parseAsciiPattern(BUILTIN_ASCII[name] || '');
+  }
+  return builtinCache[name];
 }

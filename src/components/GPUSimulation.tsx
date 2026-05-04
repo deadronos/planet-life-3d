@@ -326,7 +326,7 @@ export const GPUSimulation = ({
     // Throttle updates based on tickMs
     const now = performance.now();
     const elapsed = now - lastTickTimeRef.current;
-    if (elapsed < tickMs) return;
+    if (tickMs <= 0 || elapsed < tickMs) return;
 
     lastTickTimeRef.current = now;
 
@@ -359,10 +359,9 @@ export const GPUSimulation = ({
       targetB.dispose();
       simMaterial.dispose();
       seedMaterial.dispose();
-      simScene.quad.geometry.dispose();
-      seedScene.quad.geometry.dispose();
+      simScene.quad.geometry.dispose(); // once — shared by simScene and seedScene
     };
-  }, [targetA, targetB, simMaterial, seedMaterial, simScene, seedScene]);
+  }, [targetA, targetB, simMaterial, seedMaterial, simScene]);
 
   return null; // This component doesn't render anything visible
 };
