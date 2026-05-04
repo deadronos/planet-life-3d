@@ -140,6 +140,9 @@ Dockerfile.*.local
 # Git ignored but useful files for local dev
 .env.local
 
+# Worktrees
+.worktrees/
+
 # Keep a short entry for project-specific large/unversioned files
 # Examples: build artifacts, game assets, render caches, etc.
 assets/baked/
