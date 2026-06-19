@@ -1,7 +1,7 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import type { EcologyProfileName } from './ecology';
 import { calculateNextCellState } from './LifeGridHelper';
-import type { Offset } from './patterns';
+import { type Offset, transformOffsets } from './patterns';
 import type { Rules } from './rules';
 import type { GameMode, SeedMode } from './types';
 import { clampInt, safeInt } from './utils';
@@ -144,15 +144,9 @@ export class LifeGridSimBase {
       );
     }
 
-    for (const [dLa0, dLo0] of params.offsets) {
-      let dLa = dLa0 * scale;
-      let dLo = dLo0 * scale;
+    const transformed = transformOffsets(params.offsets, params.scale, params.jitter, rng);
 
-      if (jitter > 0) {
-        dLa += Math.floor((rng() * 2 - 1) * jitter);
-        dLo += Math.floor((rng() * 2 - 1) * jitter);
-      }
-
+    for (const [dLa, dLo] of transformed) {
       const idx = this.coordsToIdx(params.lat + dLa, params.lon + dLo);
       const currentVal = this.grid[idx];
       const nextVal = calculateNextCellState(currentVal, params.mode, this.gameMode, rng, p);
