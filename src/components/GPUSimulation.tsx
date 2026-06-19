@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -169,7 +170,6 @@ export const GPUSimulation = ({
 
       gl.setRenderTarget(targetA);
       gl.clear();
-      // eslint-disable-next-line react-hooks/immutability
       simMaterial.uniforms.uTexture.value = texture;
       gl.render(simScene.scene, simScene.camera);
 
@@ -203,7 +203,6 @@ export const GPUSimulation = ({
     initializeState(randomDensity);
   }, [initializeState, randomDensity]);
 
-  /* eslint-disable react-hooks/immutability */
   // Update rules and game mode when they change
   useEffect(() => {
     const birthRules = rulesToFloatArray(rules.birth);
@@ -212,7 +211,6 @@ export const GPUSimulation = ({
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
   }, [rules, gameMode, simMaterial]);
-  /* eslint-enable react-hooks/immutability */
 
   // Expose seeding method via ref
   useImperativeHandle(
@@ -338,7 +336,6 @@ export const GPUSimulation = ({
     // Modifying uniforms in useFrame is allowed - it's a render loop, not React render
     const prevTarget = gl.getRenderTarget();
     gl.setRenderTarget(writeBuffer);
-    // eslint-disable-next-line react-hooks/immutability
     simMaterial.uniforms.uTexture.value = readBuffer.texture;
     gl.render(simScene.scene, simScene.camera);
     gl.setRenderTarget(prevTarget);

@@ -160,7 +160,7 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         surviveDigits: { value: '23' },
         ecologyProfile: {
           label: 'Ecology',
-          value: 'Garden World' as EcologyProfileName,
+          value: 'Garden World',
           options: ECOLOGY_PROFILE_NAMES,
         },
         randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
