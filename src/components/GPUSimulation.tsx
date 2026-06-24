@@ -7,6 +7,7 @@ import { gpuSeedFragmentShader } from '../shaders/gpuSeed.frag';
 import { simulationFragmentShader } from '../shaders/simulation.frag';
 import { simulationVertexShader } from '../shaders/simulation.vert';
 import type { Rules } from '../sim/rules';
+import { PatternTextureCache } from './patternTextureCache';
 
 // Helper to create FBO (Frame Buffer Object / Render Target)
 function createRenderTarget(width: number, height: number): THREE.WebGLRenderTarget {
@@ -79,6 +80,13 @@ export const GPUSimulation = ({
 
   // Track last tick time for throttling
   const lastTickTimeRef = useRef<number>(0);
+
+  // Cache for pattern DataTextures used by seedAtUV. Created once and
+  // disposed on unmount so we don't leak GPU memory across remounts.
+  const patternCacheRef = useRef<PatternTextureCache | null>(null);
+  if (patternCacheRef.current === null) {
+    patternCacheRef.current = new PatternTextureCache();
+  }
 
   // Refs that mirror the latest Leva values for use inside the stable
   // initializeState closure. Reading from refs keeps initializeState's
@@ -246,31 +254,14 @@ export const GPUSimulation = ({
     simRef,
     () => ({
       seedAtUV: ({ u, v, pattern, mode, probability = 0.5, originRow, originCol }) => {
-        // Create pattern texture from 2D array
+        // Reuse a cached DataTexture for this pattern when possible. Building
+        // and uploading a fresh texture on every impact (the previous
+        // behavior) wasted GC and GPU upload time, especially with the
+        // meteor shower enabled.
         const patternHeight = pattern.length;
-        const patternWidth = pattern[0]?.length || 0;
+        const patternWidth = patternHeight > 0 ? pattern[0].length : 0;
         if (patternWidth === 0 || patternHeight === 0) return;
-
-        const patternData = new Float32Array(patternWidth * patternHeight * 4);
-        for (let y = 0; y < patternHeight; y++) {
-          for (let x = 0; x < patternWidth; x++) {
-            const idx = (y * patternWidth + x) * 4;
-            const value = pattern[y][x] > 0 ? 1.0 : 0.0;
-            patternData[idx] = value;
-            patternData[idx + 1] = 0;
-            patternData[idx + 2] = 0;
-            patternData[idx + 3] = 1;
-          }
-        }
-
-        const patternTexture = new THREE.DataTexture(
-          patternData,
-          patternWidth,
-          patternHeight,
-          THREE.RGBAFormat,
-          THREE.FloatType,
-        );
-        patternTexture.needsUpdate = true;
+        const patternTexture = patternCacheRef.current!.getOrCreate(pattern);
 
         // Set seeding uniforms
         const modeMap = { set: 0, toggle: 1, clear: 2, random: 3 };
@@ -306,9 +297,6 @@ export const GPUSimulation = ({
         if (onTextureUpdate) {
           onTextureUpdate(writeBuffer.texture);
         }
-
-        // Cleanup
-        patternTexture.dispose();
       },
       randomize: () => {
         initializeState(randomDensity);
@@ -386,6 +374,8 @@ export const GPUSimulation = ({
       simMaterial.dispose();
       seedMaterial.dispose();
       simScene.quad.geometry.dispose(); // once — shared by simScene and seedScene
+      patternCacheRef.current?.dispose();
+      patternCacheRef.current = null;
     };
   }, [targetA, targetB, simMaterial, seedMaterial, simScene]);
 
