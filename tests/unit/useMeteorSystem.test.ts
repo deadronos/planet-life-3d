@@ -116,12 +116,15 @@ describe('useMeteorSystem', () => {
     expect(result.current).toBeDefined();
   });
 
-  it('should set up interval for pruning impact rings', () => {
+  it('does not schedule any timer when the impact list is empty', () => {
     vi.useFakeTimers();
     const { unmount } = renderHook(() => useMeteorSystem(defaultParams));
 
-    // Should set up an interval
-    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    // Earlier versions of this hook used a 200ms setInterval that polled
+    // forever, even with zero impacts. The new design schedules a single
+    // setTimeout for the next impact's expiry only when there is one,
+    // so the timer count should be zero on an empty impact list.
+    expect(vi.getTimerCount()).toBe(0);
 
     unmount();
     vi.useRealTimers();
@@ -203,6 +206,37 @@ describe('useMeteorSystem', () => {
     });
 
     expect(result.current.impacts[0].start).toBeCloseTo(performance.now() / 1000, 6);
+
+    unmount();
+    vi.useRealTimers();
+  });
+
+  it('schedules a prune timeout when an impact is added and the timer fires at expiry', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useMeteorSystem(defaultParams));
+
+    act(() => {
+      result.current.onMeteorImpact('imp-1', new THREE.Vector3(0, 0, 5));
+    });
+
+    // Impact added → exactly one prune timer should be scheduled.
+    expect(vi.getTimerCount()).toBe(1);
+    expect(result.current.impacts.length).toBe(1);
+
+    // Advance time to just before the impact's duration (default 0.9s).
+    // The impact is still in the list because the prune hasn't fired yet.
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+    expect(result.current.impacts.length).toBe(1);
+
+    // Advance past the duration + the 50ms buffer to fire the prune.
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(result.current.impacts.length).toBe(0);
+    // And with the list empty, no further timer is scheduled.
+    expect(vi.getTimerCount()).toBe(0);
 
     unmount();
     vi.useRealTimers();
