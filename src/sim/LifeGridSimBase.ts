@@ -117,6 +117,11 @@ export class LifeGridSimBase {
       this.setCellState(i, alive);
     }
     this.rebuildAliveIndices();
+    // Treat randomize the same as clear: a fresh population should not show
+    // the previous generation count. Previously only clear() reset
+    // generation, which made the HUD read e.g. \"Gen: 1000\" on a freshly
+    // randomized grid.
+    this.generation = 0;
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
   }

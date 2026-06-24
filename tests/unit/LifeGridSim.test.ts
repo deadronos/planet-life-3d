@@ -73,6 +73,26 @@ describe('LifeGridSim', () => {
     expect(sim.getCell(5, 7)).toBe(0);
   });
 
+  it('randomize() resets generation, births and deaths (matches clear())', () => {
+    // Run a few steps so generation, births and deaths are non-zero.
+    sim.setCell(4, 5, 1);
+    sim.setCell(5, 5, 1);
+    sim.setCell(6, 5, 1);
+    sim.step();
+    sim.step();
+    expect(sim.generation).toBeGreaterThan(0);
+
+    sim.randomize(0);
+
+    // After randomize, the HUD should read as a fresh world: generation
+    // back to 0, no births/deaths attributed to the previous tick, and
+    // population matching the (re-randomized) grid.
+    expect(sim.generation).toBe(0);
+    expect(sim.birthsLastTick).toBe(0);
+    expect(sim.deathsLastTick).toBe(0);
+    expect(sim.population).toBeGreaterThanOrEqual(0);
+  });
+
   it('can bias birth thresholds from ecology layers', () => {
     const profile: EcologyProfileName = 'Garden World';
     let target: { lat: number; lon: number } | undefined;
