@@ -296,5 +296,17 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     setRef.current = set;
   }, [set]);
 
+  // Dots / Both cell render modes require a CPU/Worker sim (Dots uses an
+  // instanced mesh driven from the sim state). When GPU sim is on there
+  // is no CPU grid to read from, so silently disabling Dots would leave
+  // the user with no visible cells. Force cellRenderMode back to Texture
+  // the moment GPU sim is enabled so the dropdown visibly reflects the
+  // limitation.
+  useEffect(() => {
+    if (params.gpuSim && (params.cellRenderMode === 'Dots' || params.cellRenderMode === 'Both')) {
+      set({ cellRenderMode: 'Texture' });
+    }
+  }, [params.gpuSim, params.cellRenderMode, set]);
+
   return params as unknown as PlanetLifeControlsWithDebug;
 }
