@@ -80,23 +80,40 @@ export const GPUSimulation = ({
   // Track last tick time for throttling
   const lastTickTimeRef = useRef<number>(0);
 
-  // Create simulation material with shaders (using ref to avoid useMemo immutability issues)
-  const simMaterial = useMemo(() => {
-    const birthRules = rulesToFloatArray(rules.birth);
-    const surviveRules = rulesToFloatArray(rules.survive);
+  // Refs that mirror the latest Leva values for use inside the stable
+  // initializeState closure. Reading from refs keeps initializeState's
+  // identity stable across gameMode / randomDensity changes, which is
+  // critical: otherwise re-creating initializeState would re-run the init
+  // effect and wipe the entire simulation whenever the user typed in
+  // birthDigits or toggled gameMode.
+  const gameModeRef = useRef(gameMode);
+  const randomDensityRef = useRef(randomDensity);
+  useEffect(() => {
+    gameModeRef.current = gameMode;
+  }, [gameMode]);
+  useEffect(() => {
+    randomDensityRef.current = randomDensity;
+  }, [randomDensity]);
 
+  // Create the simulation material exactly once. We mutate its uniforms in
+  // place from a separate effect when rules/gameMode change, so the
+  // material's identity stays stable. (Previously this useMemo depended on
+  // `rules` and `gameMode`, so editing birth/survive digits recreated the
+  // material and wiped the simulation.)
+  const simMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
         uTexture: { value: null },
         uResolution: { value: new THREE.Vector2(resolution.width, resolution.height) },
-        uBirthRules: { value: birthRules },
-        uSurviveRules: { value: surviveRules },
+        uBirthRules: { value: rulesToFloatArray(rules.birth) },
+        uSurviveRules: { value: rulesToFloatArray(rules.survive) },
         uColonyMode: { value: gameMode === 'Colony' },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
     });
-  }, [resolution.height, resolution.width, rules, gameMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolution.height, resolution.width]);
 
   // Separate scene for simulation rendering (doesn't show in main view)
   const simScene = useMemo(() => {
@@ -107,7 +124,8 @@ export const GPUSimulation = ({
     return { scene, camera, quad };
   }, [simMaterial]);
 
-  // Seeding material for writing patterns to texture
+  // Seeding material for writing patterns to texture. Created once and
+  // updated in place when gameMode changes (same reason as simMaterial).
   const seedMaterial = useMemo(() => {
     const modeMap = { set: 0, toggle: 1, clear: 2, random: 3 };
     return new THREE.ShaderMaterial({
@@ -126,7 +144,8 @@ export const GPUSimulation = ({
       vertexShader: simulationVertexShader,
       fragmentShader: gpuSeedFragmentShader,
     });
-  }, [resolution.height, resolution.width, gameMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolution.height, resolution.width]);
 
   const seedScene = useMemo(() => {
     const scene = new THREE.Scene();
@@ -140,10 +159,15 @@ export const GPUSimulation = ({
     return (density: number) => {
       const size = resolution.width * resolution.height * 4;
       const data = new Float32Array(size);
+      // Read the *current* game mode and density from refs so this closure
+      // can be identity-stable. The caller may pass a density override (e.g.
+      // explicit "Randomize" action) but defaults to the latest Leva value.
+      const useColony = gameModeRef.current === 'Colony';
+      const useDensity = density;
       for (let i = 0; i < size; i += 4) {
         let state = 0.0;
-        if (Math.random() < density) {
-          if (gameMode === 'Colony') {
+        if (Math.random() < useDensity) {
+          if (useColony) {
             // Colony mode: 0.33 for Colony A, 0.67 for Colony B
             state = Math.random() < 0.5 ? 0.33 : 0.67;
           } else {
@@ -186,22 +210,27 @@ export const GPUSimulation = ({
         onTextureUpdate(targetA.texture);
       }
     };
-  }, [
-    gameMode,
-    gl,
-    onTextureUpdate,
-    resolution.height,
-    resolution.width,
-    simMaterial,
-    simScene,
-    targetA,
-    targetB,
-  ]);
+    // Intentionally not depending on `gameMode`, `randomDensity`, or
+    // `simMaterial`/`seedMaterial`: those are read from refs / already
+    // stable. If we listed them, toggling Colony mode or typing in
+    // birthDigits would re-create this closure and re-fire the init effect
+    // below, wiping the simulation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gl, onTextureUpdate, resolution.height, resolution.width, simScene, targetA, targetB]);
 
-  // Initialize with random or empty state
+  // Initialize the render targets with the initial random state. This must
+  // run when the resolution changes (new render targets are allocated) and
+  // must NOT run on every Leva knob change, otherwise typing in
+  // birthDigits/surviveDigits or toggling gameMode would wipe the simulation.
   useEffect(() => {
     initializeState(randomDensity);
-  }, [initializeState, randomDensity]);
+    // initializeState captures randomDensity, resolution, and the render
+    // targets via closure. We only re-initialize when the resolution
+    // changes (which re-creates targetA/targetB). Random density is
+    // intentionally NOT in the dep list so adjusting the slider does not
+    // auto-reset the world — users reset via the "Randomize" action button.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initializeState]);
 
   // Update rules and game mode when they change
   useEffect(() => {
