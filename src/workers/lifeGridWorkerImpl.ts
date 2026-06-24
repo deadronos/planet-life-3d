@@ -8,6 +8,7 @@ import type {
 type PostMessage = (message: LifeGridWorkerOutMessage, transfer?: Transferable[]) => void;
 
 type BufferQuad = {
+  cellCount: number;
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
@@ -26,6 +27,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
     const candidate = pool.pop();
     if (
       candidate &&
+      candidate.cellCount === cellCount &&
       candidate.grid.byteLength === cellCount &&
       candidate.age.byteLength === cellCount &&
       candidate.heat.byteLength === cellCount &&
@@ -34,6 +36,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       return candidate;
     }
     return {
+      cellCount,
       grid: new ArrayBuffer(cellCount),
       age: new ArrayBuffer(cellCount),
       heat: new ArrayBuffer(cellCount),
@@ -138,13 +141,20 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           return;
         }
         case 'recycle': {
-          // Main thread returns transferred buffers for re-use.
-          pool.push({
-            grid: msg.grid,
-            age: msg.age,
-            heat: msg.heat,
-            aliveIndices: msg.aliveIndices,
-          });
+          // Main thread returns transferred buffers for re-use. Only
+          // pool them if they still match the current sim's grid size;
+          // otherwise drop them so they can be GC'd. Without this check
+          // a user who resizes the grid a few times leaks old buffers
+          // (one pool entry per resizing) into the pool forever.
+          if (sim && msg.grid.byteLength === sim.cellCount) {
+            pool.push({
+              cellCount: sim.cellCount,
+              grid: msg.grid,
+              age: msg.age,
+              heat: msg.heat,
+              aliveIndices: msg.aliveIndices,
+            });
+          }
           return;
         }
       }

@@ -45,6 +45,18 @@ export function useSimWorker({
   const workerRef = useRef<Worker | null>(null);
   const workerTickInFlightRef = useRef(false);
   const workerSnapshotRef = useRef<WorkerSnapshot | null>(null);
+  const onSnapshotRef = useRef(onSnapshot);
+  const debugLogsRef = useRef(debugLogs);
+
+  // Mirror the latest callbacks in refs so the worker-lifecycle effect
+  // below doesn't re-create the worker just because the parent passed a
+  // new callback identity.
+  useEffect(() => {
+    onSnapshotRef.current = onSnapshot;
+  }, [onSnapshot]);
+  useEffect(() => {
+    debugLogsRef.current = debugLogs;
+  }, [debugLogs]);
 
   const recycleBuffer = useCallback((held: WorkerSnapshot) => {
     const w = workerRef.current;
@@ -70,6 +82,14 @@ export function useSimWorker({
     [recycleBuffer],
   );
 
+  // Worker lifecycle: create / terminate only when `workerEnabled` flips or
+  // the grid resolution changes (which requires re-allocating the worker's
+  // buffers). Earlier this effect also depended on rules / ecologyProfile /
+  // randomDensity / gameMode, which caused the entire worker to be torn
+  // down and re-created on every Leva knob change — wiping the running
+  // simulation. The per-setting updates now live in the three effects
+  // below, which post `setRules` / `setGameMode` / `setEcologyProfile`
+  // messages to the existing worker.
   useEffect(() => {
     if (!workerEnabled) {
       workerTickInFlightRef.current = false;
@@ -111,10 +131,10 @@ export function useSimWorker({
           },
         };
 
-        onSnapshot(msg);
+        onSnapshotRef.current(msg);
       }
 
-      if (msg.type === 'error' && debugLogs) {
+      if (msg.type === 'error' && debugLogsRef.current) {
         // eslint-disable-next-line no-console
         console.warn(`[PlanetLife] Worker sim error: ${msg.message}`);
       }
@@ -139,19 +159,47 @@ export function useSimWorker({
       if (workerRef.current === w) workerRef.current = null;
       workerTickInFlightRef.current = false;
     };
-  }, [
-    workerEnabled,
-    safeLatCells,
-    safeLonCells,
-    rules,
-    ecologyProfile,
-    randomDensity,
-    debugLogs,
-    gameMode,
-    onSnapshot,
-    recycleBuffer,
-    returnHeldBuffers,
-  ]);
+    // Intentionally omit `rules`, `ecologyProfile`, `randomDensity`,
+    // `gameMode`, `debugLogs`, `onSnapshot` from the dep list: those are
+    // picked up via refs (debugLogs/onSnapshot) or pushed to the worker
+    // by the per-setting effects below. Listing them here would re-create
+    // the worker on every Leva change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerEnabled, safeLatCells, safeLonCells]);
+
+  // Per-setting updates: post the appropriate `setX` message to the
+  // existing worker instead of recreating it. These are cheap operations
+  // the worker handles in place.
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setRules',
+        rules,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [rules]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setGameMode',
+        mode: gameMode,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [gameMode]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setEcologyProfile',
+        profile: ecologyProfile,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [ecologyProfile]);
+
+  // (randomDensity is intentionally NOT pushed to the worker on change —
+  // it only applies when the user explicitly clicks "Randomize", which
+  // already sends a `randomize` message with the latest density.)
 
   const postMessage = useCallback((msg: LifeGridWorkerInMessage) => {
     workerRef.current?.postMessage(msg);

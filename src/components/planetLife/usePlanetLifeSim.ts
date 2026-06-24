@@ -217,12 +217,26 @@ export function usePlanetLifeSim({
     [updateInstances, workerEnabled, workerRef, workerPostMessage, safeLatCells, safeLonCells],
   );
 
-  /* eslint-disable react-hooks/exhaustive-deps */
-  // Intentionally omit `gameMode` from the dependency array: we update it in a separate
-  // effect to avoid recreating the full simulation (and re-randomizing) when only
-  // the game mode changes.
+  // Mirror the latest randomDensity in a ref so the sim-creation effect
+  // below can read the current value without listing it as a dep (which
+  // would re-randomize the grid on every slider move).
+  const randomDensityRef = useRef(randomDensity);
+  useEffect(() => {
+    randomDensityRef.current = randomDensity;
+  }, [randomDensity]);
+
+  // Sim lifecycle: only re-create the sim when the grid resolution or
+  // planet geometry changes (or when worker mode toggles). Per-setting
+  // changes (rules, gameMode, ecologyProfile) are applied in place by the
+  // three per-setting effects below, and the randomDensity slider no
+  // longer wipes the world — it's only sampled when the user explicitly
+  // clicks the Randomize action.
   useEffect(() => {
     if (workerEnabled) {
+      // In worker mode we still keep a geometry-only sim around for the
+      // instanced-mesh dots path, but the authoritative state lives in
+      // the worker. Per-setting updates are posted by the per-setting
+      // effects below.
       geometrySimRef.current = new LifeSphereSim({
         latCells: safeLatCells,
         lonCells: safeLonCells,
@@ -250,18 +264,16 @@ export function usePlanetLifeSim({
     simRef.current = sim;
     geometrySimRef.current = sim;
 
-    sim.randomize(randomDensity);
+    sim.randomize(randomDensityRef.current);
     updateInstancesRef.current();
-  }, [
-    safeLatCells,
-    safeLonCells,
-    planetRadius,
-    cellLift,
-    rules,
-    ecologyProfile,
-    randomDensity,
-    workerEnabled,
-  ]);
+    // Intentionally omit `rules`, `ecologyProfile`, `randomDensity`, and
+    // `gameMode` from the dep list. rules/gameMode/ecologyProfile are
+    // pushed to the sim in place by the per-setting effects below;
+    // randomDensity is sampled on demand from randomDensityRef when the
+    // user clicks Randomize. Listing them here would recreate the sim
+    // (and re-randomize) on every Leva change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeLatCells, safeLonCells, planetRadius, cellLift, workerEnabled]);
 
   useEffect(() => {
     if (workerEnabled && workerRef.current) {

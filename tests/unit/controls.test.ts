@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let setSpy: ReturnType<typeof vi.fn>;
 let capturedSchema: unknown = null;
+const overrides: Record<string, unknown> = {};
 
 type SchemaShape = {
   Simulation?: {
@@ -27,6 +28,10 @@ vi.mock('leva', () => ({
     }
     function flattenSchema(o: Record<string, unknown>) {
       for (const key of Object.keys(o)) {
+        if (key in overrides) {
+          result[key] = overrides[key];
+          continue;
+        }
         const val = o[key];
         if (isValueObject(val)) {
           result[key] = val.value;
@@ -55,6 +60,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   beforeEach(() => {
     setSpy = vi.fn();
     capturedSchema = null;
+    for (const k of Object.keys(overrides)) delete overrides[k];
   });
 
   it('calls set when rule preset onChange selected (non-Custom)', () => {
@@ -130,5 +136,61 @@ describe('usePlanetLifeControls - onChange handlers', () => {
     expect(calledWith.birthDigits).toBe('3');
     expect(calledWith.ecologyProfile).toBe('Garden World');
     expect(calledWith.seedPattern).toBe('Glider');
+  });
+});
+
+describe('usePlanetLifeControls - cellRenderMode guard for GPU sim', () => {
+  beforeEach(() => {
+    setSpy = vi.fn();
+    capturedSchema = null;
+    for (const k of Object.keys(overrides)) delete overrides[k];
+  });
+
+  it('forces cellRenderMode to Texture when GPU sim is enabled and Dots is selected', () => {
+    overrides.gpuSim = true;
+    overrides.cellRenderMode = 'Dots';
+
+    renderHook(() => usePlanetLifeControls());
+
+    expect(setSpy).toHaveBeenCalled();
+    const lastCall = setSpy.mock.calls[setSpy.mock.calls.length - 1][0];
+    expect(lastCall.cellRenderMode).toBe('Texture');
+  });
+
+  it('forces cellRenderMode to Texture when GPU sim is enabled and Both is selected', () => {
+    overrides.gpuSim = true;
+    overrides.cellRenderMode = 'Both';
+
+    renderHook(() => usePlanetLifeControls());
+
+    expect(setSpy).toHaveBeenCalled();
+    const lastCall = setSpy.mock.calls[setSpy.mock.calls.length - 1][0];
+    expect(lastCall.cellRenderMode).toBe('Texture');
+  });
+
+  it('does NOT call set when GPU sim is on and cellRenderMode is already Texture', () => {
+    overrides.gpuSim = true;
+    overrides.cellRenderMode = 'Texture';
+
+    renderHook(() => usePlanetLifeControls());
+
+    // setSpy may have been called for setRef.current = set, but no
+    // cellRenderMode override should have been issued.
+    const cellRenderModeCalls = setSpy.mock.calls.filter(
+      (call: unknown[]) => 'cellRenderMode' in (call[0] as Record<string, unknown>),
+    );
+    expect(cellRenderModeCalls).toHaveLength(0);
+  });
+
+  it('does NOT force Texture when GPU sim is off even if cellRenderMode is Dots', () => {
+    overrides.gpuSim = false;
+    overrides.cellRenderMode = 'Dots';
+
+    renderHook(() => usePlanetLifeControls());
+
+    const cellRenderModeCalls = setSpy.mock.calls.filter(
+      (call: unknown[]) => 'cellRenderMode' in (call[0] as Record<string, unknown>),
+    );
+    expect(cellRenderModeCalls).toHaveLength(0);
   });
 });

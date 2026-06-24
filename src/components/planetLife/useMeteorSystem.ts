@@ -160,14 +160,26 @@ export function useMeteorSystem({
     ],
   );
 
-  // prune impact rings
+  // Prune expired impact rings. Earlier this used a 200ms setInterval
+  // that woke React five times a second forever — even when no impacts
+  // were on screen — purely to filter an empty list. Schedule a single
+  // timeout for the next impact's expiry instead, and reschedule on
+  // each new impact. Zero work when the impact list is empty.
   useEffect(() => {
-    const id = window.setInterval(() => {
+    if (impacts.length === 0) return;
+    const nowSec = performance.now() / 1000;
+    let nextExpirySec = Infinity;
+    for (const i of impacts) {
+      const expiry = i.start + i.duration;
+      if (expiry < nextExpirySec) nextExpirySec = expiry;
+    }
+    const delayMs = Math.max(0, (nextExpirySec - nowSec) * 1000) + 50; // 50ms buffer
+    const id = window.setTimeout(() => {
       const t = performance.now() / 1000;
       setImpacts((list) => list.filter((i) => t - i.start < i.duration));
-    }, 200);
-    return () => window.clearInterval(id);
-  }, []);
+    }, delayMs);
+    return () => window.clearTimeout(id);
+  }, [impacts]);
 
   return {
     meteors,

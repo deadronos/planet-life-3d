@@ -488,6 +488,12 @@ export function PlanetLife({
         />
       )}
 
+      {/* Dots rendering requires a CPU/Worker sim to read cell state from.
+          When GPU sim is on we already force cellRenderMode to 'Texture' in
+          the Leva controls, so the Dots branch should only run in
+          non-GPU mode. The explicit `!gpuSim` guard is kept as a safety
+          net so a future control-surface change can't silently hide the
+          cells. */}
       {(cellRenderMode === 'Dots' || cellRenderMode === 'Both') && !gpuSim && (
         <CellsInstancedMesh
           cellsRef={cellsRef}
