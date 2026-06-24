@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../../sim/constants';
 import { ECOLOGY_PROFILE_NAMES, type EcologyProfileName } from '../../sim/ecology';
+import { isGpuSimulationSupported } from '../../sim/gpuSupport';
 import { BUILTIN_PATTERN_NAMES } from '../../sim/patterns';
 import {
   COLOR_THEME_NAMES,
@@ -285,8 +286,13 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
         workerSim: false,
 
         // Experimental: run simulation on GPU using shaders
-        // This allows for much higher resolutions (512x1024+)
-        gpuSim: false,
+        // This allows for much higher resolutions (512x1024+).
+        // Default to ON when the browser supports WebGL2 + float-color-buffer
+        // rendering; otherwise we silently fall back to the CPU/Worker sim
+        // path (PlanetLife also tolerates a missing GPU texture by using
+        // the CPU life texture, so a runtime init failure here won't blank
+        // the planet).
+        gpuSim: isGpuSimulationSupported(),
       },
       { collapsed: true },
     ),

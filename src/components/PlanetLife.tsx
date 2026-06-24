@@ -445,7 +445,12 @@ export function PlanetLife({
     [gpuSim, randomize, clear, stepOnce],
   );
 
-  const texture = gpuSim ? gpuTexture : lifeTex.tex;
+  // GPU sim is the default. If it ever fails to produce a texture (WebGL2
+  // unsupported, shader compile error, context lost mid-session, etc.) we
+  // fall through to the CPU/Worker sim's texture instead of rendering a
+  // blank planet. This is purely a safety net — the normal path is
+  // gpuTexture, which is updated every tick by <GPUSimulation>.
+  const texture = gpuSim ? (gpuTexture ?? lifeTex.tex) : lifeTex.tex;
 
   return (
     <group>
