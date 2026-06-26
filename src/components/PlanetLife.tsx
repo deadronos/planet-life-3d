@@ -191,6 +191,10 @@ export function PlanetLife({
     ],
   );
 
+  useEffect(() => {
+    return () => gpuOverlayMaterial.dispose();
+  }, [gpuOverlayMaterial]);
+
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,
     rimIntensity,

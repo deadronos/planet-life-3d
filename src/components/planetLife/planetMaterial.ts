@@ -164,7 +164,7 @@ export function usePlanetMaterial(params: {
           // Terminator
           float lightFactor = smoothstep(-0.2, 0.2, dot(n, l)); // Use unmasked dot for terminator
           float terminatorBand = 1.0 - abs(dot(n, l));
-          terminatorBand = pow(terminatorBand, 8.0);
+          terminatorBand = pow(terminatorBand, uTerminatorSharpness);
           
           float shade = max(lightFactor, uAmbientFloor * 0.1); 
           
@@ -185,7 +185,7 @@ export function usePlanetMaterial(params: {
           dayColor = mix(dayColor, biomeColor, uEcologyIntensity);
           
           vec3 surfaceColor = mix(nightColor, dayColor, shade);
-          vec3 sunset = uTerminatorColor * terminatorBand * 0.4;
+          vec3 sunset = uTerminatorColor * terminatorBand * (0.4 + uTerminatorBoost);
           
           /* Combine */
           surfaceColor += sunset;

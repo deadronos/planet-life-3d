@@ -7,6 +7,7 @@ export class LifeGridSimColony extends LifeGridSimBase {
     const L = this.latCells;
     const W = this.lonCells;
     const grid = this.grid;
+    const { birth, survive } = this.rules;
 
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
@@ -33,9 +34,9 @@ export class LifeGridSimColony extends LifeGridSimBase {
       let nextVal = 0;
 
       if (current > 0) {
-        if (effectiveNeighbors === 2 || effectiveNeighbors === 3) nextVal = current;
+        if (survive[effectiveNeighbors]) nextVal = current;
       } else {
-        if (effectiveNeighbors === 3) nextVal = countA >= 2 ? 1 : 2;
+        if (birth[effectiveNeighbors]) nextVal = countA >= 2 ? 1 : 2;
       }
 
       this.applyCellUpdate(idx, current, nextVal, effectiveNeighbors);

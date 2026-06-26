@@ -203,4 +203,49 @@ describe('LifeGridSimColony', () => {
       expect(sim.getCell(6, 0)).toBe(1);
     });
   });
+
+  describe('stepColony rule adherence', () => {
+    // Regression: stepColony previously hardcoded B3/S23 and ignored this.rules,
+    // so presets like "Crystal Plague" (survive=234) silently ran S23.
+    it('respects non-default survive rules (survive=234 keeps a 4-neighbor cell alive)', () => {
+      const sim234 = new LifeGridSimColony({
+        latCells,
+        lonCells,
+        rules: {
+          birth: [false, false, false, true, false, false, false, false, false],
+          survive: [false, false, true, true, true, false, false, false, false], // 234
+        },
+      });
+      sim234.setGameMode('Colony');
+
+      sim234.setCell(5, 5, 1);
+      sim234.setCell(5, 4, 1);
+      sim234.setCell(5, 6, 1);
+      sim234.setCell(4, 5, 1);
+      sim234.setCell(6, 5, 1); // 4 neighbors -> would die under S23
+
+      sim234.stepColony();
+
+      expect(sim234.getCell(5, 5)).toBe(1);
+    });
+
+    it('respects non-default birth rules (birth=2 births a cell with 2 neighbors)', () => {
+      const simB2 = new LifeGridSimColony({
+        latCells,
+        lonCells,
+        rules: {
+          birth: [false, false, true, false, false, false, false, false, false], // B2
+          survive: [false, false, true, true, false, false, false, false, false],
+        },
+      });
+      simB2.setGameMode('Colony');
+
+      simB2.setCell(5, 4, 1);
+      simB2.setCell(5, 6, 1); // 2 type-1 neighbors -> no birth under B3
+
+      simB2.stepColony();
+
+      expect(simB2.getCell(5, 5)).toBe(1); // countA=2 -> Colony A
+    });
+  });
 });

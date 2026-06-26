@@ -373,11 +373,12 @@ export const GPUSimulation = ({
       targetB.dispose();
       simMaterial.dispose();
       seedMaterial.dispose();
-      simScene.quad.geometry.dispose(); // once — shared by simScene and seedScene
+      simScene.quad.geometry.dispose();
+      seedScene.quad.geometry.dispose();
       patternCacheRef.current?.dispose();
       patternCacheRef.current = null;
     };
-  }, [targetA, targetB, simMaterial, seedMaterial, simScene]);
+  }, [targetA, targetB, simMaterial, seedMaterial, simScene, seedScene]);
 
   return null; // This component doesn't render anything visible
 };
