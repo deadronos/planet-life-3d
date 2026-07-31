@@ -1,9 +1,5 @@
 export type EcologyProfileName =
-  | 'None'
-  | 'Garden World'
-  | 'Harsh Mars'
-  | 'Crystal Plague'
-  | 'Meteor Garden';
+  'None' | 'Garden World' | 'Harsh Mars' | 'Crystal Plague' | 'Meteor Garden';
 
 export type EcologySample = {
   temperature: number;

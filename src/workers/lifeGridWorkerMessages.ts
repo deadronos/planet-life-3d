@@ -91,6 +91,4 @@ export type LifeGridWorkerError = {
 };
 
 export type LifeGridWorkerOutMessage =
-  | LifeGridWorkerSnapshot
-  | LifeGridWorkerReady
-  | LifeGridWorkerError;
+  LifeGridWorkerSnapshot | LifeGridWorkerReady | LifeGridWorkerError;
