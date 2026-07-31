@@ -63,6 +63,30 @@ export class LifeSphereSim extends LifeGridSim {
     }
   }
 
+  /**
+   * Recompute surface positions after a planet-radius or cell-lift change.
+   *
+   * This deliberately does NOT touch the grid/age/heat state so callers can
+   * update geometry without re-randomizing the world.
+   */
+  updateSurfaceGeometry(planetRadius: number, cellLift: number) {
+    const R = safeFloat(
+      planetRadius,
+      SIM_DEFAULTS.planetRadius,
+      SIM_CONSTRAINTS.planetRadius.min,
+      SIM_CONSTRAINTS.planetRadius.max,
+    );
+    const lift = safeFloat(
+      cellLift,
+      SIM_DEFAULTS.cellLift,
+      SIM_CONSTRAINTS.cellLift.min,
+      SIM_CONSTRAINTS.cellLift.max,
+    );
+    for (let i = 0; i < this.cellCount; i++) {
+      this.positions[i].copy(this.normals[i]).multiplyScalar(R + lift);
+    }
+  }
+
   /** Map a world point on/near the planet to the nearest [lat, lon] cell index */
   pointToCell(point: THREE.Vector3): { lat: number; lon: number } {
     return spherePointToCell(point, this.latCells, this.lonCells);

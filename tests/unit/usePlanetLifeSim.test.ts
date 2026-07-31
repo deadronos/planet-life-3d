@@ -208,11 +208,7 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
       {
         initialProps: {
           ecologyProfile: 'None' as
-            | 'None'
-            | 'Garden World'
-            | 'Harsh Mars'
-            | 'Crystal Plague'
-            | 'Meteor Garden',
+            'None' | 'Garden World' | 'Harsh Mars' | 'Crystal Plague' | 'Meteor Garden',
         },
       },
     );
@@ -223,11 +219,7 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
 
     rerender({
       ecologyProfile: 'Garden World' as
-        | 'None'
-        | 'Garden World'
-        | 'Harsh Mars'
-        | 'Crystal Plague'
-        | 'Meteor Garden',
+        'None' | 'Garden World' | 'Harsh Mars' | 'Crystal Plague' | 'Meteor Garden',
     });
 
     expect(result.current.simRef.current).toBe(originalSim);
@@ -328,5 +320,159 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
     act(() => result.current.randomize());
     expect(originalSim!.generation).toBe(0);
     expect(originalSim!.population).toBeGreaterThan(popBefore);
+  });
+});
+
+describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
+  function makeMesh() {
+    return {
+      instanceMatrix: { setUsage: vi.fn(), needsUpdate: false },
+      instanceColor: { setUsage: vi.fn(), needsUpdate: false },
+      setMatrixAt: vi.fn(),
+      setColorAt: vi.fn(),
+      count: 0,
+    } as unknown as THREE.InstancedMesh;
+  }
+
+  function makeLifeTex() {
+    return {
+      w: 4,
+      h: 3,
+      data: new Uint8Array(4 * 3 * 4),
+      tex: new THREE.DataTexture(new Uint8Array(4 * 3 * 4), 4, 3, THREE.RGBAFormat),
+    };
+  }
+
+  function hookProps(overrides: Record<string, unknown> = {}) {
+    return {
+      running: false,
+      tickMs: 100,
+      safeLatCells: 3,
+      safeLonCells: 4,
+      planetRadius: 2,
+      cellLift: 0.015,
+      cellRenderMode: 'Dots' as const,
+      gameMode: 'Classic' as const,
+      rules: RULES,
+      ecologyProfile: 'None' as const,
+      randomDensity: 0.5,
+      workerSim: false,
+      lifeTex: makeLifeTex(),
+      dummy: new THREE.Object3D(),
+      cellsRef: { current: makeMesh() },
+      resolveCellColor: () => 1,
+      colorScratch: new THREE.Color(),
+      debugLogs: false,
+      ...overrides,
+    };
+  }
+
+  it('publishes stats immediately after a CPU seed', () => {
+    const { result } = renderHook(() => usePlanetLifeSim(hookProps()));
+
+    useUIStore.getState().setStats({
+      generation: 0,
+      population: 0,
+      birthsLastTick: 0,
+      deathsLastTick: 0,
+    });
+    act(() =>
+      result.current.seedAtPoint({
+        point: new THREE.Vector3(1, 0, 0),
+        offsets: [
+          [0, 0],
+          [0, 1],
+        ],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+      }),
+    );
+
+    expect(useUIStore.getState().stats.population).toBeGreaterThan(0);
+  });
+
+  it('does not publish CPU/worker stats when gpuSim is authoritative', () => {
+    const { result } = renderHook(() => usePlanetLifeSim(hookProps({ gpuSim: true })));
+
+    useUIStore.getState().setStats(STALE_STATS);
+    act(() => result.current.clear());
+    expect(useUIStore.getState().stats).toEqual(STALE_STATS);
+
+    useUIStore.getState().setStats(STALE_STATS);
+    act(() => result.current.randomize());
+    expect(useUIStore.getState().stats).toEqual(STALE_STATS);
+
+    useUIStore.getState().setStats(STALE_STATS);
+    act(() => result.current.stepOnce());
+    expect(useUIStore.getState().stats).toEqual(STALE_STATS);
+  });
+});
+
+describe('usePlanetLifeSim geometry-only updates', () => {
+  function makeMesh() {
+    return {
+      instanceMatrix: { setUsage: vi.fn(), needsUpdate: false },
+      instanceColor: { setUsage: vi.fn(), needsUpdate: false },
+      setMatrixAt: vi.fn(),
+      setColorAt: vi.fn(),
+      count: 0,
+    } as unknown as THREE.InstancedMesh;
+  }
+
+  function makeLifeTex() {
+    return {
+      w: 4,
+      h: 3,
+      data: new Uint8Array(4 * 3 * 4),
+      tex: new THREE.DataTexture(new Uint8Array(4 * 3 * 4), 4, 3, THREE.RGBAFormat),
+    };
+  }
+
+  it('planetRadius/cellLift changes update positions without re-randomizing', () => {
+    const { result, rerender } = renderHook(
+      (props) =>
+        usePlanetLifeSim({
+          running: false,
+          tickMs: 100,
+          safeLatCells: 3,
+          safeLonCells: 4,
+          planetRadius: props.planetRadius,
+          cellLift: props.cellLift,
+          cellRenderMode: 'Dots',
+          gameMode: 'Classic',
+          rules: RULES,
+          ecologyProfile: 'None',
+          randomDensity: 0.5,
+          workerSim: false,
+          lifeTex: makeLifeTex(),
+          dummy: new THREE.Object3D(),
+          cellsRef: { current: makeMesh() },
+          resolveCellColor: () => 1,
+          colorScratch: new THREE.Color(),
+          debugLogs: false,
+        }),
+      {
+        initialProps: { planetRadius: 2, cellLift: 0.015 },
+      },
+    );
+
+    const originalSim = result.current.simRef.current;
+    act(() => {
+      originalSim!.setCell(1, 1, 1);
+      originalSim!.setCell(1, 2, 1);
+    });
+    const popBefore = originalSim!.population;
+    expect(popBefore).toBeGreaterThan(0);
+
+    rerender({ planetRadius: 3.5, cellLift: 0.1 });
+
+    const afterSim = result.current.simRef.current;
+    expect(afterSim).toBe(originalSim);
+    expect(afterSim!.getCell(1, 1)).toBe(1);
+    expect(afterSim!.getCell(1, 2)).toBe(1);
+    expect(afterSim!.population).toBe(popBefore);
+    expect(afterSim!.positions[0].length()).toBeCloseTo(3.6, 4);
   });
 });

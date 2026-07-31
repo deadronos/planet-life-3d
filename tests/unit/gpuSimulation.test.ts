@@ -51,6 +51,24 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).toContain('uSurviveRules[neighborCount]');
   });
 
+  it('should implement ecology neighbor-count bias matching the CPU sim', () => {
+    // Mirrors adjustNeighborsForEcology / computeEcologySample in sim/ecology.ts.
+    expect(simulationFragmentShader).toContain('uEcologyEnabled');
+    expect(simulationFragmentShader).toContain('uEcologyFertilityBias');
+    expect(simulationFragmentShader).toContain('uEcologyDroughtBias');
+    expect(simulationFragmentShader).toContain('uEcologyMountainBias');
+    expect(simulationFragmentShader).toContain('uEcologySunlightBias');
+    expect(simulationFragmentShader).toContain('ecologyBias');
+    expect(simulationFragmentShader).toContain(
+      'neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0)',
+    );
+  });
+
+  it('should use CPU colony birth typing (Colony A when countA >= 2)', () => {
+    // LifeGridSimColony: new cells become Colony A when countA >= 2, else B.
+    expect(simulationFragmentShader).toContain('neighborsColonyA >= 2.0');
+  });
+
   it('should output to gl_FragColor', () => {
     expect(simulationFragmentShader).toContain('gl_FragColor');
     expect(simulationFragmentShader).toContain('vec4');

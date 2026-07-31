@@ -7,8 +7,66 @@ export const simulationFragmentShader = /* glsl */ `
   uniform float uBirthRules[9];       // Birth rules: array[neighborCount] = 1.0 if birth, 0.0 otherwise
   uniform float uSurviveRules[9];     // Survive rules: array[neighborCount] = 1.0 if survive, 0.0 otherwise
   uniform bool uColonyMode;           // Whether colony mode is enabled
+  // Ecology profile params (mirror of ECOLOGY_PROFILES in sim/ecology.ts).
+  // The GPU path must replicate the CPU's adjustNeighborsForEcology or the
+  // two sims silently run different rules.
+  uniform bool uEcologyEnabled;
+  uniform float uEcologyFertilityBias;
+  uniform float uEcologyDroughtBias;
+  uniform float uEcologyMountainBias;
+  uniform float uEcologySunlightBias;
   
   varying vec2 vUv;
+
+  float wave(float a, float b, float c) {
+    return (sin(a * 12.9898 + b * 78.233 + c * 37.719) + 1.0) * 0.5;
+  }
+
+  // Per-cell neighbor-count bias, ported 1:1 from computeEcologySample() in
+  // sim/ecology.ts. Uses integer pixel coordinates so each texel matches the
+  // CPU's integer lat/lon indexing.
+  float ecologyBias(vec2 uv) {
+    vec2 pixelPos = floor(uv * uResolution);
+    float lat01 = pixelPos.y / max(1.0, uResolution.y - 1.0);
+    float lon01 = pixelPos.x / uResolution.x;
+
+    float equator = 1.0 - abs(lat01 - 0.5) * 2.0;
+    float ridge = wave(lat01 * 1.8, lon01 * 1.5, 0.13);
+    float basin = wave(lat01 * 2.7 + 0.25, lon01 * 2.2, 0.61);
+
+    float altitude = clamp(
+      ridge * 0.7 + wave(lat01 * 7.1, lon01 * 4.3, 0.29) * 0.3, 0.0, 1.0);
+    float moisture = clamp(
+      basin * 0.6 +
+        equator * 0.28 +
+        uEcologyFertilityBias -
+        uEcologyDroughtBias -
+        max(0.0, altitude - 0.62) * 0.32,
+      0.0,
+      1.0);
+    float temperature = clamp(
+      equator * 0.78 + wave(lat01 * 2.2, lon01 * 0.7, 0.41) * 0.22, 0.0, 1.0);
+    float sunlight = clamp(
+      0.5 + cos((lon01 - 0.18) * 6.283185307179586) * 0.3 + equator * 0.12, 0.0, 1.0);
+    float fertility = clamp(
+      moisture * 0.42 +
+        (1.0 - abs(temperature - 0.58) * 1.6) * 0.32 +
+        (1.0 - altitude) * 0.18 +
+        uEcologyFertilityBias,
+      0.0,
+      1.0);
+    float viability = clamp(
+      fertility +
+        sunlight * uEcologySunlightBias -
+        max(0.0, 0.28 - moisture) * (0.9 + uEcologyDroughtBias) -
+        max(0.0, altitude - 0.7) * (0.72 + uEcologyMountainBias),
+      0.0,
+      1.0);
+
+    if (viability >= 0.68) return 1.0;
+    if (viability <= 0.28) return -1.0;
+    return 0.0;
+  }
   
   // Sample a neighbor with proper wrapping for sphere topology
   // Longitude (U) wraps around, Latitude (V) treats out-of-range as empty
@@ -63,6 +121,13 @@ export const simulationFragmentShader = /* glsl */ `
       // Classic mode: simple sum of alive neighbors
       neighbors = n1.r + n2.r + n3.r + n4.r + n5.r + n6.r + n7.r + n8.r;
     }
+
+    // Apply the ecology neighbor-count bias, matching the CPU/worker path
+    // (adjustNeighborsForEcology). Colony A count stays raw on purpose:
+    // the CPU only adjusts the total neighbor count used for rule lookups.
+    if (uEcologyEnabled) {
+      neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
+    }
     
     // Apply customizable rules based on neighbor count
     int neighborCount = int(neighbors + 0.5);  // Round to nearest int
@@ -92,9 +157,10 @@ export const simulationFragmentShader = /* glsl */ `
           // Stay alive with same colony
           nextState = current;
         } else {
-          // Birth: choose colony based on neighbor majority
-          // If more than half are Colony A, new cell is Colony A, else Colony B
-          if (neighborsColonyA > neighbors * 0.5) {
+          // Birth typing matches the CPU/worker sim (LifeGridSimColony): a
+          // new cell becomes Colony A when at least 2 of its neighbors are
+          // Colony A, otherwise Colony B.
+          if (neighborsColonyA >= 2.0) {
             nextState = 0.33;  // Colony A
           } else {
             nextState = 0.67;  // Colony B

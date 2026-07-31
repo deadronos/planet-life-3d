@@ -38,8 +38,17 @@ export function formatVector3(vector: Vector3, digits = 2): string {
     .join(',');
 }
 
-export function buildRandomDiskOffsets(scale: number): Offset[] {
-  const r = Math.max(1, Math.floor(scale)) * 2;
+/**
+ * Builds a filled disk of cell offsets with the given radius.
+ *
+ * The returned offsets are already in final cell units. Callers that later
+ * run `transformOffsets` should pass `scale: 1` for disk patterns so the
+ * radius is not scaled a second time (previously the disk radius was
+ * `2 * scale` and then scaled by `scale` again, making the pattern size
+ * grow quadratically with the seed-scale slider).
+ */
+export function buildRandomDiskOffsets(radius: number): Offset[] {
+  const r = Math.max(1, Math.floor(radius));
   const offsets: Offset[] = [];
   for (let dy = -r; dy <= r; dy++) {
     for (let dx = -r; dx <= r; dx++) {

@@ -39,7 +39,9 @@ export function DistantSun({ position = [60, 60, 80], size = 12 }: DistantSunPro
         varying vec3 vNormal;
         
         void main() {
-          float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+          // Clamp the base: pow(x, 2.0) with a negative x is undefined in
+          // GLSL and can produce NaN fragments on the back-side glow.
+          float intensity = pow(max(0.0, 0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
           vec3 glow = uColor * intensity * uIntensity;
           gl_FragColor = vec4(glow, intensity * 0.8);
         }
