@@ -1,5 +1,5 @@
 import { button, useControls } from 'leva';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
@@ -228,6 +228,7 @@ export function PlanetLife({
     ecologyProfile,
     randomDensity,
     workerSim,
+    gpuSim,
     lifeTex,
     dummy,
     cellsRef,
@@ -235,6 +236,18 @@ export function PlanetLife({
     colorScratch,
     debugLogs,
   });
+
+  const publishStats = useCallback(
+    (stats: {
+      generation: number;
+      population: number;
+      birthsLastTick: number;
+      deathsLastTick: number;
+    }) => {
+      useUIStore.getState().setStats(stats);
+    },
+    [],
+  );
 
   const { seedAtPoint: seedAtPointCPU } = useSimulationSeeder({
     seedAtPointImpl,
@@ -264,18 +277,9 @@ export function PlanetLife({
 
       const toolScale =
         tool === 'Sterilizer' ? Math.max(3, seedScale + 2) : tool === 'Mutation' ? 3 : seedScale;
-      const toolPattern =
-        tool === 'Sterilizer' || tool === 'Mutation' || tool === 'Comet'
-          ? 'Random Disk'
-          : seedPattern;
+      // Sterilizer/Mutation/Comet have fixed seeding semantics.
       const toolMode: SeedMode =
-        tool === 'Sterilizer'
-          ? 'clear'
-          : tool === 'Mutation'
-            ? 'random'
-            : tool === 'Comet'
-              ? 'set'
-              : seedMode;
+        tool === 'Sterilizer' ? 'clear' : tool === 'Mutation' ? 'random' : 'set';
       const toolProbability =
         tool === 'Sterilizer'
           ? 1
@@ -285,29 +289,22 @@ export function PlanetLife({
               ? 0.95
               : seedProbability;
 
-      let offsets =
-        toolPattern === 'Random Disk'
-          ? buildRandomDiskOffsets(toolScale)
-          : toolPattern === 'Custom ASCII'
-            ? parseAsciiPattern(customPattern)
-            : getBuiltinPatternOffsets(toolPattern);
-
+      // Tool meteors always use a filled disk (Sterilizer/Mutation/Comet).
+      // The disk is built at its final radius, so scale is 1: the
+      // CPU/worker seedAtCell transform (and the GPU path below) must not
+      // scale the offsets a second time.
+      const offsets = buildRandomDiskOffsets(toolScale);
       if (offsets.length === 0) return undefined;
-      offsets = transformOffsets(
-        offsets,
-        toolScale,
-        tool === 'Mutation' ? Math.max(1, seedJitter) : seedJitter,
-      );
 
       return {
         offsets,
         mode: toolMode,
-        scale: toolScale,
+        scale: 1,
         jitter: tool === 'Mutation' ? Math.max(1, seedJitter) : seedJitter,
         probability: toolProbability,
       };
     };
-  }, [customPattern, seedJitter, seedMode, seedPattern, seedProbability, seedScale]);
+  }, [seedJitter, seedProbability, seedScale]);
 
   const seedAtPoint = useMemo(() => {
     return (point: THREE.Vector3) => {
@@ -330,7 +327,8 @@ export function PlanetLife({
         if (gpuSim && gpuSimRef.current) {
           const v = (lat + 0.5) / safeLatCells;
           const u = (lon + 0.5) / safeLonCells;
-          const { matrix, originRow, originCol } = offsetsToMatrix(toolSeed.offsets);
+          const offsets = transformOffsets(toolSeed.offsets, toolSeed.scale, toolSeed.jitter);
+          const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
           gpuSimRef.current.seedAtUV({
             u,
             v,
@@ -367,7 +365,13 @@ export function PlanetLife({
 
         if (offsets.length === 0) return;
 
-        offsets = transformOffsets(offsets, seedScale, seedJitter);
+        // Disk offsets are built at their final radius; only built-in and
+        // custom patterns need the scale multiplier applied.
+        offsets = transformOffsets(
+          offsets,
+          seedPattern === 'Random Disk' ? 1 : seedScale,
+          seedJitter,
+        );
 
         const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
 
@@ -466,7 +470,9 @@ export function PlanetLife({
           rules={rules}
           randomDensity={randomDensity}
           gameMode={gameMode}
+          ecologyProfile={ecologyProfile}
           onTextureUpdate={setGpuTexture}
+          onStats={publishStats}
           simRef={gpuSimRef}
         />
       )}

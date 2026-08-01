@@ -70,6 +70,51 @@ describe('useSimulationSeeder', () => {
     expect(mockUpdateInstances).toHaveBeenCalled();
   });
 
+  it('passes scale 1 for Random Disk so offsets are not re-scaled', () => {
+    const { result } = renderHook(() =>
+      useSimulationSeeder({
+        seedAtPointImpl: mockSeedAtPointImpl,
+        updateInstances: mockUpdateInstances,
+        seedPattern: 'Random Disk',
+        seedScale: 4,
+        seedMode: 'set',
+        seedJitter: 0,
+        seedProbability: 1,
+        customPattern: '',
+        debugLogs: false,
+      }),
+    );
+
+    const point = new THREE.Vector3(2, 0, 0);
+    result.current.seedAtPoint(point);
+
+    const call = mockSeedAtPointImpl.mock.calls[0][0];
+    // Disk offsets are built at their final radius; scale must be 1 so the
+    // downstream transform doesn't make the disk radius quadratic in scale.
+    expect(call.scale).toBe(1);
+    expect(call.offsets.every(([dy, dx]) => dy * dy + dx * dx <= 16)).toBe(true);
+  });
+
+  it('passes the seed scale through for built-in patterns', () => {
+    const { result } = renderHook(() =>
+      useSimulationSeeder({
+        seedAtPointImpl: mockSeedAtPointImpl,
+        updateInstances: mockUpdateInstances,
+        seedPattern: 'Glider',
+        seedScale: 3,
+        seedMode: 'set',
+        seedJitter: 0,
+        seedProbability: 1,
+        customPattern: '',
+        debugLogs: false,
+      }),
+    );
+
+    const point = new THREE.Vector3(2, 0, 0);
+    result.current.seedAtPoint(point);
+    expect(mockSeedAtPointImpl.mock.calls[0][0].scale).toBe(3);
+  });
+
   it('should use custom ASCII pattern when specified', () => {
     const customPattern = '.O.\nOOO\n.O.';
     const { result } = renderHook(() =>

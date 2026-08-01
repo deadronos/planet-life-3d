@@ -28,6 +28,7 @@ export function usePlanetLifeSim({
   ecologyProfile,
   randomDensity,
   workerSim,
+  gpuSim = false,
   lifeTex,
   dummy,
   cellsRef,
@@ -47,6 +48,7 @@ export function usePlanetLifeSim({
   ecologyProfile: EcologyProfileName;
   randomDensity: number;
   workerSim: boolean;
+  gpuSim?: boolean;
   lifeTex: LifeTexture;
   dummy: THREE.Object3D;
   cellsRef: RefObject<THREE.InstancedMesh | null>;
@@ -86,10 +88,13 @@ export function usePlanetLifeSim({
       birthsLastTick: number;
       deathsLastTick: number;
     }) => {
-      publishStats(msg);
+      // In GPU mode the authoritative simulation is the GPU sim; the
+      // CPU/worker sim only exists as a texture fallback, so its stats must
+      // not drive the HUD.
+      if (!gpuSim) publishStats(msg);
       updateInstancesRef.current();
     },
-    [publishStats],
+    [gpuSim, publishStats],
   );
 
   const {
@@ -139,9 +144,9 @@ export function usePlanetLifeSim({
     }
     const sim = simRef.current;
     sim?.clear();
-    if (sim) publishStats(sim);
+    if (!gpuSim && sim) publishStats(sim);
     updateInstances();
-  }, [publishStats, updateInstances, workerEnabled, workerRef, workerPostMessage]);
+  }, [gpuSim, publishStats, updateInstances, workerEnabled, workerRef, workerPostMessage]);
 
   const randomize = useCallback(() => {
     if (workerEnabled && workerRef.current) {
@@ -153,9 +158,17 @@ export function usePlanetLifeSim({
     }
     const sim = simRef.current;
     sim?.randomize(randomDensity);
-    if (sim) publishStats(sim);
+    if (!gpuSim && sim) publishStats(sim);
     updateInstances();
-  }, [publishStats, randomDensity, updateInstances, workerEnabled, workerRef, workerPostMessage]);
+  }, [
+    gpuSim,
+    publishStats,
+    randomDensity,
+    updateInstances,
+    workerEnabled,
+    workerRef,
+    workerPostMessage,
+  ]);
 
   const stepOnce = useCallback(() => {
     if (workerEnabled && workerRef.current) {
@@ -166,9 +179,10 @@ export function usePlanetLifeSim({
     }
     const sim = simRef.current;
     sim?.step();
-    if (sim) publishStats(sim);
+    if (!gpuSim && sim) publishStats(sim);
     updateInstances();
   }, [
+    gpuSim,
     publishStats,
     updateInstances,
     workerEnabled,
@@ -203,7 +217,8 @@ export function usePlanetLifeSim({
         return;
       }
 
-      simRef.current?.seedAtPoint({
+      const sim = simRef.current;
+      sim?.seedAtPoint({
         point: params.point,
         offsets: params.offsets,
         mode: params.mode,
@@ -212,9 +227,21 @@ export function usePlanetLifeSim({
         probability: params.probability,
         debug: params.debug,
       });
+      // Keep the HUD population current after a manual seed. The worker
+      // path publishes via the snapshot; the CPU path needs it here.
+      if (!gpuSim && sim) publishStats(sim);
       updateInstances();
     },
-    [updateInstances, workerEnabled, workerRef, workerPostMessage, safeLatCells, safeLonCells],
+    [
+      gpuSim,
+      publishStats,
+      updateInstances,
+      workerEnabled,
+      workerRef,
+      workerPostMessage,
+      safeLatCells,
+      safeLonCells,
+    ],
   );
 
   // Mirror the latest randomDensity in a ref so the sim-creation effect
@@ -225,12 +252,13 @@ export function usePlanetLifeSim({
     randomDensityRef.current = randomDensity;
   }, [randomDensity]);
 
-  // Sim lifecycle: only re-create the sim when the grid resolution or
-  // planet geometry changes (or when worker mode toggles). Per-setting
+  // Sim lifecycle: only re-create the sim when the grid resolution changes
+  // or when worker mode toggles. Per-setting
   // changes (rules, gameMode, ecologyProfile) are applied in place by the
   // three per-setting effects below, and the randomDensity slider no
   // longer wipes the world — it's only sampled when the user explicitly
-  // clicks the Randomize action.
+  // clicks the Randomize action. Planet radius / cell lift are handled by a
+  // separate geometry-only effect below so they don't wipe the world either.
   useEffect(() => {
     if (workerEnabled) {
       // In worker mode we still keep a geometry-only sim around for the
@@ -273,7 +301,16 @@ export function usePlanetLifeSim({
     // user clicks Randomize. Listing them here would recreate the sim
     // (and re-randomize) on every Leva change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeLatCells, safeLonCells, planetRadius, cellLift, workerEnabled]);
+  }, [safeLatCells, safeLonCells, workerEnabled]);
+
+  // Geometry-only updates (planetRadius / cellLift) recompute surface
+  // positions in place instead of recreating the sim — recreating would
+  // re-randomize the world every time the user drags one of these sliders.
+  useEffect(() => {
+    simRef.current?.updateSurfaceGeometry(planetRadius, cellLift);
+    geometrySimRef.current?.updateSurfaceGeometry(planetRadius, cellLift);
+    updateInstancesRef.current();
+  }, [planetRadius, cellLift]);
 
   useEffect(() => {
     if (workerEnabled && workerRef.current) {
@@ -306,7 +343,10 @@ export function usePlanetLifeSim({
   }, [ecologyProfile, workerEnabled, workerRef, workerPostMessage]);
 
   useSimTickLoop({
-    running,
+    // The CPU/worker sim is paused while the GPU sim is authoritative. It
+    // remains initialized purely as a texture fallback if the GPU path
+    // fails, and its stats are never published in GPU mode.
+    running: running && !gpuSim,
     tickMs,
     workerEnabled,
     workerRef,

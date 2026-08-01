@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { SIM_CONSTRAINTS } from '../../src/sim/constants';
 import { LifeSphereSim } from '../../src/sim/LifeSphereSim';
-import { parseRuleDigits } from '../../src/sim/rules';
+import type { Offset } from '../../src/sim/patterns';
 import { getBuiltinPatternOffsets } from '../../src/sim/patterns';
 import type { Rules } from '../../src/sim/rules';
-import type { Offset } from '../../src/sim/patterns';
+import { parseRuleDigits } from '../../src/sim/rules';
 
 // Standard Game of Life Rules: B3/S23
 const GOL_RULES: Rules = {
@@ -434,5 +436,32 @@ describe('LifeSphereSim', () => {
 
       expect(p2.length()).toBeCloseTo(5.1, 4);
     });
+  });
+});
+
+describe('LifeSphereSim geometry updates', () => {
+  it('updateSurfaceGeometry moves positions without touching sim state', () => {
+    const sim = new LifeSphereSim({
+      latCells: 10,
+      lonCells: 10,
+      planetRadius: 2,
+      cellLift: 0.04,
+      rules: GOL_RULES,
+    });
+
+    sim.setCell(5, 5, 1);
+    const popBefore = sim.population;
+    expect(sim.positions[0].length()).toBeCloseTo(2.04, 4);
+
+    // Radius + lift change must not recreate the sim or re-randomize.
+    sim.updateSurfaceGeometry(3.5, 0.1);
+    expect(sim.positions[0].length()).toBeCloseTo(3.6, 4);
+    expect(sim.getCell(5, 5)).toBe(1);
+    expect(sim.population).toBe(popBefore);
+    expect(sim.generation).toBe(0);
+
+    // Invalid inputs are clamped like the constructor inputs.
+    sim.updateSurfaceGeometry(9999, -5);
+    expect(sim.positions[0].length()).toBeCloseTo(SIM_CONSTRAINTS.planetRadius.max, 4);
   });
 });

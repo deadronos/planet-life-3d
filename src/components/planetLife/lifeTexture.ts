@@ -62,10 +62,13 @@ export function writeLifeTexture(params: {
       const idx = srcRow + lo;
       const alive = grid[idx] > 0;
 
-      // Three.js SphereGeometry UVs run opposite to our generic Lon mapping.
-      // Our Sim: u=0.25 -> -90 deg. Three.js u=0.25 -> +90 deg.
-      // So we map Sim column `lo` to Texture column `w - 1 - lo`.
-      const dstLo = w - 1 - lo;
+      // Sim column `lo` is stored directly at Texture column `lo`, matching
+      // the GPU simulation texture convention. The overlay vertex shader
+      // mirrors U (vUv.x = 1.0 - uv.x) to compensate for three.js
+      // SphereGeometry UVs running opposite to the sim's longitude mapping,
+      // so no column reversal belongs here (doing both would mirror the
+      // rendered life east-west).
+      const dstLo = lo;
       const di = (dstRow + dstLo) * 4;
 
       if (alive) {

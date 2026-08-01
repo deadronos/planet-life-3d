@@ -49,7 +49,9 @@ export function useSimulationSeeder({
         point,
         offsets,
         mode: seedMode,
-        scale: seedScale,
+        // Disk offsets are already in final cell units (radius == seedScale);
+        // scaling them again would make the disk radius quadratic in scale.
+        scale: seedPattern === 'Random Disk' ? 1 : seedScale,
         jitter: seedJitter,
         probability: seedProbability,
         debug: debugLogs,

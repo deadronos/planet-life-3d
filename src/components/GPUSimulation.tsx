@@ -1,11 +1,13 @@
 /* eslint-disable react-hooks/immutability */
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { gpuSeedFragmentShader } from '../shaders/gpuSeed.frag';
+import { gpuStatsFragmentShader } from '../shaders/gpuStats.frag';
 import { simulationFragmentShader } from '../shaders/simulation.frag';
 import { simulationVertexShader } from '../shaders/simulation.vert';
+import { ECOLOGY_PROFILES, type EcologyProfileName } from '../sim/ecology';
 import type { Rules } from '../sim/rules';
 import { PatternTextureCache } from './patternTextureCache';
 
@@ -51,7 +53,9 @@ export const GPUSimulation = ({
   rules,
   randomDensity = 0.1,
   gameMode = 'Classic',
+  ecologyProfile = 'None',
   onTextureUpdate,
+  onStats,
   simRef,
 }: {
   resolution?: { width: number; height: number };
@@ -60,7 +64,14 @@ export const GPUSimulation = ({
   rules: Rules;
   randomDensity?: number;
   gameMode?: 'Classic' | 'Colony';
+  ecologyProfile?: EcologyProfileName;
   onTextureUpdate?: (texture: THREE.Texture) => void;
+  onStats?: (stats: {
+    generation: number;
+    population: number;
+    birthsLastTick: number;
+    deathsLastTick: number;
+  }) => void;
   simRef?: React.Ref<GPUSimulationHandle>;
 }) => {
   const { gl } = useThree();
@@ -80,6 +91,13 @@ export const GPUSimulation = ({
 
   // Track last tick time for throttling
   const lastTickTimeRef = useRef<number>(0);
+
+  // Generation counter for the HUD. Reset whenever the world is
+  // re-initialized (randomize / clear).
+  const generationRef = useRef(0);
+
+  // Reusable readback buffer for HUD stats (avoids a per-tick allocation).
+  const statsBufferRef = useRef<Uint8Array | null>(null);
 
   // Cache for pattern DataTextures used by seedAtUV. Created once and
   // disposed on unmount so we don't leak GPU memory across remounts.
@@ -116,6 +134,19 @@ export const GPUSimulation = ({
         uBirthRules: { value: rulesToFloatArray(rules.birth) },
         uSurviveRules: { value: rulesToFloatArray(rules.survive) },
         uColonyMode: { value: gameMode === 'Colony' },
+        uEcologyEnabled: { value: ecologyProfile !== 'None' },
+        uEcologyFertilityBias: {
+          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).fertilityBias,
+        },
+        uEcologyDroughtBias: {
+          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).droughtBias,
+        },
+        uEcologyMountainBias: {
+          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).mountainBias,
+        },
+        uEcologySunlightBias: {
+          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).sunlightBias,
+        },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
@@ -162,6 +193,76 @@ export const GPUSimulation = ({
     scene.add(quad);
     return { scene, camera, quad };
   }, [seedMaterial]);
+
+  // Stats target + pass: renders birth/death/alive buckets for the HUD so
+  // the main thread can read back real population numbers instead of
+  // relying on the (now paused) CPU sim.
+  const statsTarget = useMemo(
+    () => createRenderTarget(resolution.width, resolution.height),
+    [resolution.height, resolution.width],
+  );
+
+  const statsMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uPrevState: { value: null },
+        uCurrentState: { value: null },
+      },
+      vertexShader: simulationVertexShader,
+      fragmentShader: gpuStatsFragmentShader,
+    });
+  }, []);
+
+  const statsScene = useMemo(() => {
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), statsMaterial);
+    scene.add(quad);
+    return { scene, camera, quad };
+  }, [statsMaterial]);
+
+  // Render the birth/death/alive classification for (prev -> current) into
+  // the stats target, read it back, and publish HUD stats. The readback is
+  // a synchronous gl.readPixels; at the default resolution (160x100) that is
+  // a 64KB copy per tick, which is negligible.
+  const readStats = useCallback(
+    (current: THREE.Texture, prev: THREE.Texture) => {
+      if (!onStats) return;
+
+      const prevTarget = gl.getRenderTarget();
+      statsMaterial.uniforms.uPrevState.value = prev;
+      statsMaterial.uniforms.uCurrentState.value = current;
+      gl.setRenderTarget(statsTarget);
+      gl.render(statsScene.scene, statsScene.camera);
+
+      const w = resolution.width;
+      const h = resolution.height;
+      const needed = w * h * 4;
+      if (!statsBufferRef.current || statsBufferRef.current.length < needed) {
+        statsBufferRef.current = new Uint8Array(needed);
+      }
+      const pixels = statsBufferRef.current;
+      gl.readRenderTargetPixels(statsTarget, 0, 0, w, h, pixels);
+      gl.setRenderTarget(prevTarget);
+
+      let births = 0;
+      let deaths = 0;
+      let population = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        births += pixels[i];
+        deaths += pixels[i + 1];
+        population += pixels[i + 2];
+      }
+
+      onStats({
+        generation: generationRef.current,
+        population,
+        birthsLastTick: births,
+        deathsLastTick: deaths,
+      });
+    },
+    [gl, onStats, resolution.height, resolution.width, statsMaterial, statsScene, statsTarget],
+  );
 
   const initializeState = useMemo(() => {
     return (density: number) => {
@@ -214,9 +315,11 @@ export const GPUSimulation = ({
       texture.dispose();
 
       currentBufferRef.current = 'A';
+      generationRef.current = 0;
       if (onTextureUpdate) {
         onTextureUpdate(targetA.texture);
       }
+      readStats(targetA.texture, targetA.texture);
     };
     // Intentionally not depending on `gameMode`, `randomDensity`, or
     // `simMaterial`/`seedMaterial`: those are read from refs / already
@@ -224,7 +327,16 @@ export const GPUSimulation = ({
     // birthDigits would re-create this closure and re-fire the init effect
     // below, wiping the simulation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gl, onTextureUpdate, resolution.height, resolution.width, simScene, targetA, targetB]);
+  }, [
+    gl,
+    onTextureUpdate,
+    readStats,
+    resolution.height,
+    resolution.width,
+    simScene,
+    targetA,
+    targetB,
+  ]);
 
   // Initialize the render targets with the initial random state. This must
   // run when the resolution changes (new render targets are allocated) and
@@ -248,6 +360,17 @@ export const GPUSimulation = ({
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
   }, [rules, gameMode, simMaterial]);
+
+  // Update ecology params in place when the profile changes (same rationale
+  // as the rules effect: recreate the material and the sim is wiped).
+  useEffect(() => {
+    const profile = ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None;
+    simMaterial.uniforms.uEcologyEnabled.value = ecologyProfile !== 'None';
+    simMaterial.uniforms.uEcologyFertilityBias.value = profile.fertilityBias;
+    simMaterial.uniforms.uEcologyDroughtBias.value = profile.droughtBias;
+    simMaterial.uniforms.uEcologyMountainBias.value = profile.mountainBias;
+    simMaterial.uniforms.uEcologySunlightBias.value = profile.sunlightBias;
+  }, [ecologyProfile, simMaterial]);
 
   // Expose seeding method via ref
   useImperativeHandle(
@@ -284,18 +407,23 @@ export const GPUSimulation = ({
         const prevTarget = gl.getRenderTarget();
         const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
         const writeBuffer = currentBufferRef.current === 'A' ? targetB : targetA;
+        const readTexture = readBuffer.texture;
+        const writeTexture = writeBuffer.texture;
         gl.setRenderTarget(writeBuffer);
         // Ensure the shader sees the current state texture
-        seedMaterial.uniforms.uCurrentState.value = readBuffer.texture;
+        seedMaterial.uniforms.uCurrentState.value = readTexture;
         gl.render(seedScene.scene, seedScene.camera);
         gl.setRenderTarget(prevTarget);
 
         // Swap buffers: the newly written buffer becomes the current/read buffer
         currentBufferRef.current = currentBufferRef.current === 'A' ? 'B' : 'A';
 
+        // Seeding changes population immediately; publish fresh stats.
+        readStats(writeTexture, readTexture);
+
         // Notify parent of update
         if (onTextureUpdate) {
-          onTextureUpdate(writeBuffer.texture);
+          onTextureUpdate(writeTexture);
         }
       },
       randomize: () => {
@@ -307,20 +435,25 @@ export const GPUSimulation = ({
       stepOnce: () => {
         const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
         const writeBuffer = currentBufferRef.current === 'A' ? targetB : targetA;
+        const readTexture = readBuffer.texture;
+        const writeTexture = writeBuffer.texture;
         const prevTarget = gl.getRenderTarget();
         gl.setRenderTarget(writeBuffer);
-        simMaterial.uniforms.uTexture.value = readBuffer.texture;
+        simMaterial.uniforms.uTexture.value = readTexture;
         gl.render(simScene.scene, simScene.camera);
         gl.setRenderTarget(prevTarget);
         currentBufferRef.current = currentBufferRef.current === 'A' ? 'B' : 'A';
+        generationRef.current += 1;
+        readStats(writeTexture, readTexture);
         if (onTextureUpdate) {
-          onTextureUpdate(writeBuffer.texture);
+          onTextureUpdate(writeTexture);
         }
       },
     }),
     [
       initializeState,
       randomDensity,
+      readStats,
       seedMaterial,
       seedScene,
       targetA,
@@ -348,21 +481,25 @@ export const GPUSimulation = ({
     // Determine read and write buffers
     const readBuffer = currentBufferRef.current === 'A' ? targetA : targetB;
     const writeBuffer = currentBufferRef.current === 'A' ? targetB : targetA;
+    const readTexture = readBuffer.texture;
+    const writeTexture = writeBuffer.texture;
 
     // Render simulation step to write buffer
     // Modifying uniforms in useFrame is allowed - it's a render loop, not React render
     const prevTarget = gl.getRenderTarget();
     gl.setRenderTarget(writeBuffer);
-    simMaterial.uniforms.uTexture.value = readBuffer.texture;
+    simMaterial.uniforms.uTexture.value = readTexture;
     gl.render(simScene.scene, simScene.camera);
     gl.setRenderTarget(prevTarget);
 
     // Swap buffers
     currentBufferRef.current = currentBufferRef.current === 'A' ? 'B' : 'A';
+    generationRef.current += 1;
+    readStats(writeTexture, readTexture);
 
     // Notify parent of texture update
     if (onTextureUpdate) {
-      onTextureUpdate(writeBuffer.texture);
+      onTextureUpdate(writeTexture);
     }
   });
 
@@ -371,14 +508,27 @@ export const GPUSimulation = ({
     return () => {
       targetA.dispose();
       targetB.dispose();
+      statsTarget.dispose();
       simMaterial.dispose();
       seedMaterial.dispose();
+      statsMaterial.dispose();
       simScene.quad.geometry.dispose();
       seedScene.quad.geometry.dispose();
+      statsScene.quad.geometry.dispose();
       patternCacheRef.current?.dispose();
       patternCacheRef.current = null;
     };
-  }, [targetA, targetB, simMaterial, seedMaterial, simScene, seedScene]);
+  }, [
+    targetA,
+    targetB,
+    statsTarget,
+    simMaterial,
+    seedMaterial,
+    statsMaterial,
+    simScene,
+    seedScene,
+    statsScene,
+  ]);
 
   return null; // This component doesn't render anything visible
 };
