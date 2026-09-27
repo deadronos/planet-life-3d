@@ -1,10 +1,9 @@
-import { expect, afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
-import * as THREE from 'three';
-import React from 'react';
+import '@testing-library/jest-dom/vitest';
 
-expect.extend(matchers);
+import { cleanup } from '@testing-library/react';
+import React from 'react';
+import * as THREE from 'three';
+import { afterEach, vi } from 'vitest';
 
 afterEach(() => {
   cleanup();
@@ -42,7 +41,7 @@ vi.mock('@react-three/fiber', (_importOriginal) => {
 // handled by the runtime renderer rather than DOM). The warnings are noisy
 // and expected in the tests — we filter only the specific messages.
 const _origConsoleError = console.error.bind(console);
-console.error = ((...args: unknown[]) => {
+console.error = (...args: unknown[]) => {
   const text = args
     .map((a) => {
       if (typeof a === 'string') return a;
@@ -100,4 +99,4 @@ console.error = ((...args: unknown[]) => {
     return;
 
   _origConsoleError(...(args as [unknown, ...unknown[]]));
-}) as unknown as typeof console.error;
+};

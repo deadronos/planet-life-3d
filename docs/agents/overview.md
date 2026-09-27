@@ -7,7 +7,8 @@
 
 ## Quick setup
 
-- Recommended: Node.js v18+ (LTS) or newer
+- Recommended: Node.js 22.22.2+ on the 22.x line, 24.15.0+, or 26.0.0+.
+  See the `engines` range in `package.json`.
 - Install: `npm install`
 - Dev server: `npm run dev` (Vite default port is 5173)
 - Production build: `npm run build`
