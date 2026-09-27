@@ -17,10 +17,9 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
     },
-  },
-
-  benchmark: {
-    include: ['tests/**/*.bench.ts', 'tests/**/*.bench.tsx'],
+    benchmark: {
+      include: ['tests/**/*.bench.ts', 'tests/**/*.bench.tsx'],
+    },
   },
 
   resolve: {

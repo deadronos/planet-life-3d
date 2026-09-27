@@ -1,4 +1,5 @@
-import { describe, bench } from 'vitest';
+import { test } from 'vitest';
+
 import { LifeSphereSim } from '../../src/sim/LifeSphereSim';
 import type { Rules } from '../../src/sim/rules';
 
@@ -33,7 +34,7 @@ function makeSimColony(latCells: number, lonCells: number, density = 0.35) {
   return sim;
 }
 
-describe('LifeSphereSim.step (bench)', () => {
+test('LifeSphereSim.step (bench)', async ({ bench }) => {
   // Keep sizes modest so `npm run bench` stays fast on laptops.
   const sim64x128 = makeSim(64, 128);
   const sim128x256 = makeSim(128, 256);
@@ -41,19 +42,19 @@ describe('LifeSphereSim.step (bench)', () => {
   const simColony64x128 = makeSimColony(64, 128);
   const simColony128x256 = makeSimColony(128, 256);
 
-  bench('Classic 64x128', () => {
+  await bench('Classic 64x128', () => {
     sim64x128.step();
-  });
+  }).run();
 
-  bench('Classic 128x256', () => {
+  await bench('Classic 128x256', () => {
     sim128x256.step();
-  });
+  }).run();
 
-  bench('Colony 64x128', () => {
+  await bench('Colony 64x128', () => {
     simColony64x128.step();
-  });
+  }).run();
 
-  bench('Colony 128x256', () => {
+  await bench('Colony 128x256', () => {
     simColony128x256.step();
-  });
+  }).run();
 });
