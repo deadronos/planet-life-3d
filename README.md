@@ -100,7 +100,15 @@ If you prefer not to use the hook, unset your local git hooks path with `git con
 
 ## Deployment
 
-The site is deployed to GitHub Pages when a new tag starting with `v` is pushed (for example `v1.0.0`). The Actions workflow `\.github/workflows/deploy-pages.yml` builds the project and deploys the `dist` output using Node.js 20.x and the official GitHub Actions for Pages (`actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v4`).
+The site is deployed to GitHub Pages when a new tag starting with `v` is pushed
+(for example `v1.0.0`). The Actions workflow
+`\.github/workflows/deploy-pages.yml` builds the project and deploys the `dist`
+output using Node.js 22.x and the official GitHub Actions for Pages
+(`actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`,
+`actions/deploy-pages@v4`).
+
+Use Node.js 22.22.2 or newer on the 22.x line for local builds and tests. The
+package engine range also supports Node.js 24.15.0+ and 26.0.0+.
 
 To test the build locally before tagging, run:
 
