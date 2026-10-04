@@ -27,22 +27,32 @@ export interface GpuStatsTotals {
 /**
  * Decode a stats readback buffer into totals.
  *
- * Sums the three classification channels across every texel. Each contributing
- * texel contributes a full 255 to its channel, so the result is the affected
- * cell count scaled by 255.
+ * Each texel contributes 0 or 255 to one of three channels, so summing the
+ * raw bytes yields a count scaled by 255. We divide back out to report the
+ * true number of affected cells.
  *
  * @param pixels RGBA bytes from the stats render target.
+ * @param texelCount Number of texels actually refreshed by the readback.
+ *   The caller's buffer is reused and only ever grows, so it can be larger
+ *   than the current render target; anything past `texelCount` is stale (or,
+ *   on the async path, uninitialised memory) and must not be summed.
  */
-export function sumStatsPixels(pixels: Uint8Array): GpuStatsTotals {
+export function sumStatsPixels(pixels: Uint8Array, texelCount: number): GpuStatsTotals {
+  const limit = Math.min(texelCount, Math.floor(pixels.length / 4)) * 4;
   let births = 0;
   let deaths = 0;
   let population = 0;
-  for (let i = 0; i < pixels.length; i += 4) {
+  for (let i = 0; i < limit; i += 4) {
     births += pixels[i];
     deaths += pixels[i + 1];
     population += pixels[i + 2];
   }
-  return { population, births, deaths };
+  // Each contributing texel contributes a full 255 to its channel.
+  return {
+    population: population / 255,
+    births: births / 255,
+    deaths: deaths / 255,
+  };
 }
 
 /**

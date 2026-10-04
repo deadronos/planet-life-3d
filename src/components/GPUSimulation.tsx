@@ -308,7 +308,9 @@ export const GPUSimulation = ({
         // The targets this read was issued against have been disposed by a
         // resolution change; its figures describe a world that no longer exists.
         if (epoch !== statsEpochRef.current) return;
-        const totals = sumStatsPixels(pixels);
+        // Bound the reduction to the texels this readback refreshed; the
+        // shared buffer is reused and may be larger after a resolution drop.
+        const totals = sumStatsPixels(pixels, texelCount);
         onStats({
           generation,
           population: totals.population,

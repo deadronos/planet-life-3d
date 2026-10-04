@@ -28,7 +28,7 @@ function makeBuffer(cells: { birth: number; death: number; alive: number }): Uin
 
 describe('sumStatsPixels', () => {
   it('returns all zeros for an empty buffer', () => {
-    expect(sumStatsPixels(new Uint8Array(0))).toEqual({
+    expect(sumStatsPixels(new Uint8Array(0), 0)).toEqual({
       population: 0,
       births: 0,
       deaths: 0,
@@ -37,21 +37,21 @@ describe('sumStatsPixels', () => {
 
   it('counts a fully-alive population', () => {
     const buf = makeBuffer({ birth: 0, death: 0, alive: 42 });
-    expect(sumStatsPixels(buf).population).toBe(42 * 255);
+    expect(sumStatsPixels(buf, buf.length / 4).population).toBe(42);
   });
 
   it('counts births, deaths and population independently', () => {
     const buf = makeBuffer({ birth: 3, death: 5, alive: 100 });
-    expect(sumStatsPixels(buf)).toEqual({
-      population: 100 * 255,
-      births: 3 * 255,
-      deaths: 5 * 255,
+    expect(sumStatsPixels(buf, buf.length / 4)).toEqual({
+      population: 100,
+      births: 3,
+      deaths: 5,
     });
   });
 
   it('reports zero for a dead board', () => {
     const buf = makeBuffer({ birth: 0, death: 0, alive: 0 });
-    expect(sumStatsPixels(buf)).toEqual({ population: 0, births: 0, deaths: 0 });
+    expect(sumStatsPixels(buf, 0)).toEqual({ population: 0, births: 0, deaths: 0 });
   });
 
   it('handles a birth and death on the same texel independently', () => {
@@ -60,22 +60,40 @@ describe('sumStatsPixels', () => {
     const buf = new Uint8Array(2 * 4);
     buf[0] = 255; // birth
     buf[5] = 255; // death
-    expect(sumStatsPixels(buf)).toEqual({ population: 0, births: 255, deaths: 255 });
+    expect(sumStatsPixels(buf, 2)).toEqual({ population: 0, births: 1, deaths: 1 });
   });
 
-  it('sums partial channel values (anti-aliased/filtered input)', () => {
+  it('scales down partial channel values (anti-aliased/filtered input)', () => {
+    // A readback filtered to 50% should count as half a cell rather than
+    // being rounded up to a whole one.
     const buf = new Uint8Array(4);
     buf[2] = 128;
-    expect(sumStatsPixels(buf).population).toBe(128);
+    expect(sumStatsPixels(buf, buf.length / 4).population).toBeCloseTo(128 / 255, 6);
   });
 
-  it('sums every texel in the buffer', () => {
-    const buf = makeBuffer({ birth: 1, death: 2, alive: 3 });
-    expect(sumStatsPixels(buf)).toEqual({
-      population: 3 * 255,
-      births: 1 * 255,
-      deaths: 2 * 255,
-    });
+  it('ignores texels beyond the region the readback refreshed', () => {
+    // The shared readback buffer is reused and only grows, so after a
+    // resolution drop it can be much larger than the live target. Bytes past
+    // `texelCount` are stale (or uninitialised on the async path) and must
+    // not contribute to the totals.
+    const buf = makeBuffer({ birth: 0, death: 0, alive: 2 });
+    // Simulate a previous, larger resolution leaving a tail of live-looking
+    // bytes behind the 2 texels that were actually refreshed.
+    buf[8] = 255;
+    buf[9] = 255;
+    buf[10] = 255;
+
+    expect(sumStatsPixels(buf, 2)).toEqual({ population: 2, births: 0, deaths: 0 });
+  });
+
+  it('clamps a texelCount larger than the buffer', () => {
+    const buf = makeBuffer({ birth: 0, death: 0, alive: 3 });
+    expect(sumStatsPixels(buf, 999).population).toBe(3);
+  });
+
+  it('handles a zero texel count', () => {
+    const buf = makeBuffer({ birth: 0, death: 0, alive: 5 });
+    expect(sumStatsPixels(buf, 0)).toEqual({ population: 0, births: 0, deaths: 0 });
   });
 });
 
