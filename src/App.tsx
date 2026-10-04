@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { SpaceEnvironment } from './components/environment';
 import { Overlay } from './components/Overlay';
+import { DynamicResScaler } from './components/performance/DynamicResScaler';
 import { PlanetLife } from './components/PlanetLife';
 
 const levaTheme = {
@@ -54,6 +55,21 @@ export default function App() {
     ),
   });
 
+  const { adaptiveResolution } = useControls({
+    Performance: folder(
+      {
+        adaptiveResolution: {
+          value: true,
+          label: 'Adaptive Resolution',
+          // Disabling pins the renderer to the Canvas `dpr` range, which makes
+          // it straightforward to A/B the two settings.
+          hint: 'Drops pixel ratio when frame rate drops; restore when it recovers.',
+        },
+      },
+      { collapsed: true },
+    ),
+  });
+
   return (
     <>
       <Overlay />
@@ -63,6 +79,8 @@ export default function App() {
         <ambientLight intensity={0.75} />
         <directionalLight position={LIGHT_POSITION} intensity={1.2} />
         <SpaceEnvironment lightPosition={LIGHT_POSITION} />
+
+        <DynamicResScaler enabled={adaptiveResolution} />
 
         <PlanetLife lightPosition={LIGHT_POSITION} />
         <OrbitControls
