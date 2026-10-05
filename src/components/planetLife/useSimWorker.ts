@@ -164,7 +164,7 @@ export function useSimWorker({
     // picked up via refs (debugLogs/onSnapshot) or pushed to the worker
     // by the per-setting effects below. Listing them here would re-create
     // the worker on every Leva change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: values are routed via refs; see the comment above.
   }, [workerEnabled, safeLatCells, safeLonCells]);
 
   // Per-setting updates: post the appropriate `setX` message to the

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability */
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -199,8 +198,41 @@ export const GPUSimulation = ({
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recreating this material would wipe a running simulation; see the invariant guard below.
   }, [resolution.height, resolution.width]);
+
+  // Fails loudly if the invariant above is ever broken.
+  //
+  // `simMaterial` is deliberately not a dependency of anything that could
+  // rebuild it from `rules`, `gameMode` or `ecologyProfile`, because doing so
+  // changes `initializeState`, which re-fires the init effect and resets the
+  // world - on every keystroke in the birth/survive digit fields. The
+  // `exhaustive-deps` suppressions above are therefore load-bearing, not
+  // laziness.
+  //
+  // A suppression alone fails silently: adding one of those values back to the
+  // dependency list looks like a tidy-up and breaks the app invisibly. This
+  // guard turns that mistake into a console error in development.
+  const invariantMaterialRef = useRef(simMaterial);
+  const invariantResolutionRef = useRef(`${resolution.width}x${resolution.height}`);
+  useEffect(() => {
+    const key = `${resolution.width}x${resolution.height}`;
+    const resolutionChanged = invariantResolutionRef.current !== key;
+    if (
+      !resolutionChanged &&
+      invariantMaterialRef.current !== simMaterial &&
+      typeof console !== 'undefined'
+    ) {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[GPUSimulation] simMaterial was recreated without a resolution change. ' +
+          'This re-initialises the simulation and wipes the world - a suppressed ' +
+          'dependency has probably been added to its useMemo.',
+      );
+    }
+    invariantMaterialRef.current = simMaterial;
+    invariantResolutionRef.current = key;
+  }, [simMaterial, resolution.width, resolution.height]);
 
   // Separate scene for simulation rendering (doesn't show in main view)
   const simScene = useMemo(() => {
@@ -231,7 +263,7 @@ export const GPUSimulation = ({
       vertexShader: simulationVertexShader,
       fragmentShader: gpuSeedFragmentShader,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: recreating the seed material would reset the world.
   }, [resolution.height, resolution.width]);
 
   const seedScene = useMemo(() => {
@@ -286,8 +318,10 @@ export const GPUSimulation = ({
   // Split from `readStats` so the deferred-request path can re-issue a read
   // without re-entering the throttle bookkeeping.
   const performStatsRead = useCallback(
+    // eslint-disable-next-line react-hooks/immutability -- Imperative readback callback mutates shader uniforms; these are GPU handles, not React state.
     (current: THREE.Texture, prev: THREE.Texture, generation: number, epoch: number) => {
       const prevTarget = gl.getRenderTarget();
+      // eslint-disable-next-line react-hooks/immutability -- Stats uniforms are written imperatively during a readback, outside React's render.
       statsMaterial.uniforms.uPrevState.value = prev;
       statsMaterial.uniforms.uCurrentState.value = current;
       gl.setRenderTarget(statsTarget);
@@ -371,6 +405,7 @@ export const GPUSimulation = ({
    * clear, single-step) where showing stale figures would be confusing.
    */
   const readStats = useCallback(
+    // eslint-disable-next-line react-hooks/immutability -- readStats writes material uniforms from an imperative callback invoked by the render loop.
     (current: THREE.Texture, prev: THREE.Texture, force = false) => {
       if (!onStats) return;
 
@@ -413,6 +448,7 @@ export const GPUSimulation = ({
     };
   }, [performStatsRead, statsTarget]);
 
+  // eslint-disable-next-line react-hooks/immutability -- initializeState is an imperative closure that writes material uniforms; these are GPU handles, not React state.
   const initializeState = useMemo(() => {
     return (density: number) => {
       const size = resolution.width * resolution.height * 4;
@@ -452,6 +488,7 @@ export const GPUSimulation = ({
 
       gl.setRenderTarget(targetA);
       gl.clear();
+      // eslint-disable-next-line react-hooks/immutability -- Seeds the material inside the imperative initializeState closure; uniforms are GPU handles, not React state.
       simMaterial.uniforms.uTexture.value = texture;
       gl.render(simScene.scene, simScene.camera);
 
@@ -477,7 +514,7 @@ export const GPUSimulation = ({
     // stable. If we listed them, toggling Colony mode or typing in
     // birthDigits would re-create this closure and re-fire the init effect
     // below, wiping the simulation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: gameMode/randomDensity are read through refs; listing them here would re-fire the init effect and wipe the simulation.
   }, [
     gl,
     onTextureUpdate,
@@ -500,13 +537,14 @@ export const GPUSimulation = ({
     // changes (which re-creates targetA/targetB). Random density is
     // intentionally NOT in the dep list so adjusting the slider does not
     // auto-reset the world — users reset via the "Randomize" action button.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: randomDensity is intentionally excluded so moving the slider does not reset the world.
   }, [initializeState]);
 
   // Update rules and game mode when they change
   useEffect(() => {
     const birthRules = rulesToFloatArray(rules.birth);
     const surviveRules = rulesToFloatArray(rules.survive);
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so editing rule digits does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uBirthRules.value = birthRules;
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
@@ -516,6 +554,7 @@ export const GPUSimulation = ({
   // as the rules effect: recreate the material and the sim is wiped).
   useEffect(() => {
     const profile = ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None;
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so changing the ecology profile does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uEcologyEnabled.value = ecologyProfile !== 'None';
     simMaterial.uniforms.uEcologyFertilityBias.value = profile.fertilityBias;
     simMaterial.uniforms.uEcologyDroughtBias.value = profile.droughtBias;
@@ -612,7 +651,6 @@ export const GPUSimulation = ({
       seedScene,
       targetA,
       targetB,
-      currentBufferRef,
       gl,
       gameMode,
       onTextureUpdate,
@@ -622,6 +660,7 @@ export const GPUSimulation = ({
   );
 
   // Simulation update loop with tick speed throttling
+  // eslint-disable-next-line react-hooks/immutability -- The render loop mutates material uniforms per tick by design; these are GPU handles rather than React state.
   useFrame(() => {
     if (!running) return;
 
@@ -642,6 +681,7 @@ export const GPUSimulation = ({
     // Modifying uniforms in useFrame is allowed - it's a render loop, not React render
     const prevTarget = gl.getRenderTarget();
     gl.setRenderTarget(writeBuffer);
+    // eslint-disable-next-line react-hooks/immutability -- Mutating three.js uniforms inside useFrame is the point of a render loop; the values are GPU handles, not React state.
     simMaterial.uniforms.uTexture.value = readTexture;
     gl.render(simScene.scene, simScene.camera);
     gl.setRenderTarget(prevTarget);
