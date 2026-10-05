@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { gpuOverlayFragmentShader } from '../../shaders/gpuOverlay.frag';
 import { gpuOverlayVertexShader } from '../../shaders/gpuOverlay.vert';
 import { AGE_FADE_BASE, AGE_FADE_MAX, AGE_FADE_MIN, AGE_FADE_SCALE } from '../../sim/utils';
+import { PLANET_SPHERE_SEGMENTS } from './Atmosphere';
 
 export interface LifeOverlayProps {
   planetRadius: number;
@@ -57,7 +58,7 @@ export function LifeOverlay({
 
   return (
     <mesh scale={1.01} raycast={() => null}>
-      <sphereGeometry args={[planetRadius, 64, 64]} />
+      <sphereGeometry args={[planetRadius, PLANET_SPHERE_SEGMENTS, PLANET_SPHERE_SEGMENTS]} />
       <primitive object={gpuOverlayMaterial} attach="material" />
     </mesh>
   );
