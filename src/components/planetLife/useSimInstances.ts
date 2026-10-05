@@ -3,6 +3,7 @@ import * as THREE from 'three';
 
 import type { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { ResolveCellColor } from './cellColor';
+import { writeTranslationMatrix } from './instanceMatrix';
 import type { LifeTexture } from './lifeTexture';
 import { writeLifeTexture } from './lifeTexture';
 
@@ -26,7 +27,6 @@ export interface UseSimInstancesOptions {
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
   cellsRef: React.RefObject<THREE.InstancedMesh | null>;
   lifeTex: LifeTexture;
-  dummy: THREE.Object3D;
   colorScratch: THREE.Color;
   resolveCellColor: ResolveCellColor;
   gameMode: 'Classic' | 'Colony';
@@ -41,7 +41,6 @@ export function useSimInstances({
   cellRenderMode,
   cellsRef,
   lifeTex,
-  dummy,
   colorScratch,
   resolveCellColor,
   gameMode,
@@ -91,27 +90,28 @@ export function useSimInstances({
 
     let i = 0;
 
+    // Cells are pure translations, so write the 16 floats straight into the
+    // backing store rather than composing a matrix per cell via Object3D.
+    const matrices = mesh.instanceMatrix.array as Float32Array;
+
     if (workerEnabled && snap) {
       const positions = sim.positions;
       const alive = snap.aliveIndices;
       const count = snap.population;
       for (let j = 0; j < count; j++) {
         const idx = alive[j];
-        dummy.position.copy(positions[idx]);
-        dummy.scale.setScalar(1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
+        const pos = positions[idx];
+        writeTranslationMatrix(matrices, i, pos.x, pos.y, pos.z);
         resolveCellColor(idx, grid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
       }
     } else if (!workerEnabled) {
       const currentGrid = sim.getGridView();
+      const positions = sim.positions;
       sim.forEachAlive((idx) => {
-        dummy.position.copy(sim.positions[idx]);
-        dummy.scale.setScalar(1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
+        const pos = positions[idx];
+        writeTranslationMatrix(matrices, i, pos.x, pos.y, pos.z);
         resolveCellColor(idx, currentGrid, ages, heat, colorScratch);
         mesh.setColorAt(i, colorScratch);
         i++;
@@ -125,7 +125,6 @@ export function useSimInstances({
     cellRenderMode,
     cellsRef,
     colorScratch,
-    dummy,
     geometrySimRef,
     resolveCellColor,
     simRef,

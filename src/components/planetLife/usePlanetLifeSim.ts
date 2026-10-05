@@ -30,7 +30,6 @@ export function usePlanetLifeSim({
   workerSim,
   gpuSim = false,
   lifeTex,
-  dummy,
   cellsRef,
   resolveCellColor,
   colorScratch,
@@ -50,7 +49,6 @@ export function usePlanetLifeSim({
   workerSim: boolean;
   gpuSim?: boolean;
   lifeTex: LifeTexture;
-  dummy: THREE.Object3D;
   cellsRef: RefObject<THREE.InstancedMesh | null>;
   resolveCellColor: ResolveCellColor;
   colorScratch: THREE.Color;
@@ -122,7 +120,6 @@ export function usePlanetLifeSim({
     cellRenderMode,
     cellsRef,
     lifeTex,
-    dummy,
     colorScratch,
     resolveCellColor,
     gameMode,

@@ -35,8 +35,6 @@ export function PlanetLife({
 }: {
   lightPosition?: [number, number, number];
 }) {
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
   const params = usePlanetLifeControls();
 
   const {
@@ -230,7 +228,6 @@ export function PlanetLife({
     workerSim,
     gpuSim,
     lifeTex,
-    dummy,
     cellsRef,
     resolveCellColor,
     colorScratch,

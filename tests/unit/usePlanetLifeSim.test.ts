@@ -41,6 +41,7 @@ describe('usePlanetLifeSim stats publishing', () => {
       instanceMatrix: {
         setUsage: vi.fn(),
         needsUpdate: false,
+        array: new Float32Array(64 * 16),
       },
       instanceColor: {
         setUsage: vi.fn(),
@@ -66,7 +67,6 @@ describe('usePlanetLifeSim stats publishing', () => {
         randomDensity: 1,
         workerSim: false,
         lifeTex,
-        dummy: new THREE.Object3D(),
         cellsRef: { current: mesh },
         resolveCellColor: () => 1,
         colorScratch: new THREE.Color(),
@@ -102,7 +102,13 @@ describe('usePlanetLifeSim stats publishing', () => {
 describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', () => {
   function makeMesh() {
     return {
-      instanceMatrix: { setUsage: vi.fn(), needsUpdate: false },
+      // A real InstancedBufferAttribute owns the backing store the renderer
+      // reads; the instance writer writes translations straight into it.
+      instanceMatrix: {
+        setUsage: vi.fn(),
+        needsUpdate: false,
+        array: new Float32Array(64 * 16),
+      },
       instanceColor: { setUsage: vi.fn(), needsUpdate: false },
       setMatrixAt: vi.fn(),
       setColorAt: vi.fn(),
@@ -140,7 +146,6 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
           randomDensity: 0.5,
           workerSim: false,
           lifeTex: makeLifeTex(),
-          dummy: new THREE.Object3D(),
           cellsRef: { current: makeMesh() },
           resolveCellColor: () => 1,
           colorScratch: new THREE.Color(),
@@ -199,7 +204,6 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
           randomDensity: 0.5,
           workerSim: false,
           lifeTex: makeLifeTex(),
-          dummy: new THREE.Object3D(),
           cellsRef: { current: makeMesh() },
           resolveCellColor: () => 1,
           colorScratch: new THREE.Color(),
@@ -244,7 +248,6 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
           randomDensity: 0.5,
           workerSim: false,
           lifeTex: makeLifeTex(),
-          dummy: new THREE.Object3D(),
           cellsRef: { current: makeMesh() },
           resolveCellColor: () => 1,
           colorScratch: new THREE.Color(),
@@ -284,7 +287,6 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
           randomDensity: props.randomDensity,
           workerSim: false,
           lifeTex: makeLifeTex(),
-          dummy: new THREE.Object3D(),
           cellsRef: { current: makeMesh() },
           resolveCellColor: () => 1,
           colorScratch: new THREE.Color(),
@@ -326,7 +328,13 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
 describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
   function makeMesh() {
     return {
-      instanceMatrix: { setUsage: vi.fn(), needsUpdate: false },
+      // A real InstancedBufferAttribute owns the backing store the renderer
+      // reads; the instance writer writes translations straight into it.
+      instanceMatrix: {
+        setUsage: vi.fn(),
+        needsUpdate: false,
+        array: new Float32Array(64 * 16),
+      },
       instanceColor: { setUsage: vi.fn(), needsUpdate: false },
       setMatrixAt: vi.fn(),
       setColorAt: vi.fn(),
@@ -358,7 +366,6 @@ describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
       randomDensity: 0.5,
       workerSim: false,
       lifeTex: makeLifeTex(),
-      dummy: new THREE.Object3D(),
       cellsRef: { current: makeMesh() },
       resolveCellColor: () => 1,
       colorScratch: new THREE.Color(),
@@ -413,7 +420,13 @@ describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
 describe('usePlanetLifeSim geometry-only updates', () => {
   function makeMesh() {
     return {
-      instanceMatrix: { setUsage: vi.fn(), needsUpdate: false },
+      // A real InstancedBufferAttribute owns the backing store the renderer
+      // reads; the instance writer writes translations straight into it.
+      instanceMatrix: {
+        setUsage: vi.fn(),
+        needsUpdate: false,
+        array: new Float32Array(64 * 16),
+      },
       instanceColor: { setUsage: vi.fn(), needsUpdate: false },
       setMatrixAt: vi.fn(),
       setColorAt: vi.fn(),
@@ -447,7 +460,6 @@ describe('usePlanetLifeSim geometry-only updates', () => {
           randomDensity: 0.5,
           workerSim: false,
           lifeTex: makeLifeTex(),
-          dummy: new THREE.Object3D(),
           cellsRef: { current: makeMesh() },
           resolveCellColor: () => 1,
           colorScratch: new THREE.Color(),
