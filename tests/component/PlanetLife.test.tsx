@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
-import { render } from '@testing-library/react';
-import { PlanetLife } from '../../src/components/PlanetLife';
-import * as THREE from 'three';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import { render } from '@testing-library/react';
+import React from 'react';
+import * as THREE from 'three';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { PlanetLife } from '../../src/components/PlanetLife';
 
 expect.extend(matchers);
 
@@ -15,19 +16,17 @@ vi.mock('leva', () => {
   return {
     useControls: (schemaOrName: unknown, schema?: unknown) => {
       let s = schema ?? schemaOrName;
+      // Leva's `folder()` takes a plain object and returns a wrapper, so the
+      // schema has to be unwrapped before the value objects below are read.
       const isFunction = typeof s === 'function';
       if (isFunction) {
-        s = (s as Function)();
+        s = (s as () => unknown)();
       }
 
       const result: Record<string, unknown> = {};
       function isValueObject(v: unknown): v is { value: unknown } {
         return typeof v === 'object' && v !== null && 'value' in v;
       }
-      const getValue = (val: unknown) => {
-        if (isValueObject(val)) return val.value;
-        return val;
-      };
 
       const isPlainObject = (v: unknown): v is Record<string, unknown> => {
         return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -97,19 +96,22 @@ describe('PlanetLife', () => {
 
     // PlanetLife renders a group containing multiple meshes
     // 1. Planet sphere
-    // 2. Life overlay sphere
-    // 3. InstancedMesh (possibly, depends on mode)
+    // 2. Atmosphere shell
+    // 3. Life overlay sphere
+    // 4. InstancedMesh (only in Dots/Both mode)
 
     const meshes = container.querySelectorAll('mesh');
-    expect(meshes.length).toBeGreaterThanOrEqual(1);
+    expect(meshes.length).toBeGreaterThanOrEqual(3);
 
-    // Check if geometries are present
+    // Each of those spheres carries its own geometry.
     const spheres = container.querySelectorAll('sphereGeometry');
-    expect(spheres.length).toBeGreaterThanOrEqual(1);
+    expect(spheres.length).toBeGreaterThanOrEqual(3);
 
-    // Default render mode is Texture, so we expect the overlay material.
-    // (meshStandardMaterial is only present when Dots/Both mode renders the instanced mesh.)
-    expect(container.querySelector('meshBasicMaterial')).toBeInTheDocument();
+    // Default render mode is Texture, so the life cells are drawn onto the
+    // overlay texture and no instancedMesh is created.
+    // (Previously this asserted on `meshBasicMaterial`, which was actually the
+    // atmosphere's material rather than the overlay's - an implementation
+    // detail that changed when the atmosphere gained its fresnel shader.)
     expect(container.querySelector('instancedMesh')).not.toBeInTheDocument();
   });
 });
