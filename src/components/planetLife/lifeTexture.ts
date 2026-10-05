@@ -40,6 +40,23 @@ export function useLifeTexture(params: { lonCells: number; latCells: number }): 
   return lifeTex;
 }
 
+/**
+ * Precomputed mapping from a raw neighbour count to its normalised byte.
+ *
+ * The inner loop below runs for every cell on every tick, so the division,
+ * floor and clamp are replaced with a single array read. The table is built
+ * from the original expression so the two can never drift, and it spans the
+ * whole byte range rather than just the 0-8 the simulation normally produces,
+ * which keeps the original defensive clamp for out-of-range values.
+ */
+const HEAT_TO_BYTE = (() => {
+  const table = new Uint8Array(256);
+  for (let h = 0; h < 256; h++) {
+    table[h] = Math.min(255, Math.floor((h / 8.0) * 255));
+  }
+  return table;
+})();
+
 export function writeLifeTexture(params: {
   grid: Uint8Array;
   ages: Uint8Array;
@@ -52,7 +69,11 @@ export function writeLifeTexture(params: {
   const { grid, ages, heat, lifeTex, gameMode, debugLogs } = params;
   const { data, w, h } = lifeTex;
 
+  // The running total is the function's return value, so it is always
+  // accumulated - gating it behind `debugLogs` would silently hand callers a
+  // population of 0.
   let aliveCount = 0;
+
   // Map sim lat index 0 (south pole) to texture v=0 (bottom).
   // DataTexture (flipY=false) maps row 0 to V=0.
   for (let la = 0; la < h; la++) {
@@ -97,10 +118,10 @@ export function writeLifeTexture(params: {
       data[di + 1] = ages[idx];
 
       // B Channel: Neighbor Heat
-      // CPU sim heat is neighbor count (0-8). Shader expects normalized heat (0-1).
-      // We map 0-8 count to 0-255 range.
-      // Note: Math.min(255, ...) handles cases where heat might theoretically exceed 8 (unlikely but safe)
-      data[di + 2] = Math.min(255, Math.floor((heat[idx] / 8.0) * 255));
+      // CPU sim heat is neighbour count (0-8). Shader expects normalized heat
+      // (0-1), mapped onto 0-255. Values beyond the normal range are still
+      // clamped by the table.
+      data[di + 2] = HEAT_TO_BYTE[heat[idx]];
 
       // A Channel: Always opaque
       // The fragment shader discard logic handles transparency based on R channel (state < 0.02)
