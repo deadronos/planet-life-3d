@@ -297,7 +297,7 @@ export function usePlanetLifeSim({
     // randomDensity is sampled on demand from randomDensityRef when the
     // user clicks Randomize. Listing them here would recreate the sim
     // (and re-randomize) on every Leva change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: values are routed via refs; see the comment above and the regression tests in tests/unit/usePlanetLifeSim.test.ts.
   }, [safeLatCells, safeLonCells, workerEnabled]);
 
   // Geometry-only updates (planetRadius / cellLift) recompute surface
