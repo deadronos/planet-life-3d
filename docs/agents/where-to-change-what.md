@@ -20,4 +20,4 @@ If you change cell indexing/layout, make sure both the texture write path and th
 
 - World point → cell mapping: `src/sim/spherePointToCell.ts` (called by `LifeSphereSim.pointToCell()`)
 - CPU seeding: `LifeSphereSim.seedAtPoint()` / `seedAtCell()`
-- UI integration: `src/components/PlanetLife.tsx` (seed controls) and `src/components/planetLife/useSimulationSeeder.ts`
+- UI integration: `src/components/PlanetLife.tsx` (composition) with seed resolution in `src/components/planetLife/seedRequest.ts` (pure: tool/pattern → `SeedRequest`) and GPU/CPU application in `src/components/planetLife/applySeed.ts`

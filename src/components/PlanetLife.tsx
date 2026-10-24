@@ -4,18 +4,11 @@ import * as THREE from 'three';
 
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { computeEcologySample } from '../sim/ecology';
-import {
-  getBuiltinPatternOffsets,
-  offsetsToMatrix,
-  parseAsciiPattern,
-  transformOffsets,
-} from '../sim/patterns';
 import { parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
-import type { SeedMode } from '../sim/types';
-import { buildRandomDiskOffsets } from '../sim/utils';
-import { type MeteorTool, useUIStore } from '../store/useUIStore';
+import { useUIStore } from '../store/useUIStore';
 import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
+import { applySeed } from './planetLife/applySeed';
 import { Atmosphere } from './planetLife/Atmosphere';
 import { useCellColorResolver } from './planetLife/cellColor';
 import { CellsInstancedMesh } from './planetLife/CellsInstancedMesh';
@@ -25,9 +18,9 @@ import { useLifeTexture } from './planetLife/lifeTexture';
 import { MeteorEffects } from './planetLife/MeteorEffects';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { PlanetMesh } from './planetLife/PlanetMesh';
+import { resolveSeedRequest } from './planetLife/seedRequest';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
-import { useSimulationSeeder } from './planetLife/useSimulationSeeder';
 import { safeInt } from './planetLife/utils';
 
 export function PlanetLife({
@@ -75,7 +68,7 @@ export function PlanetLife({
     heatMidColor,
     heatHighColor,
   } = cells;
-  const { seedMode, seedPattern, seedScale, seedJitter, seedProbability, customPattern } = seeding;
+  const { seedPattern } = seeding;
   const { debugLogs, gpuSim } = debug;
   const activeTool = useUIStore((state) => state.activeTool);
   const setPlanetStatus = useUIStore((state) => state.setPlanetStatus);
@@ -214,13 +207,6 @@ export function PlanetLife({
     [],
   );
 
-  const { seedAtPoint: seedAtPointCPU } = useSimulationSeeder({
-    seedAtPointImpl,
-    updateInstances,
-    seeding,
-    debugLogs,
-  });
-
   useEffect(() => {
     setPlanetStatus({
       preset: worldPreset,
@@ -231,43 +217,8 @@ export function PlanetLife({
     });
   }, [ecologyProfile, gameMode, gpuSim, seedPattern, setPlanetStatus, worldPreset]);
 
-  const buildToolSeed = useMemo(() => {
-    return (tool: MeteorTool) => {
-      if (tool === 'Probe') return undefined;
-
-      const toolScale =
-        tool === 'Sterilizer' ? Math.max(3, seedScale + 2) : tool === 'Mutation' ? 3 : seedScale;
-      // Sterilizer/Mutation/Comet have fixed seeding semantics.
-      const toolMode: SeedMode =
-        tool === 'Sterilizer' ? 'clear' : tool === 'Mutation' ? 'random' : 'set';
-      const toolProbability =
-        tool === 'Sterilizer'
-          ? 1
-          : tool === 'Mutation'
-            ? 0.55
-            : tool === 'Comet'
-              ? 0.95
-              : seedProbability;
-
-      // Tool meteors always use a filled disk (Sterilizer/Mutation/Comet).
-      // The disk is built at its final radius, so scale is 1: the
-      // CPU/worker seedAtCell transform (and the GPU path below) must not
-      // scale the offsets a second time.
-      const offsets = buildRandomDiskOffsets(toolScale);
-      if (offsets.length === 0) return undefined;
-
-      return {
-        offsets,
-        mode: toolMode,
-        scale: 1,
-        jitter: tool === 'Mutation' ? Math.max(1, seedJitter) : seedJitter,
-        probability: toolProbability,
-      };
-    };
-  }, [seedJitter, seedProbability, seedScale]);
-
-  const seedAtPoint = useMemo(() => {
-    return (point: THREE.Vector3) => {
+  const seedAtPoint = useCallback(
+    (point: THREE.Vector3) => {
       const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
       const sample = computeEcologySample({
         lat,
@@ -278,94 +229,36 @@ export function PlanetLife({
       });
       setProbe({ lat, lon, sample });
 
-      if (activeTool === 'Probe') return;
+      const request = resolveSeedRequest({ tool: activeTool, seeding });
+      if (!request) return;
 
-      if (activeTool !== 'Life') {
-        const toolSeed = buildToolSeed(activeTool);
-        if (!toolSeed) return;
-
-        if (gpuSim && gpuSimRef.current) {
-          const v = (lat + 0.5) / safeLatCells;
-          const u = (lon + 0.5) / safeLonCells;
-          const offsets = transformOffsets(toolSeed.offsets, toolSeed.scale, toolSeed.jitter);
-          const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
-          gpuSimRef.current.seedAtUV({
-            u,
-            v,
-            pattern: matrix,
-            mode: toolSeed.mode,
-            probability: toolSeed.probability,
-            originRow,
-            originCol,
-          });
-        } else {
-          seedAtPointImpl({
-            point,
-            offsets: toolSeed.offsets,
-            mode: toolSeed.mode,
-            scale: toolSeed.scale,
-            jitter: toolSeed.jitter,
-            probability: toolSeed.probability,
-            debug: debugLogs,
-          });
-        }
-        return;
-      }
-
-      if (gpuSim && gpuSimRef.current) {
-        const v = (lat + 0.5) / safeLatCells;
-        const u = (lon + 0.5) / safeLonCells;
-
-        let offsets =
-          seedPattern === 'Random Disk'
-            ? buildRandomDiskOffsets(seedScale)
-            : seedPattern === 'Custom ASCII'
-              ? parseAsciiPattern(customPattern)
-              : getBuiltinPatternOffsets(seedPattern);
-
-        if (offsets.length === 0) return;
-
-        // Disk offsets are built at their final radius; only built-in and
-        // custom patterns need the scale multiplier applied.
-        offsets = transformOffsets(
-          offsets,
-          seedPattern === 'Random Disk' ? 1 : seedScale,
-          seedJitter,
-        );
-
-        const { matrix, originRow, originCol } = offsetsToMatrix(offsets);
-
-        gpuSimRef.current.seedAtUV({
-          u,
-          v,
-          pattern: matrix,
-          mode: seedMode,
-          probability: seedProbability,
-          originRow,
-          originCol,
-        });
-      } else {
-        seedAtPointCPU(point);
-      }
-    };
-  }, [
-    gpuSim,
-    activeTool,
-    buildToolSeed,
-    debugLogs,
-    ecologyProfile,
-    safeLatCells,
-    safeLonCells,
-    seedPattern,
-    seedScale,
-    seedJitter,
-    seedMode,
-    customPattern,
-    seedProbability,
-    seedAtPointCPU,
-    seedAtPointImpl,
-    setProbe,
-  ]);
+      applySeed(request, {
+        point,
+        lat,
+        lon,
+        latCells: safeLatCells,
+        lonCells: safeLonCells,
+        gpu: gpuSim ? gpuSimRef.current : null,
+        cpu: (params) => {
+          seedAtPointImpl({ ...params, debug: debugLogs });
+          // Life refreshes the instanced mesh after a CPU seed; meteor tools do not.
+          if (activeTool === 'Life') updateInstances();
+        },
+      });
+    },
+    [
+      activeTool,
+      debugLogs,
+      ecologyProfile,
+      gpuSim,
+      safeLatCells,
+      safeLonCells,
+      seeding,
+      seedAtPointImpl,
+      setProbe,
+      updateInstances,
+    ],
+  );
 
   const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
     meteors: meteorControls,
