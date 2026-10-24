@@ -41,6 +41,13 @@ interface UIState {
   /** Wrapped in an object so repeated requests for the same command still notify. */
   simCommand: { command: SimCommand } | undefined;
   requestSimCommand: (command: SimCommand) => void;
+  /** Mirror of the Leva `running` / `tickMs` controls, written by controls.ts. */
+  simRunning: boolean;
+  simTickMs: number;
+  /** Wrapped like simCommand so repeated requests for the same speed still notify. */
+  simSpeedRequest: { tickMs: number } | undefined;
+  requestSimTickMs: (tickMs: number) => void;
+  setSimPlayback: (playback: { running: boolean; tickMs: number }) => void;
   setStats: (stats: GameStats) => void;
   setPlanetStatus: (status: PlanetStatus) => void;
   setActiveTool: (tool: MeteorTool) => void;
@@ -65,6 +72,12 @@ export const useUIStore = create<UIState>((set) => ({
   probe: undefined,
   simCommand: undefined,
   requestSimCommand: (command) => set({ simCommand: { command } }),
+  simRunning: true,
+  simTickMs: 120,
+  simSpeedRequest: undefined,
+  // Optimistic mirror so a dragged slider does not snap back while Leva catches up.
+  requestSimTickMs: (tickMs) => set({ simTickMs: tickMs, simSpeedRequest: { tickMs } }),
+  setSimPlayback: ({ running, tickMs }) => set({ simRunning: running, simTickMs: tickMs }),
   setStats: (stats) => set({ stats }),
   setPlanetStatus: (planetStatus) => set({ planetStatus }),
   setActiveTool: (activeTool) => set({ activeTool }),

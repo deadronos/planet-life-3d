@@ -101,6 +101,16 @@ export type DebugSlice = {
   gpuSim: boolean;
 };
 
+/**
+ * Debug controls are only shown in dev builds or when the URL has `?debug`.
+ * They are hidden with Leva `render` rather than removed, so their values keep
+ * their defaults (gpuSim in particular must stay on when the panel is hidden).
+ */
+export function isDebugUiEnabled(): boolean {
+  if (import.meta.env.DEV) return true;
+  return typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug');
+}
+
 /** Every control, grouped by domain slice. Slice keys mirror the Leva folders. */
 export type PlanetLifeControls = {
   sim: SimSlice;
@@ -212,28 +222,11 @@ export function usePlanetLifeControls(): PlanetLifeControls {
 
   const setRef = useRef<((value: Partial<FlatControls>) => void) | null>(null);
 
+  const debugUi = isDebugUiEnabled();
+
   const [params, set] = useControls(() => ({
-    Simulation: folder(
+    Basics: folder(
       {
-        gameMode: {
-          label: 'Game Mode',
-          value: 'Classic' as const,
-          options: ['Classic', 'Colony'] as const,
-        },
-        running: true,
-        tickMs: { value: 120, min: 10, max: 1500, step: 1 },
-        latCells: {
-          value: SIM_DEFAULTS.latCells,
-          min: SIM_CONSTRAINTS.latCells.min,
-          max: 140,
-          step: 1,
-        },
-        lonCells: {
-          value: SIM_DEFAULTS.lonCells,
-          min: SIM_CONSTRAINTS.lonCells.min,
-          max: 240,
-          step: 1,
-        },
         worldPreset: {
           label: 'World Preset',
           value: 'Custom',
@@ -268,6 +261,55 @@ export function usePlanetLifeControls(): PlanetLifeControls {
             });
           },
         },
+        theme: {
+          label: 'Theme',
+          value: 'Default',
+          options: ['Custom', ...COLOR_THEME_NAMES],
+          onChange: (v: string) => {
+            if (v === 'Custom' || !setRef.current) return;
+            const t = COLOR_THEMES[v];
+            if (t) {
+              setRef.current({
+                cellColor: t.cellColor,
+                atmosphereColor: t.atmosphereColor,
+                heatLowColor: t.heatLowColor,
+                heatMidColor: t.heatMidColor,
+                heatHighColor: t.heatHighColor,
+                impactRingColor: t.impactRingColor,
+              });
+            }
+          },
+        },
+        cellRenderMode: {
+          label: 'Cell Render Mode',
+          value: 'Texture' as const,
+          options: ['Texture', 'Dots', 'Both'] as const,
+        },
+      },
+      { collapsed: false },
+    ),
+
+    Simulation: folder(
+      {
+        gameMode: {
+          label: 'Game Mode',
+          value: 'Classic' as const,
+          options: ['Classic', 'Colony'] as const,
+        },
+        running: true,
+        tickMs: { value: 120, min: 10, max: 1500, step: 1 },
+        latCells: {
+          value: SIM_DEFAULTS.latCells,
+          min: SIM_CONSTRAINTS.latCells.min,
+          max: 140,
+          step: 1,
+        },
+        lonCells: {
+          value: SIM_DEFAULTS.lonCells,
+          min: SIM_CONSTRAINTS.lonCells.min,
+          max: 240,
+          step: 1,
+        },
         rulePreset: {
           label: 'Rule Preset',
           value: 'Conway',
@@ -289,7 +331,7 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         },
         randomDensity: { value: 0.14, min: 0, max: 1, step: 0.01 },
       },
-      { collapsed: false },
+      { collapsed: true },
     ),
 
     Rendering: folder(
@@ -303,10 +345,6 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         planetWireframe: false,
         planetRoughness: { value: 0.9, min: 0.05, max: 1, step: 0.01 },
         ecologyIntensity: { value: 0.65, min: 0, max: 1, step: 0.01 },
-        cellRenderMode: {
-          value: 'Texture' as const,
-          options: ['Texture', 'Dots', 'Both'] as const,
-        },
         cellOverlayOpacity: { value: 1, min: 0, max: 2, step: 0.01 },
         cellRadius: { value: 0.05, min: 0.01, max: 0.15, step: 0.005 },
         cellLift: {
@@ -326,25 +364,6 @@ export function usePlanetLifeControls(): PlanetLifeControls {
       {
         colonyColorA: '#ff3333',
         colonyColorB: '#3388ff',
-        theme: {
-          label: 'Theme',
-          value: 'Default',
-          options: ['Custom', ...COLOR_THEME_NAMES],
-          onChange: (v: string) => {
-            if (v === 'Custom' || !setRef.current) return;
-            const t = COLOR_THEMES[v];
-            if (t) {
-              setRef.current({
-                cellColor: t.cellColor,
-                atmosphereColor: t.atmosphereColor,
-                heatLowColor: t.heatLowColor,
-                heatMidColor: t.heatMidColor,
-                heatHighColor: t.heatHighColor,
-                impactRingColor: t.impactRingColor,
-              });
-            }
-          },
-        },
         rimIntensity: { value: 0.65, min: 0, max: 2, step: 0.01 },
         rimPower: { value: 2.6, min: 0.5, max: 6, step: 0.05 },
         terminatorSharpness: { value: 8, min: 1, max: 16, step: 0.5 },
@@ -397,16 +416,16 @@ export function usePlanetLifeControls(): PlanetLifeControls {
           value: `\n..O..\n...O.\n.OOO.\n`.trim(),
         },
       },
-      { collapsed: false },
+      { collapsed: true },
     ),
 
     Debug: folder(
       {
-        debugLogs: false,
+        debugLogs: { value: false, render: () => debugUi },
 
         // Experimental: offload simulation ticking to a Web Worker.
         // Rendering still happens on the main thread.
-        workerSim: false,
+        workerSim: { value: false, render: () => debugUi },
 
         // Experimental: run simulation on GPU using shaders
         // This allows for much higher resolutions (512x1024+).
@@ -415,7 +434,7 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         // path (PlanetLife also tolerates a missing GPU texture by using
         // the CPU life texture, so a runtime init failure here won't blank
         // the planet).
-        gpuSim: isGpuSimulationSupported(),
+        gpuSim: { value: isGpuSimulationSupported(), render: () => debugUi },
       },
       { collapsed: true },
     ),
@@ -424,6 +443,22 @@ export function usePlanetLifeControls(): PlanetLifeControls {
   useEffect(() => {
     setRef.current = set;
   }, [set]);
+
+  // Mirror running/tickMs into the UI store so the transport bar can show them.
+  useEffect(() => {
+    useUIStore.getState().setSimPlayback({ running: params.running, tickMs: params.tickMs });
+  }, [params.running, params.tickMs]);
+
+  // Transport speed slider: write the requested tick interval through Leva.
+  useEffect(
+    () =>
+      useUIStore.subscribe((state, prev) => {
+        const request = state.simSpeedRequest;
+        if (!request || request === prev.simSpeedRequest) return;
+        setRef.current?.({ tickMs: request.tickMs });
+      }),
+    [],
+  );
 
   // Space hotkey: flip the Leva `running` control. Subscribed (not effect-run)
   // so a command fires once per request, not on every re-render.

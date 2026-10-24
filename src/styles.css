@@ -207,18 +207,103 @@ body,
   font-weight: 700;
 }
 
-.meteor-toolbelt {
+.bottom-dock {
   position: absolute;
   left: 50%;
   bottom: 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: min(680px, calc(100vw - 48px));
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.meteor-toolbelt {
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  max-width: min(680px, calc(100vw - 48px));
+  max-width: 100%;
   padding: 0.65rem;
-  pointer-events: auto;
-  transform: translateX(-50%);
+}
+
+.transport-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 0.5rem 0.65rem;
+}
+
+.transport-button {
+  min-width: 86px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.transport-button:hover {
+  border-color: rgba(165, 180, 252, 0.72);
+  color: #ffffff;
+}
+
+.transport-button[aria-pressed='true'] {
+  border-color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.28);
+  color: #ffffff;
+}
+
+.transport-button:focus-visible,
+.transport-speed input:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
+.transport-speed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.transport-speed input {
+  width: 140px;
+  min-height: 44px;
+  accent-color: #a5b4fc;
+  cursor: pointer;
+}
+
+.transport-speed output {
+  min-width: 4.5em;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
 }
 
 .tool-button {
@@ -285,13 +370,18 @@ body,
     padding: 0.85rem 1rem;
   }
 
-  .meteor-toolbelt {
+  .bottom-dock {
     max-width: calc(100vw - 28px);
+  }
+
+  .transport-button {
+    min-width: 76px;
+    font-size: 0.78rem;
   }
 
   .tool-button {
     min-width: 76px;
-    height: 34px;
+    height: 44px;
     font-size: 0.78rem;
   }
 }

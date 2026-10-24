@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
+import { TransportBar } from './TransportBar';
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -95,18 +96,21 @@ export function Overlay() {
         </section>
       )}
 
-      <div className="meteor-toolbelt" role="toolbar" aria-label="Meteor tools">
-        {METEOR_TOOLS.map((tool) => (
-          <button
-            key={tool}
-            type="button"
-            className={tool === activeTool ? 'tool-button active' : 'tool-button'}
-            onClick={() => setActiveTool(tool)}
-            aria-pressed={tool === activeTool}
-          >
-            {tool}
-          </button>
-        ))}
+      <div className="bottom-dock">
+        <TransportBar />
+        <div className="meteor-toolbelt" role="toolbar" aria-label="Meteor tools">
+          {METEOR_TOOLS.map((tool) => (
+            <button
+              key={tool}
+              type="button"
+              className={tool === activeTool ? 'tool-button active' : 'tool-button'}
+              onClick={() => setActiveTool(tool)}
+              aria-pressed={tool === activeTool}
+            >
+              {tool}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
