@@ -1,7 +1,6 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-import type { EcologyProfileName } from '../../sim/ecology';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
 import type { Rules } from '../../sim/rules';
@@ -10,50 +9,41 @@ import type { SeedMode } from '../../sim/types';
 import { useUIStore } from '../../store/useUIStore';
 import type { LifeGridWorkerInMessage } from '../../workers/lifeGridWorkerMessages';
 import type { ResolveCellColor } from './cellColor';
+import type { CellsSlice, DebugSlice, PlanetSlice, SimSlice } from './controls';
 import { type LifeTexture } from './lifeTexture';
 import { useSimInstances } from './useSimInstances';
 import { useSimTickLoop } from './useSimTickLoop';
 import { useSimWorker } from './useSimWorker';
 
 export function usePlanetLifeSim({
-  running,
-  tickMs,
+  sim,
+  planet,
+  cells,
+  debug,
   safeLatCells,
   safeLonCells,
-  planetRadius,
-  cellLift,
-  cellRenderMode,
-  gameMode,
   rules,
-  ecologyProfile,
-  randomDensity,
-  workerSim,
-  gpuSim = false,
   lifeTex,
   cellsRef,
   resolveCellColor,
   colorScratch,
-  debugLogs,
 }: {
-  running: boolean;
-  tickMs: number;
+  sim: SimSlice;
+  planet: PlanetSlice;
+  cells: CellsSlice;
+  debug: DebugSlice;
   safeLatCells: number;
   safeLonCells: number;
-  planetRadius: number;
-  cellLift: number;
-  cellRenderMode: 'Texture' | 'Dots' | 'Both';
-  gameMode: 'Classic' | 'Colony';
   rules: Rules;
-  ecologyProfile: EcologyProfileName;
-  randomDensity: number;
-  workerSim: boolean;
-  gpuSim?: boolean;
   lifeTex: LifeTexture;
   cellsRef: RefObject<THREE.InstancedMesh | null>;
   resolveCellColor: ResolveCellColor;
   colorScratch: THREE.Color;
-  debugLogs: boolean;
 }) {
+  const { running, tickMs, ecologyProfile, randomDensity, gameMode } = sim;
+  const { planetRadius } = planet;
+  const { cellLift, cellRenderMode } = cells;
+  const { workerSim, gpuSim, debugLogs } = debug;
   const simRef = useRef<LifeSphereSim | null>(null);
   const geometrySimRef = useRef<LifeSphereSim | null>(null);
   const updateInstancesRef = useRef<() => void>(() => {

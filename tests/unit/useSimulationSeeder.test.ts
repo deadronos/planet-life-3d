@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSimulationSeeder } from '../../src/components/planetLife/useSimulationSeeder';
 import type { Offset } from '../../src/sim/patterns';
 import type { SeedMode } from '../../src/sim/types';
+import { sliced } from './sliceArgs';
 
 describe('useSimulationSeeder', () => {
   let mockSeedAtPointImpl: ReturnType<
@@ -40,17 +41,19 @@ describe('useSimulationSeeder', () => {
 
   it('should use builtin pattern offsets for known patterns', () => {
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Glider',
-        seedScale: 1,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Glider',
+          seedScale: 1,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -72,17 +75,19 @@ describe('useSimulationSeeder', () => {
 
   it('passes scale 1 for Random Disk so offsets are not re-scaled', () => {
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Random Disk',
-        seedScale: 4,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Random Disk',
+          seedScale: 4,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -97,17 +102,19 @@ describe('useSimulationSeeder', () => {
 
   it('passes the seed scale through for built-in patterns', () => {
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Glider',
-        seedScale: 3,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Glider',
+          seedScale: 3,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -118,17 +125,19 @@ describe('useSimulationSeeder', () => {
   it('should use custom ASCII pattern when specified', () => {
     const customPattern = '.O.\nOOO\n.O.';
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Custom ASCII',
-        seedScale: 1,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern,
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Custom ASCII',
+          seedScale: 1,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern,
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -141,17 +150,19 @@ describe('useSimulationSeeder', () => {
 
   it('should generate random disk offsets when pattern is Random Disk', () => {
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Random Disk',
-        seedScale: 2,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Random Disk',
+          seedScale: 2,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -165,31 +176,35 @@ describe('useSimulationSeeder', () => {
 
   it('should scale random disk size based on seedScale', () => {
     const { result: result1 } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Random Disk',
-        seedScale: 1,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Random Disk',
+          seedScale: 1,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const { result: result2 } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Random Disk',
-        seedScale: 3,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Random Disk',
+          seedScale: 3,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);
@@ -208,17 +223,19 @@ describe('useSimulationSeeder', () => {
 
   it('should pass all parameters to seedAtPoint', () => {
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Glider',
-        seedScale: 2,
-        seedMode: 'toggle',
-        seedJitter: 3,
-        seedProbability: 0.7,
-        customPattern: '',
-        debugLogs: false,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Glider',
+          seedScale: 2,
+          seedMode: 'toggle',
+          seedJitter: 3,
+          seedProbability: 0.7,
+          customPattern: '',
+          debugLogs: false,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(1, 0, 0);
@@ -240,17 +257,19 @@ describe('useSimulationSeeder', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const { result } = renderHook(() =>
-      useSimulationSeeder({
-        seedAtPointImpl: mockSeedAtPointImpl,
-        updateInstances: mockUpdateInstances,
-        seedPattern: 'Glider',
-        seedScale: 1,
-        seedMode: 'set',
-        seedJitter: 0,
-        seedProbability: 1,
-        customPattern: '',
-        debugLogs: true,
-      }),
+      useSimulationSeeder(
+        sliced({
+          seedAtPointImpl: mockSeedAtPointImpl,
+          updateInstances: mockUpdateInstances,
+          seedPattern: 'Glider',
+          seedScale: 1,
+          seedMode: 'set',
+          seedJitter: 0,
+          seedProbability: 1,
+          customPattern: '',
+          debugLogs: true,
+        }),
+      ),
     );
 
     const point = new THREE.Vector3(2, 0, 0);

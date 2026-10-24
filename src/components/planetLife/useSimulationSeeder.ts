@@ -2,32 +2,24 @@ import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 
 import { getBuiltinPatternOffsets, parseAsciiPattern } from '../../sim/patterns';
-import type { SeedAtPointParams, SeedMode } from '../../sim/types';
+import type { SeedAtPointParams } from '../../sim/types';
 import { buildRandomDiskOffsets } from '../../sim/utils';
+import type { SeedingSlice } from './controls';
 
 type SimulationSeederParams = {
   seedAtPointImpl: (params: SeedAtPointParams) => void;
   updateInstances: () => void;
-  seedPattern: string;
-  seedScale: number;
-  seedMode: SeedMode;
-  seedJitter: number;
-  seedProbability: number;
-  customPattern: string;
+  seeding: SeedingSlice;
   debugLogs: boolean;
 };
 
 export function useSimulationSeeder({
   seedAtPointImpl,
   updateInstances,
-  seedPattern,
-  seedScale,
-  seedMode,
-  seedJitter,
-  seedProbability,
-  customPattern,
+  seeding,
   debugLogs,
 }: SimulationSeederParams) {
+  const { seedPattern, seedScale, seedMode, seedJitter, seedProbability, customPattern } = seeding;
   const currentPatternOffsets = useMemo(() => {
     if (seedPattern === 'Custom ASCII') return parseAsciiPattern(customPattern);
     if (seedPattern === 'Random Disk') return []; // generated at impact

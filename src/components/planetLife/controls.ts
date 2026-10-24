@@ -15,17 +15,22 @@ import {
 } from '../../sim/presets';
 import { useUIStore } from '../../store/useUIStore';
 
-export type PlanetLifeControls = {
+/** Simulation folder: run state, grid size, rules, ecology and random fill. */
+export type SimSlice = {
   running: boolean;
   tickMs: number;
   latCells: number;
   lonCells: number;
   worldPreset: string;
-  rulePreset: string;
   birthDigits: string;
   surviveDigits: string;
   ecologyProfile: EcologyProfileName;
   randomDensity: number;
+  gameMode: 'Classic' | 'Colony';
+};
+
+/** Rendering + Upgrades (look) controls for the planet body and its lighting. */
+export type PlanetSlice = {
   planetRadius: number;
   planetWireframe: boolean;
   planetRoughness: number;
@@ -35,9 +40,16 @@ export type PlanetLifeControls = {
   rimPower: number;
   terminatorSharpness: number;
   terminatorBoost: number;
+};
+
+export type AtmosphereSlice = {
   atmosphereColor: string;
   atmosphereIntensity: number;
   atmosphereHeight: number;
+};
+
+/** Cell overlay / dots rendering, cell colours and the pulse animation. */
+export type CellsSlice = {
   cellRenderMode: 'Texture' | 'Dots' | 'Both';
   cellOverlayOpacity: number;
   cellRadius: number;
@@ -48,47 +60,157 @@ export type PlanetLifeControls = {
   heatLowColor: string;
   heatMidColor: string;
   heatHighColor: string;
-  meteorSpeed: number;
-  meteorRadius: number;
   colonyColorA: string;
   colonyColorB: string;
-  gameMode: 'Classic' | 'Colony';
+  pulseSpeed: number;
+  pulseIntensity: number;
+};
+
+export type MeteorsSlice = {
+  meteorSpeed: number;
+  meteorRadius: number;
   meteorCooldownMs: number;
   showerEnabled: boolean;
   showerInterval: number;
   meteorTrailLength: number;
   meteorTrailWidth: number;
   meteorEmissive: number;
+};
+
+export type ImpactsSlice = {
   impactFlashIntensity: number;
   impactFlashRadius: number;
   impactRingColor: string;
   impactRingDuration: number;
   impactRingSize: number;
+};
+
+export type SeedingSlice = {
   seedMode: 'set' | 'toggle' | 'clear' | 'random';
   seedPattern: string;
   seedScale: number;
   seedJitter: number;
   seedProbability: number;
   customPattern: string;
-
-  // Debug/experiments
-  workerSim: boolean;
-  gpuSim: boolean;
-
-  // Pulse
-  pulseSpeed: number;
-  pulseIntensity: number;
 };
 
-export type PlanetLifeControlsWithDebug = PlanetLifeControls & { debugLogs: boolean };
+/** Debug/experiments. debugLogs is a Leva Debug folder toggle. */
+export type DebugSlice = {
+  debugLogs: boolean;
+  workerSim: boolean;
+  gpuSim: boolean;
+};
 
-export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
+/** Every control, grouped by domain slice. Slice keys mirror the Leva folders. */
+export type PlanetLifeControls = {
+  sim: SimSlice;
+  planet: PlanetSlice;
+  atmosphere: AtmosphereSlice;
+  cells: CellsSlice;
+  meteors: MeteorsSlice;
+  impacts: ImpactsSlice;
+  seeding: SeedingSlice;
+  debug: DebugSlice;
+};
+
+/** Flat view of the Leva values. Leva keys stay flat; slices are derived from this. */
+type FlatControls = SimSlice & {
+  /** Preset selector (Simulation folder); not a slice field, only written via setRef. */
+  rulePreset: string;
+} & PlanetSlice &
+  AtmosphereSlice &
+  CellsSlice &
+  MeteorsSlice &
+  ImpactsSlice &
+  SeedingSlice &
+  DebugSlice;
+
+function toSlices(p: FlatControls): PlanetLifeControls {
+  return {
+    sim: {
+      running: p.running,
+      tickMs: p.tickMs,
+      latCells: p.latCells,
+      lonCells: p.lonCells,
+      worldPreset: p.worldPreset,
+      birthDigits: p.birthDigits,
+      surviveDigits: p.surviveDigits,
+      ecologyProfile: p.ecologyProfile,
+      randomDensity: p.randomDensity,
+      gameMode: p.gameMode,
+    },
+    planet: {
+      planetRadius: p.planetRadius,
+      planetWireframe: p.planetWireframe,
+      planetRoughness: p.planetRoughness,
+      ecologyIntensity: p.ecologyIntensity,
+      theme: p.theme,
+      rimIntensity: p.rimIntensity,
+      rimPower: p.rimPower,
+      terminatorSharpness: p.terminatorSharpness,
+      terminatorBoost: p.terminatorBoost,
+    },
+    atmosphere: {
+      atmosphereColor: p.atmosphereColor,
+      atmosphereIntensity: p.atmosphereIntensity,
+      atmosphereHeight: p.atmosphereHeight,
+    },
+    cells: {
+      cellRenderMode: p.cellRenderMode,
+      cellOverlayOpacity: p.cellOverlayOpacity,
+      cellRadius: p.cellRadius,
+      cellLift: p.cellLift,
+      cellColor: p.cellColor,
+      cellColorMode: p.cellColorMode,
+      ageFadeHalfLife: p.ageFadeHalfLife,
+      heatLowColor: p.heatLowColor,
+      heatMidColor: p.heatMidColor,
+      heatHighColor: p.heatHighColor,
+      colonyColorA: p.colonyColorA,
+      colonyColorB: p.colonyColorB,
+      pulseSpeed: p.pulseSpeed,
+      pulseIntensity: p.pulseIntensity,
+    },
+    meteors: {
+      meteorSpeed: p.meteorSpeed,
+      meteorRadius: p.meteorRadius,
+      meteorCooldownMs: p.meteorCooldownMs,
+      showerEnabled: p.showerEnabled,
+      showerInterval: p.showerInterval,
+      meteorTrailLength: p.meteorTrailLength,
+      meteorTrailWidth: p.meteorTrailWidth,
+      meteorEmissive: p.meteorEmissive,
+    },
+    impacts: {
+      impactFlashIntensity: p.impactFlashIntensity,
+      impactFlashRadius: p.impactFlashRadius,
+      impactRingColor: p.impactRingColor,
+      impactRingDuration: p.impactRingDuration,
+      impactRingSize: p.impactRingSize,
+    },
+    seeding: {
+      seedMode: p.seedMode,
+      seedPattern: p.seedPattern,
+      seedScale: p.seedScale,
+      seedJitter: p.seedJitter,
+      seedProbability: p.seedProbability,
+      customPattern: p.customPattern,
+    },
+    debug: {
+      debugLogs: p.debugLogs,
+      workerSim: p.workerSim,
+      gpuSim: p.gpuSim,
+    },
+  };
+}
+
+export function usePlanetLifeControls(): PlanetLifeControls {
   const patternOptions = useMemo(
     () => [...BUILTIN_PATTERN_NAMES, 'Custom ASCII', 'Random Disk'],
     [],
   );
 
-  const setRef = useRef<((value: Partial<PlanetLifeControlsWithDebug>) => void) | null>(null);
+  const setRef = useRef<((value: Partial<FlatControls>) => void) | null>(null);
 
   const [params, set] = useControls(() => ({
     Simulation: folder(
@@ -333,5 +455,6 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
     }
   }, [params.gpuSim, params.cellRenderMode, set]);
 
-  return params as unknown as PlanetLifeControlsWithDebug;
+  const flat = params as unknown as FlatControls;
+  return useMemo(() => toSlices(flat), [flat]);
 }
