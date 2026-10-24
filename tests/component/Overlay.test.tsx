@@ -1,5 +1,6 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { Overlay } from '../../src/components/Overlay';
 
 describe('Overlay component', () => {
@@ -32,10 +33,12 @@ describe('Overlay component', () => {
 
   it('should display the onboarding hint the first time it is rendered', () => {
     render(<Overlay />);
-    const hintText = screen.getByText(
+    // The keyboard-shortcut part is its own span (hidden on narrow screens), so
+    // match against the whole hint region rather than a single text node.
+    const hint = screen.getByRole('region', { name: 'Onboarding instructions' });
+    expect(hint).toHaveTextContent(
       /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
     );
-    expect(hintText).toBeInTheDocument();
     // It should NOT set localStorage immediately on render anymore
     expect(localStorageMock.setItem).not.toHaveBeenCalledWith('onboardingHintShown', 'true');
   });
@@ -48,10 +51,7 @@ describe('Overlay component', () => {
     render(<Overlay />);
 
     // Expect the hint not to be in the document
-    const hintText = screen.queryByText(
-      /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
-    );
-    expect(hintText).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Onboarding instructions' })).toBeNull();
   });
 
   it('should dismiss the hint when the close button is clicked', () => {
@@ -63,10 +63,7 @@ describe('Overlay component', () => {
     fireEvent.click(dismissBtn);
 
     // Should disappear
-    const hintText = screen.queryByText(
-      /Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press 'h' to toggle UI/i,
-    );
-    expect(hintText).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Onboarding instructions' })).toBeNull();
 
     // Should persist to localStorage
     expect(localStorageMock.setItem).toHaveBeenCalledWith('onboardingHintShown', 'true');
