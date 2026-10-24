@@ -6,11 +6,18 @@ let capturedSchema: unknown = null;
 const overrides: Record<string, unknown> = {};
 
 type SchemaShape = {
+  Basics?: {
+    worldPreset?: { onChange?: (v: string) => void };
+    theme?: { onChange?: (v: string) => void };
+    cellRenderMode?: { render?: (get: unknown) => boolean };
+  };
   Simulation?: {
     rulePreset?: { onChange?: (v: string) => void };
-    worldPreset?: { onChange?: (v: string) => void };
   };
-  Upgrades?: { theme?: { onChange?: (v: string) => void } };
+  Debug?: {
+    workerSim?: { render?: (get: unknown) => boolean };
+    gpuSim?: { value?: unknown; render?: (get: unknown) => boolean };
+  };
 };
 
 vi.mock('leva', () => ({
@@ -98,7 +105,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
     renderHook(() => usePlanetLifeControls());
 
     expect(capturedSchema).toBeTruthy();
-    const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
+    const theme = (capturedSchema as SchemaShape).Basics?.theme;
     expect(theme).toBeTruthy();
     expect(typeof theme!.onChange).toBe('function');
 
@@ -113,7 +120,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   it('does not call set when theme set to Custom', () => {
     renderHook(() => usePlanetLifeControls());
 
-    const theme = (capturedSchema as SchemaShape).Upgrades?.theme;
+    const theme = (capturedSchema as SchemaShape).Basics?.theme;
     expect(theme).toBeTruthy();
     expect(typeof theme!.onChange).toBe('function');
 
@@ -125,7 +132,7 @@ describe('usePlanetLifeControls - onChange handlers', () => {
   it('calls set when world preset onChange selected (non-Custom)', () => {
     renderHook(() => usePlanetLifeControls());
 
-    const worldPreset = (capturedSchema as SchemaShape).Simulation?.worldPreset;
+    const worldPreset = (capturedSchema as SchemaShape).Basics?.worldPreset;
     expect(worldPreset).toBeTruthy();
     expect(typeof worldPreset!.onChange).toBe('function');
 
@@ -224,5 +231,49 @@ describe('usePlanetLifeControls - slice shape', () => {
     expect(controls.impacts.impactRingSize).toBe(1.5);
     expect(controls.seeding.seedPattern).toBe('Blinker');
     expect(controls.debug.debugLogs).toBe(true);
+  });
+});
+
+describe('usePlanetLifeControls - folder layout and debug gating', () => {
+  beforeEach(() => {
+    capturedSchema = null;
+    vi.unstubAllEnvs();
+  });
+
+  it('puts the basic controls in an expanded Basics folder first', () => {
+    renderHook(() => usePlanetLifeControls());
+    const keys = Object.keys(capturedSchema as object);
+    expect(keys[0]).toBe('Basics');
+    const basics = (capturedSchema as SchemaShape).Basics as Record<string, unknown>;
+    expect(Object.keys(basics)).toEqual(
+      expect.arrayContaining(['worldPreset', 'theme', 'cellRenderMode']),
+    );
+  });
+
+  it('hides debug controls outside dev builds and without ?debug', () => {
+    vi.stubEnv('DEV', false);
+    renderHook(() => usePlanetLifeControls());
+    const debug = (capturedSchema as SchemaShape).Debug;
+    expect(debug?.workerSim?.render?.(() => undefined)).toBe(false);
+    expect(debug?.gpuSim?.render?.(() => undefined)).toBe(false);
+  });
+
+  it('shows debug controls in dev builds', () => {
+    vi.stubEnv('DEV', true);
+    renderHook(() => usePlanetLifeControls());
+    expect((capturedSchema as SchemaShape).Debug?.workerSim?.render?.(() => undefined)).toBe(true);
+  });
+
+  it('shows debug controls when the URL has ?debug', () => {
+    vi.stubEnv('DEV', false);
+    window.history.replaceState({}, '', '/?debug');
+    try {
+      renderHook(() => usePlanetLifeControls());
+      expect((capturedSchema as SchemaShape).Debug?.workerSim?.render?.(() => undefined)).toBe(
+        true,
+      );
+    } finally {
+      window.history.replaceState({}, '', '/');
+    }
   });
 });
