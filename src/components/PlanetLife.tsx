@@ -422,32 +422,62 @@ export function PlanetLife({
     debugLogs,
   });
 
+  const runRandomize = useCallback(() => {
+    if (gpuSim && gpuSimRef.current) {
+      gpuSimRef.current.randomize();
+    } else {
+      randomize();
+    }
+  }, [gpuSim, randomize]);
+
+  const runClear = useCallback(() => {
+    if (gpuSim && gpuSimRef.current) {
+      gpuSimRef.current.clear();
+    } else {
+      clear();
+    }
+  }, [gpuSim, clear]);
+
+  const runStepOnce = useCallback(() => {
+    if (gpuSim && gpuSimRef.current) {
+      gpuSimRef.current.stepOnce();
+    } else {
+      stepOnce();
+    }
+  }, [gpuSim, stepOnce]);
+
   useControls(
     'Actions',
     () => ({
-      Randomize: button(() => {
-        if (gpuSim && gpuSimRef.current) {
-          gpuSimRef.current.randomize();
-        } else {
-          randomize();
-        }
-      }),
-      Clear: button(() => {
-        if (gpuSim && gpuSimRef.current) {
-          gpuSimRef.current.clear();
-        } else {
-          clear();
-        }
-      }),
-      StepOnce: button(() => {
-        if (gpuSim && gpuSimRef.current) {
-          gpuSimRef.current.stepOnce();
-        } else {
-          stepOnce();
-        }
-      }),
+      Randomize: button(runRandomize),
+      Clear: button(runClear),
+      StepOnce: button(runStepOnce),
     }),
-    [gpuSim, randomize, clear, stepOnce],
+    [runRandomize, runClear, runStepOnce],
+  );
+
+  // Hotkey commands (see useHotkeys). togglePlay is handled in controls.ts,
+  // which owns the Leva `running` setter.
+  useEffect(
+    () =>
+      useUIStore.subscribe((state, prev) => {
+        const request = state.simCommand;
+        if (!request || request === prev.simCommand) return;
+        switch (request.command) {
+          case 'randomize':
+            runRandomize();
+            break;
+          case 'clear':
+            runClear();
+            break;
+          case 'step':
+            runStepOnce();
+            break;
+          case 'togglePlay':
+            break;
+        }
+      }),
+    [runRandomize, runClear, runStepOnce],
   );
 
   // GPU sim is the default. If it ever fails to produce a texture (WebGL2

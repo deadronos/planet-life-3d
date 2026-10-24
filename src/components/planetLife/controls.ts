@@ -13,6 +13,7 @@ import {
   WORLD_PRESET_NAMES,
   WORLD_PRESETS,
 } from '../../sim/presets';
+import { useUIStore } from '../../store/useUIStore';
 
 export type PlanetLifeControls = {
   running: boolean;
@@ -301,6 +302,24 @@ export function usePlanetLifeControls(): PlanetLifeControlsWithDebug {
   useEffect(() => {
     setRef.current = set;
   }, [set]);
+
+  // Space hotkey: flip the Leva `running` control. Subscribed (not effect-run)
+  // so a command fires once per request, not on every re-render.
+  const runningRef = useRef(params.running);
+  useEffect(() => {
+    runningRef.current = params.running;
+  }, [params.running]);
+  useEffect(
+    () =>
+      useUIStore.subscribe((state, prev) => {
+        const request = state.simCommand;
+        if (!request || request === prev.simCommand) return;
+        if (request.command === 'togglePlay') {
+          setRef.current?.({ running: !runningRef.current });
+        }
+      }),
+    [],
+  );
 
   // Dots / Both cell render modes require a CPU/Worker sim (Dots uses an
   // instanced mesh driven from the sim state). When GPU sim is on there

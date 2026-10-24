@@ -11,6 +11,14 @@ export interface GameStats {
 
 export type MeteorTool = 'Life' | 'Sterilizer' | 'Mutation' | 'Comet' | 'Probe';
 
+export const METEOR_TOOLS: MeteorTool[] = ['Life', 'Sterilizer', 'Mutation', 'Comet', 'Probe'];
+
+/**
+ * Sim actions requested from outside the sim (e.g. keyboard hotkeys). The
+ * sim components execute them with the same code paths as their Leva buttons.
+ */
+export type SimCommand = 'togglePlay' | 'step' | 'randomize' | 'clear';
+
 export interface PlanetStatus {
   preset: string;
   ecologyProfile: EcologyProfileName;
@@ -30,6 +38,9 @@ interface UIState {
   planetStatus: PlanetStatus;
   activeTool: MeteorTool;
   probe: ProbeStatus | undefined;
+  /** Wrapped in an object so repeated requests for the same command still notify. */
+  simCommand: { command: SimCommand } | undefined;
+  requestSimCommand: (command: SimCommand) => void;
   setStats: (stats: GameStats) => void;
   setPlanetStatus: (status: PlanetStatus) => void;
   setActiveTool: (tool: MeteorTool) => void;
@@ -52,6 +63,8 @@ export const useUIStore = create<UIState>((set) => ({
   },
   activeTool: 'Life',
   probe: undefined,
+  simCommand: undefined,
+  requestSimCommand: (command) => set({ simCommand: { command } }),
   setStats: (stats) => set({ stats }),
   setPlanetStatus: (planetStatus) => set({ planetStatus }),
   setActiveTool: (activeTool) => set({ activeTool }),
