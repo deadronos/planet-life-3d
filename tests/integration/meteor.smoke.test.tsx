@@ -33,6 +33,7 @@ describe('Meteor (real R3F render)', () => {
       React.createElement(Meteor, {
         spec: {
           id: 'm1',
+          source: 'user',
           origin: new THREE.Vector3(10, 0, 0),
           direction: new THREE.Vector3(-1, 0, 0),
           speed: 1,
@@ -66,6 +67,7 @@ describe('Meteor (real R3F render)', () => {
       React.createElement(Meteor, {
         spec: {
           id: 'm-tunnel',
+          source: 'user',
           // Start just outside the impact shell (radius 2.6 + 0.08 = 2.68).
           origin: new THREE.Vector3(0, 0, 3.0),
           direction: new THREE.Vector3(0, 0, -1),
@@ -107,6 +109,7 @@ describe('Meteor (real R3F render)', () => {
       React.createElement(Meteor, {
         spec: {
           id: 'm-miss',
+          source: 'user',
           origin: new THREE.Vector3(10, 0, 0),
           direction: new THREE.Vector3(1, 0, 0),
           speed: 1,

@@ -9,7 +9,7 @@ export interface MeteorEffectsProps {
   meteors: MeteorSpec[];
   impacts: ImpactSpec[];
   planetRadius: number;
-  onMeteorImpact: (id: string, impactPoint: THREE.Vector3) => void;
+  onMeteorImpact: (id: string, impactPoint: THREE.Vector3, source: MeteorSpec['source']) => void;
 }
 
 export function MeteorEffects({
