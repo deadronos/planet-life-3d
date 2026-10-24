@@ -4,13 +4,26 @@ import { useUIStore } from '../store/useUIStore';
 export const TICK_MS_MIN = 10;
 export const TICK_MS_MAX = 1500;
 
-/** The slider runs slow (left) to fast (right), while `tickMs` is a delay. */
+/** Slider resolution. The slider position is 0..SLIDER_STEPS, slow (left) to fast (right). */
+export const SLIDER_STEPS = 10000;
+
+const MIN_TPS = 1000 / TICK_MS_MAX;
+const MAX_TPS = 1000 / TICK_MS_MIN;
+
+/**
+ * Log-uniform mapping over ticks per second, so each slider step is an equal
+ * ratio of speed and the 10–100 ticks/s range gets real slider travel.
+ */
 export function tickMsToSlider(tickMs: number): number {
-  return TICK_MS_MIN + TICK_MS_MAX - tickMs;
+  const tps = 1000 / Math.min(Math.max(tickMs, TICK_MS_MIN), TICK_MS_MAX);
+  const fraction = Math.log(tps / MIN_TPS) / Math.log(MAX_TPS / MIN_TPS);
+  return Math.round(fraction * SLIDER_STEPS);
 }
 
 export function sliderToTickMs(value: number): number {
-  return TICK_MS_MIN + TICK_MS_MAX - value;
+  const fraction = Math.min(Math.max(value, 0), SLIDER_STEPS) / SLIDER_STEPS;
+  const tps = MIN_TPS * (MAX_TPS / MIN_TPS) ** fraction;
+  return Math.min(Math.max(Math.round(1000 / tps), TICK_MS_MIN), TICK_MS_MAX);
 }
 
 function ticksPerSecond(tickMs: number): string {
@@ -34,7 +47,7 @@ export function TransportBar() {
       <button
         type="button"
         className="transport-button transport-play"
-        aria-label="Run simulation"
+        aria-label={running ? 'Pause simulation' : 'Play simulation'}
         aria-pressed={running}
         onClick={() => requestSimCommand('togglePlay')}
       >
@@ -69,8 +82,8 @@ export function TransportBar() {
         <input
           id="transport-speed"
           type="range"
-          min={TICK_MS_MIN}
-          max={TICK_MS_MAX}
+          min={0}
+          max={SLIDER_STEPS}
           step={1}
           value={tickMsToSlider(tickMs)}
           aria-valuetext={`${speed} ticks per second`}
