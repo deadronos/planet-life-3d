@@ -41,6 +41,10 @@ vi.mock('leva', () => ({
         }
         const val = o[key];
         if (isValueObject(val)) {
+          // Mirror Leva: an input with onChange is transient (left out of the
+          // returned values) unless it sets `transient: false`.
+          const opts = val as { onChange?: unknown; transient?: boolean };
+          if (opts.onChange && opts.transient !== false) continue;
           result[key] = val.value;
           continue;
         }
@@ -275,5 +279,49 @@ describe('usePlanetLifeControls - folder layout and debug gating', () => {
     } finally {
       window.history.replaceState({}, '', '/');
     }
+  });
+});
+
+describe('usePlanetLifeControls - preset selectors are returned', () => {
+  beforeEach(() => {
+    setSpy = vi.fn();
+    for (const k of Object.keys(overrides)) delete overrides[k];
+  });
+
+  // Regression: these selectors have onChange handlers, which Leva treats as
+  // transient by default, so their values came back undefined and the HUD
+  // preset label rendered blank.
+  it('returns worldPreset and theme values', () => {
+    const { result } = renderHook(() => usePlanetLifeControls());
+    expect(result.current.sim.worldPreset).toBe('Custom');
+    expect(result.current.planet.theme).toBe('Default');
+  });
+});
+
+describe('usePlanetLifeControls - reduced motion', () => {
+  beforeEach(() => {
+    setSpy = vi.fn();
+    for (const k of Object.keys(overrides)) delete overrides[k];
+  });
+
+  function mockReducedMotion(matches: boolean) {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+    );
+  }
+
+  it('uses a softer impact flash when reduced motion is requested', () => {
+    mockReducedMotion(true);
+    const { result } = renderHook(() => usePlanetLifeControls());
+    expect(result.current.impacts.impactFlashIntensity).toBe(0.25);
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps the normal impact flash otherwise', () => {
+    mockReducedMotion(false);
+    const { result } = renderHook(() => usePlanetLifeControls());
+    expect(result.current.impacts.impactFlashIntensity).toBe(0.75);
+    vi.unstubAllGlobals();
   });
 });
