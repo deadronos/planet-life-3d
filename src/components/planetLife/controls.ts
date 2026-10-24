@@ -14,6 +14,7 @@ import {
   WORLD_PRESETS,
 } from '../../sim/presets';
 import { useUIStore } from '../../store/useUIStore';
+import { prefersReducedMotion } from '../../utils/reducedMotion';
 
 /** Simulation folder: run state, grid size, rules, ecology and random fill. */
 export type SimSlice = {
@@ -229,6 +230,9 @@ export function usePlanetLifeControls(): PlanetLifeControls {
       {
         worldPreset: {
           label: 'World Preset',
+          // onChange makes Leva inputs transient by default (value omitted from
+          // the hook result); keep the value so the HUD can show it.
+          transient: false,
           value: 'Custom',
           options: ['Custom', ...WORLD_PRESET_NAMES],
           onChange: (v: string) => {
@@ -263,6 +267,7 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         },
         theme: {
           label: 'Theme',
+          transient: false,
           value: 'Default',
           options: ['Custom', ...COLOR_THEME_NAMES],
           onChange: (v: string) => {
@@ -312,6 +317,7 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         },
         rulePreset: {
           label: 'Rule Preset',
+          transient: false,
           value: 'Conway',
           options: ['Custom', ...RULE_PRESET_NAMES],
           onChange: (v: string) => {
@@ -382,7 +388,13 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         meteorTrailLength: { value: 0.9, min: 0.2, max: 3, step: 0.05 },
         meteorTrailWidth: { value: 0.12, min: 0.02, max: 0.4, step: 0.01 },
         meteorEmissive: { value: 2.6, min: 0.2, max: 5, step: 0.05 },
-        impactFlashIntensity: { value: 0.75, min: 0, max: 4, step: 0.05 },
+        // Softer flash by default when the OS asks for reduced motion.
+        impactFlashIntensity: {
+          value: prefersReducedMotion() ? 0.25 : 0.75,
+          min: 0,
+          max: 4,
+          step: 0.05,
+        },
         impactFlashRadius: { value: 0.4, min: 0.05, max: 2, step: 0.05 },
         impactRingColor: '#ffeeaa',
         impactRingDuration: { value: 0.7, min: 0.2, max: 2, step: 0.05 },
