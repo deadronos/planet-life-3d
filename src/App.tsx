@@ -8,6 +8,7 @@ import { Overlay } from './components/Overlay';
 import { DynamicResScaler } from './components/performance/DynamicResScaler';
 import { PlanetLife } from './components/PlanetLife';
 import { useHotkeys } from './hooks/useHotkeys';
+import { prefersReducedMotion } from './utils/reducedMotion';
 
 const levaTheme = {
   colors: {
@@ -40,7 +41,7 @@ export default function App() {
   const { autoRotate, autoRotateSpeed } = useControls({
     Camera: folder(
       {
-        autoRotate: { value: true, label: 'Auto Rotate' },
+        autoRotate: { value: !prefersReducedMotion(), label: 'Auto Rotate' },
         autoRotateSpeed: { value: 0.5, min: 0.1, max: 10, step: 0.1, label: 'Rotation Speed' },
       },
       { collapsed: true },

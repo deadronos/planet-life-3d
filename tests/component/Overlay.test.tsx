@@ -68,4 +68,31 @@ describe('Overlay component', () => {
     // Should persist to localStorage
     expect(localStorageMock.setItem).toHaveBeenCalledWith('onboardingHintShown', 'true');
   });
+  it('collapses the HUD, exposes aria-expanded and remembers the choice', () => {
+    const { unmount } = render(<Overlay />);
+    const toggle = screen.getByRole('button', { name: 'Planet status details' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('region', { name: 'Planet status' })).not.toHaveClass('hud-collapsed');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('region', { name: 'Planet status' })).toHaveClass('hud-collapsed');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('hudCollapsed', 'true');
+
+    unmount();
+    render(<Overlay />);
+    expect(screen.getByRole('button', { name: 'Planet status details' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
+  it('announces the active meteor tool in a polite live region', () => {
+    render(<Overlay />);
+    const live = screen.getByText(/Active meteor tool:/);
+    expect(live).toHaveAttribute('aria-live', 'polite');
+    expect(live).toHaveTextContent(/Active meteor tool: /);
+    fireEvent.click(screen.getByRole('button', { name: 'Comet' }));
+    expect(live).toHaveTextContent('Active meteor tool: Comet');
+  });
 });
