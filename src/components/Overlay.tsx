@@ -1,8 +1,6 @@
 import { useState } from 'react';
 
-import { type MeteorTool, useUIStore } from '../store/useUIStore';
-
-const METEOR_TOOLS: MeteorTool[] = ['Life', 'Sterilizer', 'Mutation', 'Comet', 'Probe'];
+import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -36,7 +34,7 @@ export function Overlay() {
         <div className="onboarding-hint" role="region" aria-label="Onboarding instructions">
           <p>
             Drag to orbit • Scroll to zoom • Click planet to fire meteor • Press &apos;h&apos; to
-            toggle UI.
+            toggle UI • Space play/pause • N step • R randomize • C clear • 1–5 meteor tools.
           </p>
           <button
             onClick={dismissHint}

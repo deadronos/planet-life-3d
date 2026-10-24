@@ -1,12 +1,13 @@
 import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { folder, Leva, useControls } from 'leva';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { SpaceEnvironment } from './components/environment';
 import { Overlay } from './components/Overlay';
 import { DynamicResScaler } from './components/performance/DynamicResScaler';
 import { PlanetLife } from './components/PlanetLife';
+import { useHotkeys } from './hooks/useHotkeys';
 
 const levaTheme = {
   colors: {
@@ -33,17 +34,8 @@ const LIGHT_POSITION: [number, number, number] = [6, 6, 8];
 
 export default function App() {
   const [levaHidden, setLevaHidden] = useState(false);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle Leva visibility on 'h' or 'H'
-      if (e.key === 'h' || e.key === 'H') {
-        setLevaHidden((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const toggleLeva = useCallback(() => setLevaHidden((v) => !v), []);
+  useHotkeys({ onToggleUI: toggleLeva });
 
   const { autoRotate, autoRotateSpeed } = useControls({
     Camera: folder(
