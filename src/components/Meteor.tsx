@@ -8,7 +8,7 @@ import { computeMeteorState, type MeteorSpec } from './meteorTypes';
 export function Meteor(props: {
   spec: MeteorSpec;
   planetRadius: number;
-  onImpact: (id: string, impactPoint: THREE.Vector3) => void;
+  onImpact: (id: string, impactPoint: THREE.Vector3, source: MeteorSpec['source']) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null!);
   const headMatRef = useRef<THREE.MeshStandardMaterial>(null!);
@@ -61,7 +61,7 @@ export function Meteor(props: {
       // Use the pre-allocated scratch point copy so the impact callback
       // can keep a reference without us having to clone.
       const impactPoint = impact.point.clone();
-      props.onImpact(props.spec.id, impactPoint);
+      props.onImpact(props.spec.id, impactPoint, props.spec.source);
     }
   });
 

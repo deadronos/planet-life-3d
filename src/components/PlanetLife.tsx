@@ -218,16 +218,18 @@ export function PlanetLife({
   }, [ecologyProfile, gameMode, gpuSim, seedPattern, setPlanetStatus, worldPreset]);
 
   const seedAtPoint = useCallback(
-    (point: THREE.Vector3) => {
+    (point: THREE.Vector3, { updateProbe }: { updateProbe: boolean }) => {
       const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
-      const sample = computeEcologySample({
-        lat,
-        lon,
-        latCells: safeLatCells,
-        lonCells: safeLonCells,
-        profile: ecologyProfile,
-      });
-      setProbe({ lat, lon, sample });
+      if (updateProbe) {
+        const sample = computeEcologySample({
+          lat,
+          lon,
+          latCells: safeLatCells,
+          lonCells: safeLonCells,
+          profile: ecologyProfile,
+        });
+        setProbe({ lat, lon, sample });
+      }
 
       const request = resolveSeedRequest({ tool: activeTool, seeding });
       if (!request) return;

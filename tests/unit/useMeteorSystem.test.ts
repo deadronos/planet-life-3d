@@ -7,7 +7,8 @@ import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem
 import { sliced } from './sliceArgs';
 
 describe('useMeteorSystem', () => {
-  const mockSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
+  const mockSeedAtPoint =
+    vi.fn<(point: THREE.Vector3, options: { updateProbe: boolean }) => void>();
 
   beforeEach(() => {
     mockSeedAtPoint.mockClear();
@@ -195,7 +196,7 @@ describe('useMeteorSystem', () => {
     const impactPoint = new THREE.Vector3(0, 0, 5);
 
     act(() => {
-      result.current.onMeteorImpact(id, impactPoint);
+      result.current.onMeteorImpact(id, impactPoint, 'user');
     });
 
     expect(mockSeedAtPoint).toHaveBeenCalled();
@@ -209,7 +210,7 @@ describe('useMeteorSystem', () => {
     const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     act(() => {
-      result.current.onMeteorImpact('missing', new THREE.Vector3(1, 0, 0));
+      result.current.onMeteorImpact('missing', new THREE.Vector3(1, 0, 0), 'user');
     });
 
     expect(result.current.impacts[0].start).toBeCloseTo(performance.now() / 1000, 6);
@@ -223,7 +224,7 @@ describe('useMeteorSystem', () => {
     const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     act(() => {
-      result.current.onMeteorImpact('imp-1', new THREE.Vector3(0, 0, 5));
+      result.current.onMeteorImpact('imp-1', new THREE.Vector3(0, 0, 5), 'user');
     });
 
     // Impact added → exactly one prune timer should be scheduled.
@@ -264,5 +265,54 @@ describe('useMeteorSystem', () => {
 
     unmount();
     vi.useRealTimers();
+  });
+
+  it('tags shower meteors as shower and planet-click meteors as user', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() =>
+      useMeteorSystem(sliced({ ...defaultParams, showerEnabled: true, showerInterval: 50 })),
+    );
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(result.current.meteors.length).toBeGreaterThan(0);
+    expect(result.current.meteors.every((m) => m.source === 'shower')).toBe(true);
+    unmount();
+    vi.useRealTimers();
+
+    const user = renderHook(() => useMeteorSystem(sliced(defaultParams)));
+    act(() => {
+      user.result.current.onPlanetPointerDown({
+        stopPropagation: vi.fn(),
+        point: new THREE.Vector3(2, 0, 0),
+        camera: {},
+      } as unknown as ThreeEvent<PointerEvent>);
+    });
+    expect(user.result.current.meteors[0].source).toBe('user');
+    user.unmount();
+  });
+
+  it('shower impacts seed without updating the probe', () => {
+    mockSeedAtPoint.mockClear();
+    const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
+    act(() => {
+      result.current.onMeteorImpact('shower-1', new THREE.Vector3(0, 0, 5), 'shower');
+    });
+    expect(mockSeedAtPoint).toHaveBeenCalledWith(expect.any(THREE.Vector3), {
+      updateProbe: false,
+    });
+    unmount();
+  });
+
+  it('user impacts seed and update the probe', () => {
+    mockSeedAtPoint.mockClear();
+    const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
+    act(() => {
+      result.current.onMeteorImpact('user-1', new THREE.Vector3(0, 0, 5), 'user');
+    });
+    expect(mockSeedAtPoint).toHaveBeenCalledWith(expect.any(THREE.Vector3), {
+      updateProbe: true,
+    });
+    unmount();
   });
 });

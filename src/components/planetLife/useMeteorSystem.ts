@@ -3,14 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 import type { ImpactSpec } from '../impactTypes';
-import type { MeteorSpec } from '../meteorTypes';
+import type { MeteorSource, MeteorSpec } from '../meteorTypes';
 import type { ImpactsSlice, MeteorsSlice } from './controls';
 import { formatVector3, uid } from './utils';
 
 type MeteorSystemParams = {
   meteors: MeteorsSlice;
   impacts: ImpactsSlice;
-  seedAtPoint: (point: THREE.Vector3) => void;
+  seedAtPoint: (point: THREE.Vector3, options: { updateProbe: boolean }) => void;
   debugLogs: boolean;
 };
 
@@ -42,11 +42,12 @@ export function useMeteorSystem({
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
   const addMeteor = useCallback(
-    (origin: THREE.Vector3, direction: THREE.Vector3) => {
+    (origin: THREE.Vector3, direction: THREE.Vector3, source: MeteorSource) => {
       setMeteors((list) => [
         ...list,
         {
           id: uid('meteor'),
+          source,
           origin,
           direction,
           speed: meteorSpeed,
@@ -86,7 +87,7 @@ export function useMeteorSystem({
       const origin = originDir.multiplyScalar(12);
       const direction = target.sub(origin).normalize();
 
-      addMeteor(origin, direction);
+      addMeteor(origin, direction, 'shower');
     };
 
     const id = window.setInterval(spawnMeteor, showerInterval);
@@ -113,19 +114,20 @@ export function useMeteorSystem({
 
       const direction = point.clone().sub(origin).normalize();
 
-      addMeteor(origin, direction);
+      addMeteor(origin, direction, 'user');
     },
     [meteorCooldownMs, addMeteor],
   );
 
   const onMeteorImpact = useCallback(
-    (id: string, impactPoint: THREE.Vector3) => {
+    (id: string, impactPoint: THREE.Vector3, source: MeteorSource) => {
       if (debugLogs) {
         // eslint-disable-next-line no-console
         console.log(`[PlanetLife] onMeteorImpact id=${id} point=${formatVector3(impactPoint)}`);
       }
 
-      seedAtPoint(impactPoint);
+      // Shower impacts still seed, but must not move the probe card.
+      seedAtPoint(impactPoint, { updateProbe: source === 'user' });
       setMeteors((list) => list.filter((m) => m.id !== id));
 
       // Visual ring

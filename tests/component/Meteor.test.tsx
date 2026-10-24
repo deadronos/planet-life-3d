@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
-import { render } from '@testing-library/react';
-import * as THREE from 'three';
-import { Meteor } from '../../src/components/Meteor';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import { render } from '@testing-library/react';
+import React from 'react';
+import * as THREE from 'three';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { Meteor } from '../../src/components/Meteor';
+import type { MeteorSpec } from '../../src/components/meteorTypes';
 
 expect.extend(matchers);
 
@@ -39,7 +41,7 @@ describe('Meteor', () => {
   });
 
   it('renders a sphere mesh', () => {
-    const spec = {
+    const spec: MeteorSpec = {
       id: 'm1',
       origin: new THREE.Vector3(10, 0, 0),
       direction: new THREE.Vector3(-1, 0, 0),
@@ -48,6 +50,7 @@ describe('Meteor', () => {
       trailLength: 0.6,
       trailWidth: 0.1,
       emissiveIntensity: 1.2,
+      source: 'user',
     };
 
     const { container } = render(<Meteor spec={spec} planetRadius={5} onImpact={() => {}} />);
