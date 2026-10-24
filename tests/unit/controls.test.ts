@@ -194,3 +194,35 @@ describe('usePlanetLifeControls - cellRenderMode guard for GPU sim', () => {
     expect(cellRenderModeCalls).toHaveLength(0);
   });
 });
+
+describe('usePlanetLifeControls - slice shape', () => {
+  beforeEach(() => {
+    setSpy = vi.fn();
+    capturedSchema = null;
+    for (const k of Object.keys(overrides)) delete overrides[k];
+  });
+
+  it('groups every Leva control into domain slices', () => {
+    overrides.tickMs = 333;
+    overrides.planetRadius = 4;
+    overrides.atmosphereHeight = 0.2;
+    overrides.meteorSpeed = 7;
+    overrides.impactRingSize = 1.5;
+    overrides.seedPattern = 'Blinker';
+    overrides.debugLogs = true;
+
+    const { result } = renderHook(() => usePlanetLifeControls());
+    const controls = result.current;
+
+    expect(Object.keys(controls).sort()).toEqual(
+      ['sim', 'planet', 'atmosphere', 'cells', 'meteors', 'impacts', 'seeding', 'debug'].sort(),
+    );
+    expect(controls.sim.tickMs).toBe(333);
+    expect(controls.planet.planetRadius).toBe(4);
+    expect(controls.atmosphere.atmosphereHeight).toBe(0.2);
+    expect(controls.meteors.meteorSpeed).toBe(7);
+    expect(controls.impacts.impactRingSize).toBe(1.5);
+    expect(controls.seeding.seedPattern).toBe('Blinker');
+    expect(controls.debug.debugLogs).toBe(true);
+  });
+});

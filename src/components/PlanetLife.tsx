@@ -35,20 +35,20 @@ export function PlanetLife({
 }: {
   lightPosition?: [number, number, number];
 }) {
-  const params = usePlanetLifeControls();
-
   const {
-    running,
-    tickMs,
-    latCells,
-    lonCells,
-    worldPreset,
-    birthDigits,
-    surviveDigits,
-    ecologyProfile,
-    gameMode,
-    randomDensity,
+    sim,
+    planet,
+    atmosphere,
+    cells,
+    meteors: meteorControls,
+    impacts: impactControls,
+    seeding,
+    debug,
+  } = usePlanetLifeControls();
 
+  const { running, tickMs, latCells, lonCells, worldPreset, birthDigits, surviveDigits } = sim;
+  const { ecologyProfile, gameMode, randomDensity } = sim;
+  const {
     planetRadius,
     planetWireframe,
     planetRoughness,
@@ -57,13 +57,11 @@ export function PlanetLife({
     rimPower,
     terminatorSharpness,
     terminatorBoost,
-    atmosphereColor,
-    atmosphereIntensity,
-    atmosphereHeight,
-
+  } = planet;
+  const { atmosphereColor, atmosphereIntensity, atmosphereHeight } = atmosphere;
+  const {
     cellRenderMode,
     cellOverlayOpacity,
-
     cellRadius,
     cellLift,
     pulseSpeed,
@@ -76,32 +74,9 @@ export function PlanetLife({
     heatLowColor,
     heatMidColor,
     heatHighColor,
-
-    meteorSpeed,
-    meteorRadius,
-    meteorCooldownMs,
-    showerEnabled,
-    showerInterval,
-    meteorTrailLength,
-    meteorTrailWidth,
-    meteorEmissive,
-    impactFlashIntensity,
-    impactFlashRadius,
-    impactRingColor,
-    impactRingDuration,
-    impactRingSize,
-
-    seedMode,
-    seedPattern,
-    seedScale,
-    seedJitter,
-    seedProbability,
-    customPattern,
-
-    debugLogs,
-    workerSim,
-    gpuSim,
-  } = params;
+  } = cells;
+  const { seedMode, seedPattern, seedScale, seedJitter, seedProbability, customPattern } = seeding;
+  const { debugLogs, gpuSim } = debug;
   const activeTool = useUIStore((state) => state.activeTool);
   const setPlanetStatus = useUIStore((state) => state.setPlanetStatus);
   const setProbe = useUIStore((state) => state.setProbe);
@@ -214,24 +189,17 @@ export function PlanetLife({
     stepOnce,
     seedAtPoint: seedAtPointImpl,
   } = usePlanetLifeSim({
-    running,
-    tickMs,
+    sim,
+    planet,
+    cells,
+    debug,
     safeLatCells,
     safeLonCells,
-    planetRadius,
-    cellLift,
-    cellRenderMode,
-    gameMode,
     rules,
-    ecologyProfile,
-    randomDensity,
-    workerSim,
-    gpuSim,
     lifeTex,
     cellsRef,
     resolveCellColor,
     colorScratch,
-    debugLogs,
   });
 
   const publishStats = useCallback(
@@ -249,12 +217,7 @@ export function PlanetLife({
   const { seedAtPoint: seedAtPointCPU } = useSimulationSeeder({
     seedAtPointImpl,
     updateInstances,
-    seedPattern,
-    seedScale,
-    seedMode,
-    seedJitter,
-    seedProbability,
-    customPattern,
+    seeding,
     debugLogs,
   });
 
@@ -405,19 +368,8 @@ export function PlanetLife({
   ]);
 
   const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
-    meteorSpeed,
-    meteorRadius,
-    meteorCooldownMs,
-    showerEnabled,
-    showerInterval,
-    meteorTrailLength,
-    meteorTrailWidth,
-    meteorEmissive,
-    impactFlashIntensity,
-    impactFlashRadius,
-    impactRingColor,
-    impactRingDuration,
-    impactRingSize,
+    meteors: meteorControls,
+    impacts: impactControls,
     seedAtPoint,
     debugLogs,
   });

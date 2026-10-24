@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem';
+import { sliced } from './sliceArgs';
 
 describe('useMeteorSystem', () => {
   const mockSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
@@ -31,14 +32,14 @@ describe('useMeteorSystem', () => {
   };
 
   it('should initialize with empty meteors and impacts', () => {
-    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     expect(result.current.meteors).toEqual([]);
     expect(result.current.impacts).toEqual([]);
   });
 
   it('should call onPlanetPointerDown and stop propagation', () => {
-    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     const mockEvent = {
       stopPropagation: vi.fn(),
@@ -62,10 +63,12 @@ describe('useMeteorSystem', () => {
 
   it('should respect cooldown configuration', () => {
     const { result } = renderHook(() =>
-      useMeteorSystem({
-        ...defaultParams,
-        meteorCooldownMs: 500,
-      }),
+      useMeteorSystem(
+        sliced({
+          ...defaultParams,
+          meteorCooldownMs: 500,
+        }),
+      ),
     );
 
     // Hook should properly receive cooldown parameter
@@ -73,7 +76,7 @@ describe('useMeteorSystem', () => {
   });
 
   it('should handle camera without position property', () => {
-    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     const mockEvent = {
       stopPropagation: vi.fn(),
@@ -93,10 +96,12 @@ describe('useMeteorSystem', () => {
   it('should accept seedAtPoint parameter', () => {
     const customSeedAtPoint = vi.fn<(point: THREE.Vector3) => void>();
     const { result } = renderHook(() =>
-      useMeteorSystem({
-        ...defaultParams,
-        seedAtPoint: customSeedAtPoint,
-      }),
+      useMeteorSystem(
+        sliced({
+          ...defaultParams,
+          seedAtPoint: customSeedAtPoint,
+        }),
+      ),
     );
 
     // Hook should be initialized with custom seedAtPoint
@@ -106,10 +111,12 @@ describe('useMeteorSystem', () => {
 
   it('should accept debugLogs parameter', () => {
     const { result } = renderHook(() =>
-      useMeteorSystem({
-        ...defaultParams,
-        debugLogs: true,
-      }),
+      useMeteorSystem(
+        sliced({
+          ...defaultParams,
+          debugLogs: true,
+        }),
+      ),
     );
 
     // Hook should be initialized with debugLogs enabled
@@ -118,7 +125,7 @@ describe('useMeteorSystem', () => {
 
   it('does not schedule any timer when the impact list is empty', () => {
     vi.useFakeTimers();
-    const { unmount } = renderHook(() => useMeteorSystem(defaultParams));
+    const { unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     // Earlier versions of this hook used a 200ms setInterval that polled
     // forever, even with zero impacts. The new design schedules a single
@@ -131,7 +138,7 @@ describe('useMeteorSystem', () => {
   });
 
   it('should return expected functions and arrays', () => {
-    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     expect(result.current.meteors).toBeInstanceOf(Array);
     expect(result.current.impacts).toBeInstanceOf(Array);
@@ -158,14 +165,14 @@ describe('useMeteorSystem', () => {
       debugLogs: true,
     };
 
-    const { result } = renderHook(() => useMeteorSystem(customParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(customParams)));
 
     // Hook should accept all parameters without error
     expect(result.current).toBeDefined();
   });
 
   it('onMeteorImpact should seed point, remove meteor, and add impact', () => {
-    const { result } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     // Add a meteor via onPlanetPointerDown to get a real id
     const mockEvent = {
@@ -199,7 +206,7 @@ describe('useMeteorSystem', () => {
   it('records impact start time in the same performance.now seconds domain used by rings', () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);
-    const { result, unmount } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     act(() => {
       result.current.onMeteorImpact('missing', new THREE.Vector3(1, 0, 0));
@@ -213,7 +220,7 @@ describe('useMeteorSystem', () => {
 
   it('schedules a prune timeout when an impact is added and the timer fires at expiry', () => {
     vi.useFakeTimers();
-    const { result, unmount } = renderHook(() => useMeteorSystem(defaultParams));
+    const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
 
     act(() => {
       result.current.onMeteorImpact('imp-1', new THREE.Vector3(0, 0, 5));
@@ -245,7 +252,7 @@ describe('useMeteorSystem', () => {
   it('shower should spawn meteors when enabled', () => {
     vi.useFakeTimers();
     const { result, unmount } = renderHook(() =>
-      useMeteorSystem({ ...defaultParams, showerEnabled: true, showerInterval: 50 }),
+      useMeteorSystem(sliced({ ...defaultParams, showerEnabled: true, showerInterval: 50 })),
     );
 
     // Fast-forward timers (wrap in act to allow React updates)

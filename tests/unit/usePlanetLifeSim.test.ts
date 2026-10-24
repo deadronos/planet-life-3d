@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePlanetLifeSim } from '../../src/components/planetLife/usePlanetLifeSim';
 import { useUIStore } from '../../src/store/useUIStore';
+import { sliced } from './sliceArgs';
 
 const RULES = {
   birth: [false, false, false, true, false, false, false, false, false],
@@ -53,25 +54,27 @@ describe('usePlanetLifeSim stats publishing', () => {
     } as unknown as THREE.InstancedMesh;
 
     const { result } = renderHook(() =>
-      usePlanetLifeSim({
-        running: false,
-        tickMs: 100,
-        safeLatCells: 3,
-        safeLonCells: 4,
-        planetRadius: 2,
-        cellLift: 0.015,
-        cellRenderMode: 'Dots',
-        gameMode: 'Classic',
-        rules: RULES,
-        ecologyProfile: 'None',
-        randomDensity: 1,
-        workerSim: false,
-        lifeTex,
-        cellsRef: { current: mesh },
-        resolveCellColor: () => 1,
-        colorScratch: new THREE.Color(),
-        debugLogs: false,
-      }),
+      usePlanetLifeSim(
+        sliced({
+          running: false,
+          tickMs: 100,
+          safeLatCells: 3,
+          safeLonCells: 4,
+          planetRadius: 2,
+          cellLift: 0.015,
+          cellRenderMode: 'Dots',
+          gameMode: 'Classic',
+          rules: RULES,
+          ecologyProfile: 'None',
+          randomDensity: 1,
+          workerSim: false,
+          lifeTex,
+          cellsRef: { current: mesh },
+          resolveCellColor: () => 1,
+          colorScratch: new THREE.Color(),
+          debugLogs: false,
+        }),
+      ),
     );
 
     const assertStatsMatchSim = () => {
@@ -132,25 +135,27 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
     };
     const { result, rerender } = renderHook(
       (props) =>
-        usePlanetLifeSim({
-          running: false,
-          tickMs: 100,
-          safeLatCells: 3,
-          safeLonCells: 4,
-          planetRadius: 2,
-          cellLift: 0.015,
-          cellRenderMode: 'Dots',
-          gameMode: props.gameMode,
-          rules: props.rules,
-          ecologyProfile: 'None',
-          randomDensity: 0.5,
-          workerSim: false,
-          lifeTex: makeLifeTex(),
-          cellsRef: { current: makeMesh() },
-          resolveCellColor: () => 1,
-          colorScratch: new THREE.Color(),
-          debugLogs: false,
-        }),
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: props.gameMode,
+            rules: props.rules,
+            ecologyProfile: 'None',
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
       {
         initialProps: { rules: RULES, gameMode: 'Classic' as const },
       },
@@ -190,25 +195,27 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
   it('preserves the running sim when ecologyProfile changes', () => {
     const { result, rerender } = renderHook(
       (props) =>
-        usePlanetLifeSim({
-          running: false,
-          tickMs: 100,
-          safeLatCells: 3,
-          safeLonCells: 4,
-          planetRadius: 2,
-          cellLift: 0.015,
-          cellRenderMode: 'Dots',
-          gameMode: 'Classic',
-          rules: RULES,
-          ecologyProfile: props.ecologyProfile,
-          randomDensity: 0.5,
-          workerSim: false,
-          lifeTex: makeLifeTex(),
-          cellsRef: { current: makeMesh() },
-          resolveCellColor: () => 1,
-          colorScratch: new THREE.Color(),
-          debugLogs: false,
-        }),
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: 'Classic',
+            rules: RULES,
+            ecologyProfile: props.ecologyProfile,
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
       {
         initialProps: {
           ecologyProfile: 'None' as
@@ -234,25 +241,27 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
   it('preserves the running sim when gameMode toggles', () => {
     const { result, rerender } = renderHook(
       (props) =>
-        usePlanetLifeSim({
-          running: false,
-          tickMs: 100,
-          safeLatCells: 3,
-          safeLonCells: 4,
-          planetRadius: 2,
-          cellLift: 0.015,
-          cellRenderMode: 'Dots',
-          gameMode: props.gameMode,
-          rules: RULES,
-          ecologyProfile: 'None',
-          randomDensity: 0.5,
-          workerSim: false,
-          lifeTex: makeLifeTex(),
-          cellsRef: { current: makeMesh() },
-          resolveCellColor: () => 1,
-          colorScratch: new THREE.Color(),
-          debugLogs: false,
-        }),
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: props.gameMode,
+            rules: RULES,
+            ecologyProfile: 'None',
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
       {
         initialProps: { gameMode: 'Classic' as 'Classic' | 'Colony' },
       },
@@ -273,25 +282,27 @@ describe('usePlanetLifeSim (regression: do not re-randomize on Leva changes)', (
   it('does NOT re-randomize when randomDensity slider moves; explicit randomize() does', () => {
     const { result, rerender } = renderHook(
       (props) =>
-        usePlanetLifeSim({
-          running: false,
-          tickMs: 100,
-          safeLatCells: 3,
-          safeLonCells: 4,
-          planetRadius: 2,
-          cellLift: 0.015,
-          cellRenderMode: 'Dots',
-          gameMode: 'Classic',
-          rules: RULES,
-          ecologyProfile: 'None',
-          randomDensity: props.randomDensity,
-          workerSim: false,
-          lifeTex: makeLifeTex(),
-          cellsRef: { current: makeMesh() },
-          resolveCellColor: () => 1,
-          colorScratch: new THREE.Color(),
-          debugLogs: false,
-        }),
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: 'Classic',
+            rules: RULES,
+            ecologyProfile: 'None',
+            randomDensity: props.randomDensity,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
       {
         initialProps: { randomDensity: 0.1 },
       },
@@ -375,7 +386,7 @@ describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
   }
 
   it('publishes stats immediately after a CPU seed', () => {
-    const { result } = renderHook(() => usePlanetLifeSim(hookProps()));
+    const { result } = renderHook(() => usePlanetLifeSim(sliced(hookProps())));
 
     useUIStore.getState().setStats({
       generation: 0,
@@ -401,7 +412,7 @@ describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
   });
 
   it('does not publish CPU/worker stats when gpuSim is authoritative', () => {
-    const { result } = renderHook(() => usePlanetLifeSim(hookProps({ gpuSim: true })));
+    const { result } = renderHook(() => usePlanetLifeSim(sliced(hookProps({ gpuSim: true }))));
 
     useUIStore.getState().setStats(STALE_STATS);
     act(() => result.current.clear());
@@ -446,25 +457,27 @@ describe('usePlanetLifeSim geometry-only updates', () => {
   it('planetRadius/cellLift changes update positions without re-randomizing', () => {
     const { result, rerender } = renderHook(
       (props) =>
-        usePlanetLifeSim({
-          running: false,
-          tickMs: 100,
-          safeLatCells: 3,
-          safeLonCells: 4,
-          planetRadius: props.planetRadius,
-          cellLift: props.cellLift,
-          cellRenderMode: 'Dots',
-          gameMode: 'Classic',
-          rules: RULES,
-          ecologyProfile: 'None',
-          randomDensity: 0.5,
-          workerSim: false,
-          lifeTex: makeLifeTex(),
-          cellsRef: { current: makeMesh() },
-          resolveCellColor: () => 1,
-          colorScratch: new THREE.Color(),
-          debugLogs: false,
-        }),
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: props.planetRadius,
+            cellLift: props.cellLift,
+            cellRenderMode: 'Dots',
+            gameMode: 'Classic',
+            rules: RULES,
+            ecologyProfile: 'None',
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
       {
         initialProps: { planetRadius: 2, cellLift: 0.015 },
       },

@@ -4,43 +4,39 @@ import * as THREE from 'three';
 
 import type { ImpactSpec } from '../impactTypes';
 import type { MeteorSpec } from '../meteorTypes';
+import type { ImpactsSlice, MeteorsSlice } from './controls';
 import { formatVector3, uid } from './utils';
 
 type MeteorSystemParams = {
-  meteorSpeed: number;
-  meteorRadius: number;
-  meteorCooldownMs: number;
-  showerEnabled: boolean;
-  showerInterval: number;
-  meteorTrailLength: number;
-  meteorTrailWidth: number;
-  meteorEmissive: number;
-  impactFlashIntensity: number;
-  impactFlashRadius: number;
-  impactRingColor: THREE.ColorRepresentation;
-  impactRingDuration: number;
-  impactRingSize: number;
+  meteors: MeteorsSlice;
+  impacts: ImpactsSlice;
   seedAtPoint: (point: THREE.Vector3) => void;
   debugLogs: boolean;
 };
 
 export function useMeteorSystem({
-  meteorSpeed,
-  meteorRadius,
-  meteorCooldownMs,
-  showerEnabled,
-  showerInterval,
-  meteorTrailLength,
-  meteorTrailWidth,
-  meteorEmissive,
-  impactFlashIntensity,
-  impactFlashRadius,
-  impactRingColor,
-  impactRingDuration,
-  impactRingSize,
+  meteors: meteorControls,
+  impacts: impactControls,
   seedAtPoint,
   debugLogs,
 }: MeteorSystemParams) {
+  const {
+    meteorSpeed,
+    meteorRadius,
+    meteorCooldownMs,
+    showerEnabled,
+    showerInterval,
+    meteorTrailLength,
+    meteorTrailWidth,
+    meteorEmissive,
+  } = meteorControls;
+  const {
+    impactFlashIntensity,
+    impactFlashRadius,
+    impactRingColor,
+    impactRingDuration,
+    impactRingSize,
+  } = impactControls;
   const lastShotMsRef = useRef(0);
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
