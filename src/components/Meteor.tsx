@@ -5,6 +5,9 @@ import * as THREE from 'three';
 import { intersectPlanetShell, MAX_METEOR_DT_SECONDS } from './meteorCollision';
 import { computeMeteorState, type MeteorSpec } from './meteorTypes';
 
+// HDR (>1.0) so the additive trail crosses the bloom threshold.
+const TRAIL_COLOR = new THREE.Color('#ffbb55').multiplyScalar(2.5);
+
 export function Meteor(props: {
   spec: MeteorSpec;
   planetRadius: number;
@@ -81,7 +84,7 @@ export function Meteor(props: {
       <mesh ref={trailRef}>
         <coneGeometry args={[props.spec.trailWidth, 1, 14, 1, true]} />
         <meshBasicMaterial
-          color={'#ffbb55'}
+          color={TRAIL_COLOR}
           transparent
           opacity={0.6}
           blending={THREE.AdditiveBlending}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
+import { DISPLAY_REFERRED_OUTPUT } from '../../shaders/displayReferredOutput';
+
 /**
  * Sphere tessellation used for the planet and its atmosphere shell.
  *
@@ -57,8 +59,10 @@ const atmosphereFragmentShader = /* glsl */ `
     float limb = pow(1.0 - clamp(facing, 0.0, 1.0), uPower);
     float alpha = clamp(uIntensity, 0.0, 1.0) * limb;
     // Additive blending multiplies by src alpha, so the falloff rides on the
-    // alpha and the colour keeps its saturation.
-    gl_FragColor = vec4(uColor, alpha);
+    // alpha and the colour keeps its saturation. The extra HDR gain right at
+    // the limb lifts only the thin rim above the bloom threshold.
+    gl_FragColor = vec4(uColor * (1.0 + 3.0 * limb * limb), alpha);
+    ${DISPLAY_REFERRED_OUTPUT}
   }
 `;
 

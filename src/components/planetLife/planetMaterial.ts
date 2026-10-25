@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
+import { DISPLAY_REFERRED_OUTPUT } from '../../shaders/displayReferredOutput';
+
 export function usePlanetMaterial(params: {
   atmosphereColor: string;
   rimIntensity: number;
@@ -203,6 +205,7 @@ export function usePlanetMaterial(params: {
           vec3 finalColor = surfaceColor + finalRim;
           
           gl_FragColor = vec4(finalColor, 1.0);
+          ${DISPLAY_REFERRED_OUTPUT}
         }
       `,
     });

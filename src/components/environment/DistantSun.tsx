@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
+import { DISPLAY_REFERRED_OUTPUT } from '../../shaders/displayReferredOutput';
+
 interface DistantSunProps {
   position?: [number, number, number];
   size?: number;
@@ -14,7 +16,9 @@ export function DistantSun({ position = [60, 60, 80], size = 12 }: DistantSunPro
   // Create a glowing sun material with emissive properties
   const sunMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#fff8dc'), // Warm cream/yellow
+      // Warm cream/yellow, scaled past 1.0 (HDR) so the bloom threshold
+      // picks it up; it clips to near-white on screen either way.
+      color: new THREE.Color('#fff8dc').multiplyScalar(1.6),
       transparent: false,
     });
   }, []);
@@ -44,6 +48,7 @@ export function DistantSun({ position = [60, 60, 80], size = 12 }: DistantSunPro
           float intensity = pow(max(0.0, 0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
           vec3 glow = uColor * intensity * uIntensity;
           gl_FragColor = vec4(glow, intensity * 0.8);
+          ${DISPLAY_REFERRED_OUTPUT}
         }
       `,
       transparent: true,

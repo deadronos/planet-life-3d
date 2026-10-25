@@ -1,15 +1,22 @@
 import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { folder, Leva, useControls } from 'leva';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { CanvasErrorBoundary } from './components/CanvasErrorBoundary';
 import { SpaceEnvironment } from './components/environment';
 import { GraphicsRecovery } from './components/GraphicsRecovery';
 import { Overlay } from './components/Overlay';
+import { DEFAULT_ADAPTIVE_RESOLUTION_CONFIG } from './components/performance/adaptiveResolution';
 import { DynamicResScaler } from './components/performance/DynamicResScaler';
 import { RenderDemandDriver } from './components/performance/RenderDemandDriver';
 import { PlanetLife } from './components/PlanetLife';
+import {
+  BLOOM_MAX_DPR,
+  DEFAULT_BLOOM_SETTINGS,
+  defaultBloomEnabled,
+} from './components/postprocessing/bloomSettings';
+import { SelectiveBloom } from './components/postprocessing/SelectiveBloom';
 import { useHotkeys } from './hooks/useHotkeys';
 import { prefersReducedMotion } from './utils/reducedMotion';
 
@@ -66,6 +73,45 @@ export default function App() {
     ),
   });
 
+  const { bloomEnabled, bloomIntensity, bloomThreshold, bloomRadius } = useControls({
+    Rendering: folder(
+      {
+        bloomEnabled: {
+          value: defaultBloomEnabled(),
+          label: 'Bloom',
+          hint: 'Glow on the sun, meteors, impacts and atmosphere. Off by default on touch devices; pauses while adaptive resolution has lowered the pixel ratio.',
+        },
+        bloomIntensity: {
+          value: DEFAULT_BLOOM_SETTINGS.intensity,
+          min: 0,
+          max: 3,
+          step: 0.05,
+          label: 'Bloom Intensity',
+        },
+        bloomThreshold: {
+          value: DEFAULT_BLOOM_SETTINGS.threshold,
+          min: 0.5,
+          max: 3,
+          step: 0.05,
+          label: 'Bloom Threshold',
+        },
+        bloomRadius: {
+          value: DEFAULT_BLOOM_SETTINGS.radius,
+          min: 0,
+          max: 1,
+          step: 0.05,
+          label: 'Bloom Radius',
+        },
+      },
+      { collapsed: true },
+    ),
+  });
+
+  // Bloom lowers the pixel-ratio ceiling for both the Canvas and the adaptive
+  // scaler, so the scaler never tries to climb back to a ratio bloom cannot hold.
+  const maxDpr = bloomEnabled ? BLOOM_MAX_DPR : DEFAULT_ADAPTIVE_RESOLUTION_CONFIG.maxDpr;
+  const scalerConfig = useMemo(() => ({ ...DEFAULT_ADAPTIVE_RESOLUTION_CONFIG, maxDpr }), [maxDpr]);
+
   return (
     <>
       <Overlay />
@@ -74,7 +120,7 @@ export default function App() {
         <Canvas
           frameloop="demand"
           camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }}
-          dpr={[1, 2]}
+          dpr={[1, maxDpr]}
         >
           <color attach="background" args={['#05060a']} />
           <ambientLight intensity={0.75} />
@@ -83,7 +129,13 @@ export default function App() {
 
           <GraphicsRecovery />
           <RenderDemandDriver autoRotate={autoRotate} />
-          <DynamicResScaler enabled={adaptiveResolution} />
+          <DynamicResScaler enabled={adaptiveResolution} config={scalerConfig} />
+          <SelectiveBloom
+            enabled={bloomEnabled}
+            intensity={bloomIntensity}
+            threshold={bloomThreshold}
+            radius={bloomRadius}
+          />
 
           <PlanetLife lightPosition={LIGHT_POSITION} />
           <OrbitControls

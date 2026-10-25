@@ -79,7 +79,8 @@ export function SunLensFlare({
       (f) =>
         new THREE.SpriteMaterial({
           map: f.texture,
-          color: f.color,
+          // HDR gain so the flare elements feed the bloom pass.
+          color: f.color.clone().multiplyScalar(1.8),
           transparent: true,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
