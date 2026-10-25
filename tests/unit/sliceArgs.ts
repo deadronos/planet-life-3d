@@ -41,6 +41,8 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'colonyColorB',
     'pulseSpeed',
     'pulseIntensity',
+    'nightGlowIntensity',
+    'nightGlowColor',
   ],
   meteors: [
     'meteorSpeed',

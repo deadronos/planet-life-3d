@@ -18,6 +18,10 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform float uCellOverlayOpacity;
   uniform int uColorMode; // 0=Solid, 1=Age Fade, 2=Neighbor Heat
   uniform bool uColonyMode;
+  // Night-side glow: emissive boost on live cells past the terminator
+  uniform vec3 uLightDir;
+  uniform vec3 uNightGlowColor;
+  uniform float uNightGlowIntensity;
   // Debug override (when true, outputs a solid color instead of sampling texture)
   uniform bool uDebugOverlay;
   uniform vec3 uDebugColor;
@@ -26,6 +30,7 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform float uDebugScale;
   
   varying vec2 vUv;
+  varying vec3 vWorldNormal;
   
   void main() {
     // Debug: force a visible color to verify the overlay is rendered
@@ -102,7 +107,16 @@ export const gpuOverlayFragmentShader = /* glsl */ `
     float brightness = max(finalColor.r, max(finalColor.g, finalColor.b));
     alpha = clamp(brightness, 0.05, 1.0);
     
-    gl_FragColor = vec4(finalColor, alpha * uCellOverlayOpacity);
+    // Night glow ("city lights"): past the terminator, dim the unlit cell
+    // and add a warm emissive on top. Both scale with uNightGlowIntensity, so
+    // 0 keeps the original unlit look. The glow is unclamped so values above
+    // 1.0 bloom softly; with bloom off the canvas just saturates.
+    float darkness = smoothstep(0.05, 0.35, -dot(normalize(vWorldNormal), uLightDir));
+    float nightDim = darkness * clamp(uNightGlowIntensity * 2.0, 0.0, 1.0);
+    vec3 glow = mix(finalColor, uNightGlowColor, 0.75) * (darkness * uNightGlowIntensity * 0.8);
+    finalColor *= mix(1.0, 0.3, nightDim);
+
+    gl_FragColor = vec4(finalColor + glow, alpha * uCellOverlayOpacity);
     ${DISPLAY_REFERRED_OUTPUT}
   }
 `;

@@ -75,6 +75,9 @@ export function createGpuOverlayMaterial(params: {
   ageFadeHalfLife: number;
   cellOverlayOpacity: number;
   gameMode: 'Classic' | 'Colony';
+  nightGlowIntensity: number;
+  nightGlowColor: string;
+  lightPosition: [number, number, number];
 }): THREE.ShaderMaterial {
   const colorModeValue =
     params.cellColorMode === 'Solid' ? 0 : params.cellColorMode === 'Age Fade' ? 1 : 2;
@@ -100,6 +103,9 @@ export function createGpuOverlayMaterial(params: {
       uColorMode: { value: colorModeValue },
       uCellOverlayOpacity: { value: params.cellOverlayOpacity },
       uColonyMode: { value: params.gameMode === 'Colony' },
+      uLightDir: { value: new THREE.Vector3(...params.lightPosition).normalize() },
+      uNightGlowColor: { value: new THREE.Color(params.nightGlowColor) },
+      uNightGlowIntensity: { value: params.nightGlowIntensity },
       uDebugOverlay: { value: false },
       uDebugColor: { value: new THREE.Color('#ff00ff') },
       uDebugMode: { value: 0 },

@@ -139,6 +139,8 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
         rimPower: { min: 0.5, max: 6, step: 0.05 },
         terminatorSharpness: { min: 1, max: 16, step: 0.5 },
         terminatorBoost: { min: -0.4, max: 0.6, step: 0.01 },
+        nightGlowIntensity: { min: 0, max: 3, step: 0.05 },
+        nightGlowColor: {},
         atmosphereColor: {},
         atmosphereIntensity: { min: 0, max: 2, step: 0.01 },
         atmosphereHeight: { min: 0, max: 0.35, step: 0.005 },

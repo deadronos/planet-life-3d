@@ -61,6 +61,8 @@ export type ControlValues = {
   rimPower: number;
   terminatorSharpness: number;
   terminatorBoost: number;
+  nightGlowIntensity: number;
+  nightGlowColor: string;
   atmosphereColor: string;
   atmosphereIntensity: number;
   atmosphereHeight: number;
@@ -144,6 +146,9 @@ export function createControlDefaults(): ControlValues {
     rimPower: 2.6,
     terminatorSharpness: 8,
     terminatorBoost: 0,
+    // Night-side "city lights": dims unlit cells and adds a warm glow (0 = unlit look).
+    nightGlowIntensity: 0.6,
+    nightGlowColor: '#ffc46b',
     atmosphereColor: '#64d4ff',
     atmosphereIntensity: 0.55,
     atmosphereHeight: 0.06,

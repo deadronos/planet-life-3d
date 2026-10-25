@@ -53,6 +53,8 @@ export type CellsSlice = {
   colonyColorB: string;
   pulseSpeed: number;
   pulseIntensity: number;
+  nightGlowIntensity: number;
+  nightGlowColor: string;
 };
 
 export type MeteorsSlice = {
@@ -160,6 +162,8 @@ function toSlices(p: FlatControls): PlanetLifeControls {
       colonyColorB: p.colonyColorB,
       pulseSpeed: p.pulseSpeed,
       pulseIntensity: p.pulseIntensity,
+      nightGlowIntensity: p.nightGlowIntensity,
+      nightGlowColor: p.nightGlowColor,
     },
     meteors: {
       meteorSpeed: p.meteorSpeed,

@@ -7,6 +7,7 @@ export const gpuOverlayVertexShader = /* glsl */ `
   uniform float uPulseIntensity;
 
   varying vec2 vUv;
+  varying vec3 vWorldNormal;
   
   void main() {
     // Three.js SphereGeometry UVs run opposite to sim longitude: the sim
@@ -26,6 +27,8 @@ export const gpuOverlayVertexShader = /* glsl */ `
       displacement = uCellLift + (pulse * uPulseIntensity * uCellLift);
     }
     
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
+
     vec3 newPosition = position + normal * displacement;
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);

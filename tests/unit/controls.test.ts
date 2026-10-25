@@ -56,6 +56,8 @@ describe('controls store - defaults', () => {
     expect(s.cellRenderMode).toBe('Texture');
     expect(s.seedPattern).toBe('Glider');
     expect(s.adaptiveResolution).toBe(true);
+    expect(s.nightGlowIntensity).toBe(0.6);
+    expect(s.nightGlowColor).toBe('#ffc46b');
   });
 
   function mockReducedMotion(matches: boolean) {

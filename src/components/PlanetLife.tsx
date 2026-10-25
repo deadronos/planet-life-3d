@@ -58,6 +58,8 @@ export function PlanetLife({
     cellLift,
     pulseSpeed,
     pulseIntensity,
+    nightGlowIntensity,
+    nightGlowColor,
     cellColor,
     cellColorMode,
     colonyColorA,
@@ -143,6 +145,9 @@ export function PlanetLife({
         ageFadeHalfLife,
         cellOverlayOpacity,
         gameMode,
+        nightGlowIntensity,
+        nightGlowColor,
+        lightPosition,
       }),
     [
       cellColorMode,
@@ -155,6 +160,9 @@ export function PlanetLife({
       ageFadeHalfLife,
       cellOverlayOpacity,
       gameMode,
+      nightGlowIntensity,
+      nightGlowColor,
+      lightPosition,
     ],
   );
 
