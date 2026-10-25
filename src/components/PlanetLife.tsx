@@ -17,6 +17,7 @@ import { useLifeTexture } from './planetLife/lifeTexture';
 import { MeteorEffects } from './planetLife/MeteorEffects';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { PlanetMesh } from './planetLife/PlanetMesh';
+import { usePlanetNoiseTexture } from './planetLife/planetNoiseTexture';
 import { resolveSeedRequest } from './planetLife/seedRequest';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
@@ -170,6 +171,7 @@ export function PlanetLife({
     return () => gpuOverlayMaterial.dispose();
   }, [gpuOverlayMaterial]);
 
+  const planetNoiseTexture = usePlanetNoiseTexture(planetRadius);
   const planetMaterial = usePlanetMaterial({
     atmosphereColor,
     rimIntensity,
@@ -182,6 +184,7 @@ export function PlanetLife({
     lonCells: safeLonCells,
     ecologyIntensity,
     lightPosition,
+    noiseTexture: planetNoiseTexture,
   });
 
   const {
