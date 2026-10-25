@@ -33,7 +33,15 @@ export interface ProbeStatus {
   sample: EcologySample;
 }
 
+/** 'lost' = context lost, waiting for restore; 'stalled' = lost and not restored in time. */
+export type GraphicsStatus = 'ok' | 'lost' | 'stalled';
+
 interface UIState {
+  graphicsStatus: GraphicsStatus;
+  /** Bumped on every context restore so GL-owned resources are rebuilt. */
+  graphicsEpoch: number;
+  setGraphicsStatus: (status: GraphicsStatus) => void;
+  bumpGraphicsEpoch: () => void;
   stats: GameStats;
   planetStatus: PlanetStatus;
   activeTool: MeteorTool;
@@ -68,6 +76,10 @@ export const useUIStore = create<UIState>((set) => ({
     seedPattern: 'Glider',
     gpuSim: false,
   },
+  graphicsStatus: 'ok',
+  graphicsEpoch: 0,
+  setGraphicsStatus: (graphicsStatus) => set({ graphicsStatus }),
+  bumpGraphicsEpoch: () => set((state) => ({ graphicsEpoch: state.graphicsEpoch + 1 })),
   activeTool: 'Life',
   probe: undefined,
   simCommand: undefined,

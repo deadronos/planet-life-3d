@@ -3,7 +3,9 @@ import { Canvas } from '@react-three/fiber';
 import { folder, Leva, useControls } from 'leva';
 import { useCallback, useState } from 'react';
 
+import { CanvasErrorBoundary } from './components/CanvasErrorBoundary';
 import { SpaceEnvironment } from './components/environment';
+import { GraphicsRecovery } from './components/GraphicsRecovery';
 import { Overlay } from './components/Overlay';
 import { DynamicResScaler } from './components/performance/DynamicResScaler';
 import { PlanetLife } from './components/PlanetLife';
@@ -67,23 +69,26 @@ export default function App() {
     <>
       <Overlay />
       <Leva collapsed={true} theme={levaTheme} hidden={levaHidden} />
-      <Canvas camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
-        <color attach="background" args={['#05060a']} />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={LIGHT_POSITION} intensity={1.2} />
-        <SpaceEnvironment lightPosition={LIGHT_POSITION} />
+      <CanvasErrorBoundary>
+        <Canvas camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
+          <color attach="background" args={['#05060a']} />
+          <ambientLight intensity={0.75} />
+          <directionalLight position={LIGHT_POSITION} intensity={1.2} />
+          <SpaceEnvironment lightPosition={LIGHT_POSITION} />
 
-        <DynamicResScaler enabled={adaptiveResolution} />
+          <GraphicsRecovery />
+          <DynamicResScaler enabled={adaptiveResolution} />
 
-        <PlanetLife lightPosition={LIGHT_POSITION} />
-        <OrbitControls
-          makeDefault
-          enableDamping
-          dampingFactor={0.08}
-          autoRotate={autoRotate}
-          autoRotateSpeed={autoRotateSpeed}
-        />
-      </Canvas>
+          <PlanetLife lightPosition={LIGHT_POSITION} />
+          <OrbitControls
+            makeDefault
+            enableDamping
+            dampingFactor={0.08}
+            autoRotate={autoRotate}
+            autoRotateSpeed={autoRotateSpeed}
+          />
+        </Canvas>
+      </CanvasErrorBoundary>
     </>
   );
 }
