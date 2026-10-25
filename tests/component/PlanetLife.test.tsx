@@ -66,11 +66,19 @@ vi.mock('leva', () => {
 vi.mock('@react-three/fiber', (_importOriginal) => {
   return {
     useFrame: vi.fn(),
-    useThree: () => ({
-      camera: { position: new THREE.Vector3() },
-      gl: { domElement: document.createElement('canvas') },
-      viewport: { width: 100, height: 100, factor: 1, distance: 1, aspect: 1 },
-    }),
+    useThree: (selector?: (state: unknown) => unknown) => {
+      const state = {
+        camera: { position: new THREE.Vector3() },
+        gl: {
+          domElement: document.createElement('canvas'),
+          getRenderTarget: () => null,
+          setRenderTarget: () => {},
+          render: () => {},
+        },
+        viewport: { width: 100, height: 100, factor: 1, distance: 1, aspect: 1 },
+      };
+      return selector ? selector(state) : state;
+    },
     Canvas: ({ children }: { children: React.ReactNode }) => (
       <div data-testid="canvas-mock">{children}</div>
     ),
