@@ -30,3 +30,13 @@ These are easy to break accidentally; please preserve them unless you are intent
   Colony A (`LifeGridSimColony` and the GPU shader agree on `countA >= 2`).
 - When `gpuSim` is enabled the CPU/worker sim is paused and its stats are never published;
   HUD stats come from the GPU sim's readback pass (`gpuStats.frag.ts`).
+
+## Seeded randomize / shareable worlds
+
+- Randomize draws from `createSeededRng(worldSeed)` (`src/sim/seededRng.ts`, mulberry32). CPU
+  (`LifeGridSimBase.randomize`), worker (`seed` in the `init`/`randomize` messages) and GPU init
+  (`useGpuSeeder.initializeState`, which builds its texture on the CPU) use the same generator and
+  draw order (one draw per cell, one more per live Colony cell), so a seed gives the same pattern
+  on every path. `worldSeed` lives in `useUIStore`; `requestSimCommand('randomize')` picks a fresh one.
+- The share hash (`src/utils/shareUrl.ts`) is applied in `main.tsx` before first render; the preset
+  is applied first so explicit params win. Meteor seeding (`seedAtUV` shader) is not seeded.

@@ -5,6 +5,7 @@ import { useDocumentHidden } from '../../hooks/useDocumentHidden';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
 import type { Rules } from '../../sim/rules';
+import { createSeededRng } from '../../sim/seededRng';
 import { spherePointToCell } from '../../sim/spherePointToCell';
 import type { SeedMode } from '../../sim/types';
 import { useUIStore } from '../../store/useUIStore';
@@ -141,11 +142,12 @@ export function usePlanetLifeSim({
       workerPostMessage({
         type: 'randomize',
         density: randomDensity,
+        seed: useUIStore.getState().worldSeed,
       } satisfies LifeGridWorkerInMessage);
       return;
     }
     const sim = simRef.current;
-    sim?.randomize(randomDensity);
+    sim?.randomize(randomDensity, createSeededRng(useUIStore.getState().worldSeed));
     if (!gpuSim && sim) publishStats(sim);
     updateInstances();
   }, [
@@ -280,7 +282,7 @@ export function usePlanetLifeSim({
     simRef.current = sim;
     geometrySimRef.current = sim;
 
-    sim.randomize(randomDensityRef.current);
+    sim.randomize(randomDensityRef.current, createSeededRng(useUIStore.getState().worldSeed));
     updateInstancesRef.current();
     // Intentionally omit `rules`, `ecologyProfile`, `randomDensity`, and
     // `gameMode` from the dep list. rules/gameMode/ecologyProfile are

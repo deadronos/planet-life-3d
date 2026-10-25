@@ -1,4 +1,9 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { useControlsStore } from '../store/useControlsStore';
 import { useUIStore } from '../store/useUIStore';
+import { copyText } from '../utils/clipboard';
+import { encodeWorld } from '../utils/shareUrl';
 
 /** Bounds of the Leva `tickMs` control; the speed slider uses the same range. */
 export const TICK_MS_MIN = 10;
@@ -48,6 +53,21 @@ export function TransportBar() {
 
   const speed = ticksPerSecond(tickMs);
 
+  const [shareMessage, setShareMessage] = useState('');
+  const resetTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(resetTimer.current), []);
+
+  // Writes the hash only on demand (no history spam), then copies the full URL.
+  const share = async () => {
+    const hash = encodeWorld(useControlsStore.getState(), useUIStore.getState().worldSeed);
+    window.history.replaceState(null, '', `#${hash}`);
+    const ok = await copyText(window.location.href);
+    setShareMessage(ok ? 'Link copied' : 'Copy failed. The link is in the address bar.');
+    window.clearTimeout(resetTimer.current);
+    resetTimer.current = window.setTimeout(() => setShareMessage(''), 2000);
+  };
+  const shareLabel = shareMessage === 'Link copied' ? 'Copied' : 'Copy link';
+
   return (
     <div className="transport-bar" role="group" aria-label="Simulation controls">
       <button
@@ -83,6 +103,17 @@ export function TransportBar() {
       >
         Clear
       </button>
+      <button
+        type="button"
+        className="transport-button"
+        aria-label="Copy link to this world"
+        onClick={() => void share()}
+      >
+        {shareLabel}
+      </button>
+      <span className="sr-only" role="status" aria-live="polite">
+        {shareMessage}
+      </span>
       <div className="transport-speed">
         <label htmlFor="transport-speed">Speed</label>
         <input
