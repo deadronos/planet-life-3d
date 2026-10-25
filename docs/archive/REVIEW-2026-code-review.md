@@ -1,3 +1,5 @@
+> **Archived 2026-10-25:** historical code review, superseded by the umbrella issues #150–#153. Kept for reference only; not maintained.
+
 ## Executive Summary
 
 This codebase has a solid foundation: a clear separation between simulation core (`src/sim`), rendering/UI (`src/components`), and worker offloading (`src/workers`), plus broad unit/component test coverage. The simulation layer uses typed arrays and precomputed geometry effectively, and the worker path includes thoughtful transferable-buffer recycling.

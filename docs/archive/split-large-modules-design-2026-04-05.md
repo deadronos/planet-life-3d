@@ -1,3 +1,5 @@
+> **Archived 2026-10-25:** historical design doc for the module split (2026-04-05); the split is done. Kept for reference only.
+
 # Refactor: Split Large Modules
 
 **Date:** 2026-04-05

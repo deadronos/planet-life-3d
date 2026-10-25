@@ -2,8 +2,8 @@
 
 ## Current Focus
 
-- Keep the Memory Bank (`memory/`) and the implementation spec (`specs/current-state.md`) in sync with the current code.
-- Keep the Memory Bank (`memory/`) and the implementation spec (`specs/current-state.md`) in sync with the current code.
+- Keep the Memory Bank (`memory/`) and the implementation spec (`docs/design/current-state.md`) in sync with the current code.
+- Keep the Memory Bank (`memory/`) and the implementation spec (`docs/design/current-state.md`) in sync with the current code.
 - Capture the post-TASK005 architecture: `PlanetLife.tsx` is now a composition layer and the heavy logic lives in `src/components/planetLife/`.
 - Validate the new unified rendering pipeline (Vertex Displacement) across all simulation modes.
 
@@ -60,7 +60,7 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`, `npm run bench`.
 ## Next steps
 
 - Add a CI workflow to run `npm ci`, `npm run build`, and `npm run test`.
-- Keep `specs/current-state.md` updated when the module boundaries change.
+- Keep `docs/design/current-state.md` updated when the module boundaries change.
 - Add task entries in `memory/tasks` for TODOs prioritized by value (docs, accessibility, pattern editor).
 - Consider local persistence for theme/preset selection and a small UI hint for 'Custom' modes.
 
@@ -72,7 +72,7 @@ Validated: `npm run test`, `npm run lint`, `npm run typecheck`, `npm run bench`.
 
 ## Docs sync policy
 
-- When changing simulation logic, rendering mapping, UI controls, or core dependencies, update `specs/current-state.md` and the relevant `memory/` files in the same PR.
+- When changing simulation logic, rendering mapping, UI controls, or core dependencies, update `docs/design/current-state.md` and the relevant `memory/` files in the same PR.
 - If the spec and Memory Bank disagree, treat it as documentation drift and correct it immediately.
 
 ## Update
