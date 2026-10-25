@@ -1,4 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
+import { levaStore } from 'leva';
 import { useEffect } from 'react';
 
 import { useDocumentHidden } from '../../hooks/useDocumentHidden';
@@ -33,6 +34,10 @@ export function RenderDemandDriver({ autoRotate }: { autoRotate: boolean }) {
 
   // Stats, probe, planet status, graphics status etc. all change what is drawn.
   useEffect(() => useUIStore.subscribe(() => invalidate()), [invalidate]);
+
+  // Leva edits reach materials through effects (uniforms), not R3F props, so they
+  // would not redraw an idle canvas on their own.
+  useEffect(() => levaStore.useStore.subscribe(() => invalidate()), [invalidate]);
 
   return null;
 }
