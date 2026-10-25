@@ -52,7 +52,7 @@
 - Maintain row flipping in `PlanetLife.updateTexture()` to avoid relying on `flipY` semantics across different Three.js versions.
 - Maintain row flipping in `writeLifeTexture()` (moved out of `PlanetLife.tsx`) to avoid relying on `flipY` semantics across different Three.js versions.
 - Use `instancedMesh.count` rather than allocating smaller meshes for each alive cell.
-- Keep `specs/current-state.md` and the Memory Bank (`memory/`) in sync when changing behavior or architecture.
+- Keep `docs/design/current-state.md` and the Memory Bank (`memory/`) in sync when changing behavior or architecture.
 - **Environment shaders**: Keep shader uniforms updated via `useFrame`; use `BackSide` for skybox spheres.
 
 ## Edge cases & defensive behavior

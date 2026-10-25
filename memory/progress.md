@@ -20,7 +20,7 @@
 
 - Test harness present (Vitest); CI to run tests on PRs is not yet configured.
 - `npm run dev` details may fail on older Node or missing dependencies — the build currently relies on `tsc`/Vite.
-- Documentation drift risk: keep `specs/current-state.md` and the Memory Bank (`memory/`) updated together when behavior, controls, or architecture changes.
+- Documentation drift risk: keep `docs/design/current-state.md` and the Memory Bank (`memory/`) updated together when behavior, controls, or architecture changes.
 
 ## Next steps
 

@@ -132,4 +132,4 @@ Transfer strategy:
 
 ## Handoff
 
-- Update `specs/current-state.md` to note scheduler behavior and benchmarks.
+- Update `docs/design/current-state.md` to note scheduler behavior and benchmarks.

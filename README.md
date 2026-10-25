@@ -18,7 +18,7 @@ Click the planet to shoot a meteor. On impact it seeds the grid using a configur
 
 ## Demo Screenshot
 
-![screenshot](image.png)
+![screenshot](docs/screenshots/readme-hero.png)
 
 ## Run
 
