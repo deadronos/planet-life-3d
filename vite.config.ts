@@ -6,6 +6,9 @@ export default defineConfig({
   base: 'https://deadronos.github.io/planet-life-3d/',
   plugins: [react()],
   server: { port: 5173, strictPort: true },
+  // Pre-bundle the lazily imported bloom deps so the first dev load of the
+  // chunk is not a 500 while Vite discovers and optimises them mid-request.
+  optimizeDeps: { include: ['@react-three/postprocessing', 'postprocessing'] },
   build: {
     rolldownOptions: {
       output: {
