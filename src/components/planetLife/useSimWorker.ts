@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
+import { useUIStore } from '../../store/useUIStore';
 import type {
   LifeGridWorkerInMessage,
   LifeGridWorkerOutMessage,
@@ -150,6 +151,7 @@ export function useSimWorker({
       gameMode,
       ecologyProfile,
       randomDensity,
+      seed: useUIStore.getState().worldSeed,
     } satisfies LifeGridWorkerInMessage);
 
     return () => {

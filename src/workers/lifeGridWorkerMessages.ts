@@ -11,6 +11,8 @@ export type LifeGridWorkerInit = {
   gameMode?: GameMode;
   ecologyProfile?: EcologyProfileName;
   randomDensity?: number;
+  /** uint32 world seed for the initial randomize. */
+  seed?: number;
 };
 
 export type LifeGridWorkerTick = {
@@ -38,6 +40,8 @@ export type LifeGridWorkerClear = { type: 'clear' };
 export type LifeGridWorkerRandomize = {
   type: 'randomize';
   density: number;
+  /** uint32 world seed; omitted => unseeded Math.random. */
+  seed?: number;
 };
 
 export type LifeGridWorkerSeedAtCell = {
