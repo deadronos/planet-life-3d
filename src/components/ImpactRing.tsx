@@ -16,6 +16,12 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
   const flashRef = useRef<THREE.Mesh>(null!);
   const flashMatRef = useRef<THREE.MeshBasicMaterial>(null!);
 
+  // HDR (>1.0) so the additive flash crosses the bloom threshold.
+  const flashColor = useMemo(
+    () => new THREE.Color(props.spec.color).multiplyScalar(1.8),
+    [props.spec.color],
+  );
+
   const basis = useMemo(
     () => computeImpactBasis(props.spec.normal, props.planetRadius),
     [props.spec.normal, props.planetRadius],
@@ -52,7 +58,7 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
         <circleGeometry args={[1, 40]} />
         <meshBasicMaterial
           ref={flashMatRef}
-          color={props.spec.color}
+          color={flashColor}
           transparent
           opacity={props.spec.flashIntensity}
           blending={THREE.AdditiveBlending}

@@ -9,6 +9,15 @@ import {
 } from './adaptiveResolution';
 import { IDLE_GAP_SECONDS } from './renderDemand';
 
+/**
+ * Frames ignored right after a pixel-ratio change. Resizing reallocates every
+ * render target (the bloom composer's half-float mip chain included), so the
+ * next frame or two are slow for reasons that say nothing about the new
+ * resolution. Counting them would trigger another step and the scaler would
+ * oscillate between two ratios.
+ */
+export const SETTLE_FRAMES_AFTER_CHANGE = 3;
+
 export interface DynamicResScalerProps {
   /** Master switch; when false the scaler never touches the pixel ratio. */
   enabled?: boolean;
@@ -54,6 +63,7 @@ export function DynamicResScaler({
 
   const windowRef = useRef<FrameRateWindow | null>(null);
   const lastChangeAtRef = useRef(0);
+  const settleFramesRef = useRef(0);
 
   if (windowRef.current === null) {
     windowRef.current = new FrameRateWindow(
@@ -87,6 +97,11 @@ export function DynamicResScaler({
       return;
     }
 
+    if (settleFramesRef.current > 0) {
+      settleFramesRef.current -= 1;
+      return;
+    }
+
     sampler.push(delta);
 
     // Always reason about the dpr the renderer is really using.
@@ -104,6 +119,7 @@ export function DynamicResScaler({
       // Discard the samples that produced this decision; they describe the
       // old resolution and would immediately trigger another step.
       sampler.reset();
+      settleFramesRef.current = SETTLE_FRAMES_AFTER_CHANGE;
       setDpr(next);
       onChange?.(next);
     }

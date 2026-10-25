@@ -1,3 +1,5 @@
+import { DISPLAY_REFERRED_OUTPUT } from './displayReferredOutput';
+
 // Fragment shader for GPU life texture overlay
 // Reads age and neighbor heat from texture channels and applies colors
 export const gpuOverlayFragmentShader = /* glsl */ `
@@ -101,5 +103,6 @@ export const gpuOverlayFragmentShader = /* glsl */ `
     alpha = clamp(brightness, 0.05, 1.0);
     
     gl_FragColor = vec4(finalColor, alpha * uCellOverlayOpacity);
+    ${DISPLAY_REFERRED_OUTPUT}
   }
 `;

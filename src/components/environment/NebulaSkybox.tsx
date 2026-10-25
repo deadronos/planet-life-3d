@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { DISPLAY_REFERRED_OUTPUT } from '../../shaders/displayReferredOutput';
 import { clampFrameDelta } from '../performance/renderDemand';
 
 /**
@@ -150,6 +151,7 @@ export function NebulaSkybox() {
           color *= brightness;
           
           gl_FragColor = vec4(color, 1.0);
+          ${DISPLAY_REFERRED_OUTPUT}
         }
       `,
       side: THREE.BackSide,
