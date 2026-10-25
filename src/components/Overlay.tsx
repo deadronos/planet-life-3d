@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
+import { GraphicsNotice } from './GraphicsNotice';
 import { TransportBar } from './TransportBar';
 
 function formatPercent(value: number): string {
@@ -57,6 +58,8 @@ export function Overlay() {
           <p>Cellular Automata Simulation</p>
         </div>
 
+        <GraphicsNotice />
+
         {showHint && (
           <div className="onboarding-hint" role="region" aria-label="Onboarding instructions">
             <p>
@@ -111,6 +114,10 @@ export function Overlay() {
             <span className="hud-value">{stats.deathsLastTick}</span>
           </div>
           <div className="hud-divider hud-detail" />
+          <div className="hud-row hud-detail">
+            <span className="hud-label">Engine</span>
+            <span className="hud-value">{planetStatus.gpuSim ? 'GPU' : 'CPU'}</span>
+          </div>
           <div className="hud-row hud-detail">
             <span className="hud-label">Mode</span>
             <span className="hud-value">{planetStatus.gameMode}</span>

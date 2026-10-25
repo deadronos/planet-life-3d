@@ -73,6 +73,8 @@ export function PlanetLife({
   const activeTool = useUIStore((state) => state.activeTool);
   const setPlanetStatus = useUIStore((state) => state.setPlanetStatus);
   const setProbe = useUIStore((state) => state.setProbe);
+  const graphicsEpoch = useUIStore((state) => state.graphicsEpoch);
+  const graphicsOk = useUIStore((state) => state.graphicsStatus === 'ok');
 
   const rules = useMemo(() => {
     return {
@@ -108,7 +110,7 @@ export function PlanetLife({
   const lifeTex = useLifeTexture({ lonCells: safeLonCells, latCells: safeLatCells });
 
   const gpuSimRef = useRef<GPUSimulationHandle>(null);
-  const [gpuTexture, setGpuTexture] = useState<THREE.Texture | null>(null);
+  const [gpuTexture, setGpuTexture] = useState<{ tex: THREE.Texture; epoch: number } | null>(null);
   const gpuResolution = useMemo(
     () => ({
       width: safeLonCells,
@@ -332,20 +334,28 @@ export function PlanetLife({
   // fall through to the CPU/Worker sim's texture instead of rendering a
   // blank planet. This is purely a safety net — the normal path is
   // gpuTexture, which is updated every tick by <GPUSimulation>.
-  const texture = gpuSim ? (gpuTexture ?? lifeTex.tex) : lifeTex.tex;
+  // The stale texture belongs to the lost context; ignore it until the remounted
+  // GPUSimulation publishes a fresh one.
+  const onGpuTexture = useCallback(
+    (tex: THREE.Texture) => setGpuTexture({ tex, epoch: graphicsEpoch }),
+    [graphicsEpoch],
+  );
+  const freshGpuTexture = gpuTexture?.epoch === graphicsEpoch ? gpuTexture.tex : null;
+  const texture = gpuSim ? (freshGpuTexture ?? lifeTex.tex) : lifeTex.tex;
 
   return (
     <group>
       {gpuSim && (
         <GPUSimulation
+          key={graphicsEpoch}
           resolution={gpuResolution}
-          running={running}
+          running={running && graphicsOk}
           tickMs={tickMs}
           rules={rules}
           randomDensity={randomDensity}
           gameMode={gameMode}
           ecologyProfile={ecologyProfile}
-          onTextureUpdate={setGpuTexture}
+          onTextureUpdate={onGpuTexture}
           onStats={publishStats}
           simRef={gpuSimRef}
         />
