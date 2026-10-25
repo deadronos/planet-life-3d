@@ -1,4 +1,5 @@
 import { LifeGridSim } from '../sim/LifeGridSim';
+import { createSeededRng } from '../sim/seededRng';
 import type {
   LifeGridWorkerInMessage,
   LifeGridWorkerOutMessage,
@@ -86,7 +87,11 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           if (msg.gameMode) sim.setGameMode(msg.gameMode);
           if (msg.ecologyProfile) sim.setEcologyProfile(msg.ecologyProfile);
           pool = [];
-          if (typeof msg.randomDensity === 'number') sim.randomize(msg.randomDensity);
+          if (typeof msg.randomDensity === 'number')
+            sim.randomize(
+              msg.randomDensity,
+              msg.seed === undefined ? undefined : createSeededRng(msg.seed),
+            );
           postMessage({ type: 'ready' });
           sendSnapshot();
           return;
@@ -114,7 +119,10 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
         }
         case 'randomize': {
           if (!sim) return sendError('Worker not initialized');
-          sim.randomize(msg.density);
+          sim.randomize(
+            msg.density,
+            msg.seed === undefined ? undefined : createSeededRng(msg.seed),
+          );
           sendSnapshot();
           return;
         }

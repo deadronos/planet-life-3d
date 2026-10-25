@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { EcologyProfileName, EcologySample } from '../sim/ecology';
+import { newWorldSeed } from '../sim/seededRng';
 import { appendSample, replaceLastSample } from '../utils/populationHistory';
 
 export interface GameStats {
@@ -52,6 +53,9 @@ interface UIState {
   /** Wrapped in an object so repeated requests for the same command still notify. */
   simCommand: { command: SimCommand } | undefined;
   requestSimCommand: (command: SimCommand) => void;
+  /** uint32 seed of the current world; every initial randomization draws from it. */
+  worldSeed: number;
+  setWorldSeed: (seed: number) => void;
   /** Mirror of the Leva `running` / `tickMs` controls, written by controls.ts. */
   simRunning: boolean;
   simTickMs: number;
@@ -90,7 +94,15 @@ export const useUIStore = create<UIState>((set) => ({
   activeTool: 'Life',
   probe: undefined,
   simCommand: undefined,
-  requestSimCommand: (command) => set({ simCommand: { command } }),
+  // A new Randomize picks a fresh seed before the sim reads it.
+  requestSimCommand: (command) =>
+    set(
+      command === 'randomize'
+        ? { simCommand: { command }, worldSeed: newWorldSeed() }
+        : { simCommand: { command } },
+    ),
+  worldSeed: newWorldSeed(),
+  setWorldSeed: (worldSeed) => set({ worldSeed }),
   simRunning: true,
   simTickMs: 120,
   simSpeedRequest: undefined,

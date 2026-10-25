@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { createSeededRng } from '../../sim/seededRng';
+import { useUIStore } from '../../store/useUIStore';
 import { PatternTextureCache } from '../patternTextureCache';
 import type { FullscreenPass, Resolution } from './common';
 import type { GpuPingPong } from './useGpuPingPong';
@@ -17,7 +19,7 @@ export interface SeedAtUVParams {
 
 export interface GpuSeeder {
   /** Fill both buffers with random state at `density` and reset the generation. */
-  initializeState: (density: number) => void;
+  initializeState: (density: number, seed?: number) => void;
   seedAtUV: (params: SeedAtUVParams) => void;
 }
 
@@ -87,7 +89,10 @@ export function useGpuSeeder({
 
   // eslint-disable-next-line react-hooks/immutability -- initializeState is an imperative closure that writes material uniforms; these are GPU handles, not React state.
   const initializeState = useMemo(() => {
-    return (density: number) => {
+    return (density: number, seed: number = useUIStore.getState().worldSeed) => {
+      // Same generator and draw order as LifeGridSimBase.randomize, so a seed gives
+      // the identical pattern as the CPU/worker path (texel i == cell i).
+      const rng = createSeededRng(seed);
       const size = resolution.width * resolution.height * 4;
       const data = new Float32Array(size);
       // Read the *current* game mode from a ref so this closure can be
@@ -96,10 +101,10 @@ export function useGpuSeeder({
       const useDensity = density;
       for (let i = 0; i < size; i += 4) {
         let state = 0.0;
-        if (Math.random() < useDensity) {
+        if (rng() < useDensity) {
           if (useColony) {
             // Colony mode: 0.33 for Colony A, 0.67 for Colony B
-            state = Math.random() < 0.5 ? 0.33 : 0.67;
+            state = rng() < 0.5 ? 0.33 : 0.67;
           } else {
             // Classic mode: 1.0 for alive
             state = 1.0;
