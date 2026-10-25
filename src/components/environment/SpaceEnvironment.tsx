@@ -32,7 +32,7 @@ export function SpaceEnvironment({ lightPosition = [6, 6, 8] }: SpaceEnvironment
       <DistantMoons />
 
       {/* Distant sun - visible source for the lens flare */}
-      <DistantSun position={sunPosition} size={3} />
+      <DistantSun position={sunPosition} size={40} />
 
       {/* Sun lens flare from directional light */}
       <SunLensFlare lightPosition={lightPosition} />
