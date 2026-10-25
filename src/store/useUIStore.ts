@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { EcologyProfileName, EcologySample } from '../sim/ecology';
 import { newWorldSeed } from '../sim/seededRng';
+import { appendSample, replaceLastSample } from '../utils/populationHistory';
 
 export interface GameStats {
   generation: number;
@@ -44,6 +45,8 @@ interface UIState {
   setGraphicsStatus: (status: GraphicsStatus) => void;
   bumpGraphicsEpoch: () => void;
   stats: GameStats;
+  /** Last ~200 population samples; reset when the generation counter goes backwards. */
+  populationHistory: number[];
   planetStatus: PlanetStatus;
   activeTool: MeteorTool;
   probe: ProbeStatus | undefined;
@@ -76,6 +79,7 @@ export const useUIStore = create<UIState>((set) => ({
     birthsLastTick: 0,
     deathsLastTick: 0,
   },
+  populationHistory: [],
   planetStatus: {
     preset: 'Custom',
     ecologyProfile: 'None',
@@ -107,7 +111,20 @@ export const useUIStore = create<UIState>((set) => ({
   setSimPlayback: ({ running, tickMs }) => set({ simRunning: running, simTickMs: tickMs }),
   activeEffectCount: 0,
   setActiveEffectCount: (activeEffectCount) => set({ activeEffectCount }),
-  setStats: (stats) => set({ stats }),
+  setStats: (stats) =>
+    set((state) => {
+      const prevGen = state.stats.generation;
+      const history = state.populationHistory;
+      let populationHistory: number[];
+      if (history.length === 0 || stats.generation < prevGen) {
+        populationHistory = [stats.population];
+      } else if (stats.generation === prevGen) {
+        populationHistory = replaceLastSample(history, stats.population);
+      } else {
+        populationHistory = appendSample(history, stats.population);
+      }
+      return { stats, populationHistory };
+    }),
   setPlanetStatus: (planetStatus) => set({ planetStatus }),
   setActiveTool: (activeTool) => set({ activeTool }),
   setProbe: (probe) => set({ probe }),
