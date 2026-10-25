@@ -1,17 +1,15 @@
-import { render, fireEvent, screen } from '@testing-library/react';
-import App from '../../src/App';
-import { vi, describe, it, expect } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-// Mock Leva
-vi.mock('leva', () => ({
-  Leva: vi.fn(({ hidden }: { hidden?: boolean }) => (
+import App from '../../src/App';
+
+// Mock the lazily loaded Leva panel
+vi.mock('../../src/components/LevaPanel', () => ({
+  default: ({ hidden }: { hidden?: boolean }) => (
     <div data-testid="leva" hidden={hidden}>
       Leva Panel
     </div>
-  )),
-  useControls: vi.fn().mockReturnValue({}),
-  folder: vi.fn(),
-  button: vi.fn(),
+  ),
 }));
 
 // Mock child components
@@ -39,39 +37,36 @@ vi.mock('@react-three/fiber', () => ({
 }));
 
 describe('App Hotkeys', () => {
-  it('toggles Leva visibility when pressing "h"', () => {
+  it('does not mount the Leva panel on first render', () => {
+    render(<App />);
+    expect(screen.queryByTestId('leva')).toBeNull();
+  });
+
+  it('loads the Leva panel after first paint', async () => {
+    render(<App />);
+    expect(await screen.findByTestId('leva')).not.toHaveAttribute('hidden');
+  });
+
+  it('toggles Leva visibility when pressing "h"', async () => {
     render(<App />);
 
-    const levaPanel = screen.getByTestId('leva');
-
-    // Initial state: visible (hidden should be undefined or false)
+    const levaPanel = await screen.findByTestId('leva');
     expect(levaPanel).not.toHaveAttribute('hidden');
 
-    // Press 'h'
     fireEvent.keyDown(window, { key: 'h' });
-
-    // Should be hidden
     expect(levaPanel).toHaveAttribute('hidden');
 
-    // Press 'h' again
     fireEvent.keyDown(window, { key: 'h' });
-
-    // Should be visible
     expect(levaPanel).not.toHaveAttribute('hidden');
   });
 
-  it('toggles Leva visibility when pressing "H"', () => {
+  it('toggles Leva visibility when pressing "H"', async () => {
     render(<App />);
 
-    const levaPanel = screen.getByTestId('leva');
-
-    // Initial state: visible
+    const levaPanel = await screen.findByTestId('leva');
     expect(levaPanel).not.toHaveAttribute('hidden');
 
-    // Press 'H'
     fireEvent.keyDown(window, { key: 'H' });
-
-    // Should be hidden
     expect(levaPanel).toHaveAttribute('hidden');
   });
 });
