@@ -65,6 +65,8 @@ export type CellsSlice = {
   colonyColorB: string;
   pulseSpeed: number;
   pulseIntensity: number;
+  nightGlowIntensity: number;
+  nightGlowColor: string;
 };
 
 export type MeteorsSlice = {
@@ -181,6 +183,8 @@ function toSlices(p: FlatControls): PlanetLifeControls {
       colonyColorB: p.colonyColorB,
       pulseSpeed: p.pulseSpeed,
       pulseIntensity: p.pulseIntensity,
+      nightGlowIntensity: p.nightGlowIntensity,
+      nightGlowColor: p.nightGlowColor,
     },
     meteors: {
       meteorSpeed: p.meteorSpeed,
@@ -374,6 +378,9 @@ export function usePlanetLifeControls(): PlanetLifeControls {
         rimPower: { value: 2.6, min: 0.5, max: 6, step: 0.05 },
         terminatorSharpness: { value: 8, min: 1, max: 16, step: 0.5 },
         terminatorBoost: { value: 0, min: -0.4, max: 0.6, step: 0.01 },
+        // Night-side "city lights" glow on live cells; >1 output blooms softly.
+        nightGlowIntensity: { value: 0.6, min: 0, max: 3, step: 0.05 },
+        nightGlowColor: '#ffc46b',
         atmosphereColor: '#64d4ff',
         atmosphereIntensity: { value: 0.55, min: 0, max: 2, step: 0.01 },
         atmosphereHeight: { value: 0.06, min: 0, max: 0.35, step: 0.005 },

@@ -296,6 +296,12 @@ describe('usePlanetLifeControls - preset selectors are returned', () => {
     expect(result.current.sim.worldPreset).toBe('Custom');
     expect(result.current.planet.theme).toBe('Default');
   });
+
+  it('defaults night glow to a subtle warm tint', () => {
+    const { result } = renderHook(() => usePlanetLifeControls());
+    expect(result.current.cells.nightGlowIntensity).toBe(0.6);
+    expect(result.current.cells.nightGlowColor).toBe('#ffc46b');
+  });
 });
 
 describe('usePlanetLifeControls - reduced motion', () => {
