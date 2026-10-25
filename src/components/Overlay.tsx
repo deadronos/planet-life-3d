@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
+import { describePopulationTrend, sparklinePoints } from '../utils/populationHistory';
 import { GraphicsNotice } from './GraphicsNotice';
 import { TransportBar } from './TransportBar';
 
@@ -24,6 +25,7 @@ export function Overlay() {
   const activeTool = useUIStore((state) => state.activeTool);
   const setActiveTool = useUIStore((state) => state.setActiveTool);
   const probe = useUIStore((state) => state.probe);
+  const populationHistory = useUIStore((state) => state.populationHistory);
 
   const [showHint, setShowHint] = useState<boolean>(() => {
     const hintShown = localStorage.getItem('onboardingHintShown');
@@ -105,6 +107,18 @@ export function Overlay() {
             <span className="hud-label">Pop</span>
             <span className="hud-value">{stats.population}</span>
           </div>
+          {populationHistory.length >= 2 && (
+            <svg
+              className="hud-sparkline"
+              viewBox="0 0 200 32"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={describePopulationTrend(populationHistory)}
+            >
+              <line x1="0" y1="31" x2="200" y2="31" className="hud-sparkline-base" />
+              <polyline points={sparklinePoints(populationHistory, 200, 32)} />
+            </svg>
+          )}
           <div className="hud-row hud-detail">
             <span className="hud-label">Births</span>
             <span className="hud-value">{stats.birthsLastTick}</span>

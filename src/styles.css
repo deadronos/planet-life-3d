@@ -257,6 +257,27 @@ body,
   white-space: nowrap;
 }
 
+.hud-sparkline {
+  display: block;
+  width: 100%;
+  height: 2rem;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.hud-sparkline polyline {
+  fill: none;
+  stroke: #a5b4fc;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+
+.hud-sparkline-base {
+  stroke: rgba(148, 163, 184, 0.3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
 .hud-divider {
   height: 1px;
   margin: 0.65rem 0;
@@ -593,6 +614,13 @@ body,
 
   .hud-stats .hud-row {
     margin-bottom: 0;
+  }
+
+  /* Compact phone HUD: a thin full-width strip under Gen/Pop; same data, less height. */
+  .hud-stats .hud-sparkline {
+    grid-column: 1 / -1;
+    height: 1.25rem;
+    margin: 0.3rem 0 0;
   }
 
   /* Probe values in two rows of four instead of four rows. */
