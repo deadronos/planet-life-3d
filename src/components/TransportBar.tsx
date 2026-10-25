@@ -4,11 +4,17 @@ import { useUIStore } from '../store/useUIStore';
 export const TICK_MS_MIN = 10;
 export const TICK_MS_MAX = 1500;
 
-/** Slider resolution. The slider position is 0..SLIDER_STEPS, slow (left) to fast (right). */
-export const SLIDER_STEPS = 10000;
+/**
+ * Slider resolution. The slider position is 0..SLIDER_STEPS, slow (left) to fast (right).
+ * Kept coarse enough that one arrow-key press changes speed by about 2%.
+ */
+export const SLIDER_STEPS = 250;
 
 const MIN_TPS = 1000 / TICK_MS_MAX;
 const MAX_TPS = 1000 / TICK_MS_MIN;
+
+/** Speed ratio between adjacent slider positions (about 1.02). */
+export const SPEED_RATIO_PER_STEP = (MAX_TPS / MIN_TPS) ** (1 / SLIDER_STEPS);
 
 /**
  * Log-uniform mapping over ticks per second, so each slider step is an equal

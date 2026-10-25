@@ -26,7 +26,9 @@ describe('CanvasErrorBoundary', () => {
       </CanvasErrorBoundary>,
     );
     expect(screen.getByRole('alert')).toHaveTextContent('no webgl');
-    expect(screen.getByRole('button', { name: 'Reload' })).toBeTruthy();
+    const reload = screen.getByRole('button', { name: 'Reload' });
+    expect(reload).toBeTruthy();
+    expect(reload).toHaveClass('transport-button');
     vi.restoreAllMocks();
   });
 });
@@ -54,7 +56,9 @@ describe('context loss handling', () => {
     });
     expect(lost.defaultPrevented).toBe(true);
     expect(useUIStore.getState().graphicsStatus).toBe('lost');
-    expect(screen.getByRole('status')).toHaveTextContent('Graphics context lost');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Graphics context lost — trying to recover. The simulation will restart.',
+    );
     expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull();
     // The user's own play/pause state is never touched.
     expect(useUIStore.getState().simRunning).toBe(true);
