@@ -64,7 +64,7 @@ export function SunLensFlare({
   // Flare configuration
   const flares: FlareElement[] = useMemo(
     () => [
-      { texture: flareTextures.main, size: 4, distance: 0, color: new THREE.Color('#fff8e7') },
+      { texture: flareTextures.main, size: 1.4, distance: 0, color: new THREE.Color('#fff8e7') },
       { texture: flareTextures.ring, size: 1.5, distance: 0.3, color: new THREE.Color('#ffd480') },
       { texture: flareTextures.spot, size: 0.8, distance: 0.5, color: new THREE.Color('#ff9940') },
       { texture: flareTextures.spot, size: 0.5, distance: 0.7, color: new THREE.Color('#ff6b6b') },
@@ -79,8 +79,9 @@ export function SunLensFlare({
       (f) =>
         new THREE.SpriteMaterial({
           map: f.texture,
-          // HDR gain so the flare elements feed the bloom pass.
-          color: f.color.clone().multiplyScalar(1.8),
+          // Kept at or below 1.0 so only the sun core crosses the bloom
+          // threshold; the flare ghosts stay subtle with bloom on or off.
+          color: f.color.clone(),
           transparent: true,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
@@ -125,7 +126,7 @@ export function SunLensFlare({
       sprite.scale.setScalar(flare.size * (dist * 0.1));
 
       // Update opacity
-      mat.opacity = visibility * 0.6;
+      mat.opacity = visibility * 0.45;
     });
   });
 
