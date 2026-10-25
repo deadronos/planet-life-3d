@@ -1,4 +1,3 @@
-import { button, useControls } from 'leva';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -308,18 +307,8 @@ export function PlanetLife({
     }
   }, [gpuSim, stepOnce]);
 
-  useControls(
-    'Actions',
-    () => ({
-      Randomize: button(runRandomize),
-      Clear: button(runClear),
-      StepOnce: button(runStepOnce),
-    }),
-    [runRandomize, runClear, runStepOnce],
-  );
-
-  // Hotkey commands (see useHotkeys). togglePlay is handled in controls.ts,
-  // which owns the Leva `running` setter.
+  // Hotkey and Leva Actions commands (see useHotkeys, LevaPanel). togglePlay is
+  // handled in controls.ts, which owns the `running` value.
   useEffect(
     () =>
       useUIStore.subscribe((state, prev) => {

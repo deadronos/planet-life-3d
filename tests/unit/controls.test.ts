@@ -1,313 +1,63 @@
-import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, renderHook } from '@testing-library/react';
+import { createElement } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-let setSpy: ReturnType<typeof vi.fn>;
-let capturedSchema: unknown = null;
-const overrides: Record<string, unknown> = {};
-
-type SchemaShape = {
-  Basics?: {
-    worldPreset?: { onChange?: (v: string) => void };
-    theme?: { onChange?: (v: string) => void };
-    cellRenderMode?: { render?: (get: unknown) => boolean };
-  };
-  Simulation?: {
-    rulePreset?: { onChange?: (v: string) => void };
-  };
-  Debug?: {
-    workerSim?: { render?: (get: unknown) => boolean };
-    gpuSim?: { value?: unknown; render?: (get: unknown) => boolean };
-  };
+type Input = {
+  value?: unknown;
+  onChange?: (v: unknown, path: string, ctx: { initial: boolean }) => void;
+  render?: (get: unknown) => boolean;
+  transient?: boolean;
 };
+type Schema = Record<string, Record<string, Input>>;
+
+let capturedSchema: Schema | null = null;
+const levaValues = new Map<string, unknown>();
+const setValueAtPath = vi.fn((path: string, value: unknown) => levaValues.set(path, value));
 
 vi.mock('leva', () => ({
-  useControls: (schemaOrName: unknown, schema?: unknown) => {
-    const s = schema ?? schemaOrName;
-    const obj: unknown = typeof s === 'function' ? (s as (...args: unknown[]) => unknown)() : s;
-    capturedSchema = obj;
-
-    const result: Record<string, unknown> = {};
-    function isValueObject(v: unknown): v is { value: unknown } {
-      return typeof v === 'object' && v !== null && 'value' in v;
-    }
-    function isPlainObject(v: unknown): v is Record<string, unknown> {
-      return typeof v === 'object' && v !== null && !Array.isArray(v);
-    }
-    function flattenSchema(o: Record<string, unknown>) {
-      for (const key of Object.keys(o)) {
-        if (key in overrides) {
-          result[key] = overrides[key];
-          continue;
-        }
-        const val = o[key];
-        if (isValueObject(val)) {
-          // Mirror Leva: an input with onChange is transient (left out of the
-          // returned values) unless it sets `transient: false`.
-          const opts = val as { onChange?: unknown; transient?: boolean };
-          if (opts.onChange && opts.transient !== false) continue;
-          result[key] = val.value;
-          continue;
-        }
-        if (isPlainObject(val)) {
-          flattenSchema(val);
-          continue;
-        }
-        result[key] = val;
-      }
-    }
-
-    if (typeof obj === 'object' && obj !== null) flattenSchema(obj as Record<string, unknown>);
-
-    return [result, setSpy] as [Record<string, unknown>, typeof setSpy];
+  useControls: (schema: () => Schema) => {
+    capturedSchema = schema();
+    return [{}, () => {}];
   },
-  folder: (x: unknown) => x as Record<string, unknown>,
-  button: () => () => {},
+  folder: (x: unknown) => x,
+  button: (fn: () => void) => ({ __button: fn }),
+  Leva: () => null,
+  levaStore: {
+    get: (path: string) => levaValues.get(path),
+    setValueAtPath: (path: string, value: unknown) => setValueAtPath(path, value),
+  },
 }));
 
-// Import after mocking
+import LevaPanel from '../../src/components/LevaPanel';
 import { usePlanetLifeControls } from '../../src/components/planetLife/controls';
+import { COLOR_THEMES, RULE_PRESETS, WORLD_PRESETS } from '../../src/sim/presets';
+import { createControlDefaults, useControlsStore } from '../../src/store/useControlsStore';
+import { useUIStore } from '../../src/store/useUIStore';
 
-describe('usePlanetLifeControls - onChange handlers', () => {
-  beforeEach(() => {
-    setSpy = vi.fn();
-    capturedSchema = null;
-    for (const k of Object.keys(overrides)) delete overrides[k];
-  });
+const store = () => useControlsStore.getState();
 
-  it('calls set when rule preset onChange selected (non-Custom)', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
-
-    // The captured schema should include Simulation.rulePreset.onChange
-    expect(capturedSchema).toBeTruthy();
-    const rp = (capturedSchema as SchemaShape).Simulation?.rulePreset;
-    expect(rp).toBeTruthy();
-    expect(typeof rp!.onChange).toBe('function');
-
-    // Now call onChange with 'Conway'
-    rp!.onChange!('Conway');
-
-    // setSpy should have been called with birthDigits and surviveDigits
-    expect(setSpy).toHaveBeenCalled();
-    const calledWith = setSpy.mock.calls[0][0];
-    expect(calledWith.birthDigits).toBeDefined();
-    expect(calledWith.surviveDigits).toBeDefined();
-  });
-
-  it('does not call set when rule preset set to Custom', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
-
-    const rp = (capturedSchema as SchemaShape).Simulation?.rulePreset;
-    expect(rp).toBeTruthy();
-    expect(typeof rp!.onChange).toBe('function');
-
-    rp!.onChange!('Custom');
-
-    expect(setSpy).not.toHaveBeenCalled();
-  });
-
-  it('calls set when theme onChange selected (non-Custom)', () => {
-    renderHook(() => usePlanetLifeControls());
-
-    expect(capturedSchema).toBeTruthy();
-    const theme = (capturedSchema as SchemaShape).Basics?.theme;
-    expect(theme).toBeTruthy();
-    expect(typeof theme!.onChange).toBe('function');
-
-    theme!.onChange!('Default');
-
-    expect(setSpy).toHaveBeenCalled();
-    const calledWith = setSpy.mock.calls[0][0];
-    expect(calledWith.cellColor).toBeDefined();
-    expect(calledWith.atmosphereColor).toBeDefined();
-  });
-
-  it('does not call set when theme set to Custom', () => {
-    renderHook(() => usePlanetLifeControls());
-
-    const theme = (capturedSchema as SchemaShape).Basics?.theme;
-    expect(theme).toBeTruthy();
-    expect(typeof theme!.onChange).toBe('function');
-
-    theme!.onChange!('Custom');
-
-    expect(setSpy).not.toHaveBeenCalled();
-  });
-
-  it('calls set when world preset onChange selected (non-Custom)', () => {
-    renderHook(() => usePlanetLifeControls());
-
-    const worldPreset = (capturedSchema as SchemaShape).Basics?.worldPreset;
-    expect(worldPreset).toBeTruthy();
-    expect(typeof worldPreset!.onChange).toBe('function');
-
-    worldPreset!.onChange!('Garden World');
-
-    expect(setSpy).toHaveBeenCalled();
-    const calledWith = setSpy.mock.calls[0][0];
-    expect(calledWith.birthDigits).toBe('3');
-    expect(calledWith.ecologyProfile).toBe('Garden World');
-    expect(calledWith.seedPattern).toBe('Glider');
-  });
+beforeEach(() => {
+  store().resetControls();
+  capturedSchema = null;
+  levaValues.clear();
+  setValueAtPath.mockClear();
 });
 
-describe('usePlanetLifeControls - cellRenderMode guard for GPU sim', () => {
-  beforeEach(() => {
-    setSpy = vi.fn();
-    capturedSchema = null;
-    for (const k of Object.keys(overrides)) delete overrides[k];
-  });
-
-  it('forces cellRenderMode to Texture when GPU sim is enabled and Dots is selected', () => {
-    overrides.gpuSim = true;
-    overrides.cellRenderMode = 'Dots';
-
-    renderHook(() => usePlanetLifeControls());
-
-    expect(setSpy).toHaveBeenCalled();
-    const lastCall = setSpy.mock.calls[setSpy.mock.calls.length - 1][0];
-    expect(lastCall.cellRenderMode).toBe('Texture');
-  });
-
-  it('forces cellRenderMode to Texture when GPU sim is enabled and Both is selected', () => {
-    overrides.gpuSim = true;
-    overrides.cellRenderMode = 'Both';
-
-    renderHook(() => usePlanetLifeControls());
-
-    expect(setSpy).toHaveBeenCalled();
-    const lastCall = setSpy.mock.calls[setSpy.mock.calls.length - 1][0];
-    expect(lastCall.cellRenderMode).toBe('Texture');
-  });
-
-  it('does NOT call set when GPU sim is on and cellRenderMode is already Texture', () => {
-    overrides.gpuSim = true;
-    overrides.cellRenderMode = 'Texture';
-
-    renderHook(() => usePlanetLifeControls());
-
-    // setSpy may have been called for setRef.current = set, but no
-    // cellRenderMode override should have been issued.
-    const cellRenderModeCalls = setSpy.mock.calls.filter(
-      (call: unknown[]) => 'cellRenderMode' in (call[0] as Record<string, unknown>),
-    );
-    expect(cellRenderModeCalls).toHaveLength(0);
-  });
-
-  it('does NOT force Texture when GPU sim is off even if cellRenderMode is Dots', () => {
-    overrides.gpuSim = false;
-    overrides.cellRenderMode = 'Dots';
-
-    renderHook(() => usePlanetLifeControls());
-
-    const cellRenderModeCalls = setSpy.mock.calls.filter(
-      (call: unknown[]) => 'cellRenderMode' in (call[0] as Record<string, unknown>),
-    );
-    expect(cellRenderModeCalls).toHaveLength(0);
-  });
-});
-
-describe('usePlanetLifeControls - slice shape', () => {
-  beforeEach(() => {
-    setSpy = vi.fn();
-    capturedSchema = null;
-    for (const k of Object.keys(overrides)) delete overrides[k];
-  });
-
-  it('groups every Leva control into domain slices', () => {
-    overrides.tickMs = 333;
-    overrides.planetRadius = 4;
-    overrides.atmosphereHeight = 0.2;
-    overrides.meteorSpeed = 7;
-    overrides.impactRingSize = 1.5;
-    overrides.seedPattern = 'Blinker';
-    overrides.debugLogs = true;
-
-    const { result } = renderHook(() => usePlanetLifeControls());
-    const controls = result.current;
-
-    expect(Object.keys(controls).sort()).toEqual(
-      ['sim', 'planet', 'atmosphere', 'cells', 'meteors', 'impacts', 'seeding', 'debug'].sort(),
-    );
-    expect(controls.sim.tickMs).toBe(333);
-    expect(controls.planet.planetRadius).toBe(4);
-    expect(controls.atmosphere.atmosphereHeight).toBe(0.2);
-    expect(controls.meteors.meteorSpeed).toBe(7);
-    expect(controls.impacts.impactRingSize).toBe(1.5);
-    expect(controls.seeding.seedPattern).toBe('Blinker');
-    expect(controls.debug.debugLogs).toBe(true);
-  });
-});
-
-describe('usePlanetLifeControls - folder layout and debug gating', () => {
-  beforeEach(() => {
-    capturedSchema = null;
-    vi.unstubAllEnvs();
-  });
-
-  it('puts the basic controls in an expanded Basics folder first', () => {
-    renderHook(() => usePlanetLifeControls());
-    const keys = Object.keys(capturedSchema as object);
-    expect(keys[0]).toBe('Basics');
-    const basics = (capturedSchema as SchemaShape).Basics as Record<string, unknown>;
-    expect(Object.keys(basics)).toEqual(
-      expect.arrayContaining(['worldPreset', 'theme', 'cellRenderMode']),
-    );
-  });
-
-  it('hides debug controls outside dev builds and without ?debug', () => {
-    vi.stubEnv('DEV', false);
-    renderHook(() => usePlanetLifeControls());
-    const debug = (capturedSchema as SchemaShape).Debug;
-    expect(debug?.workerSim?.render?.(() => undefined)).toBe(false);
-    expect(debug?.gpuSim?.render?.(() => undefined)).toBe(false);
-  });
-
-  it('shows debug controls in dev builds', () => {
-    vi.stubEnv('DEV', true);
-    renderHook(() => usePlanetLifeControls());
-    expect((capturedSchema as SchemaShape).Debug?.workerSim?.render?.(() => undefined)).toBe(true);
-  });
-
-  it('shows debug controls when the URL has ?debug', () => {
-    vi.stubEnv('DEV', false);
-    window.history.replaceState({}, '', '/?debug');
-    try {
-      renderHook(() => usePlanetLifeControls());
-      expect((capturedSchema as SchemaShape).Debug?.workerSim?.render?.(() => undefined)).toBe(
-        true,
-      );
-    } finally {
-      window.history.replaceState({}, '', '/');
-    }
-  });
-});
-
-describe('usePlanetLifeControls - preset selectors are returned', () => {
-  beforeEach(() => {
-    setSpy = vi.fn();
-    for (const k of Object.keys(overrides)) delete overrides[k];
-  });
-
-  // Regression: these selectors have onChange handlers, which Leva treats as
-  // transient by default, so their values came back undefined and the HUD
-  // preset label rendered blank.
-  it('returns worldPreset and theme values', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
-    expect(result.current.sim.worldPreset).toBe('Custom');
-    expect(result.current.planet.theme).toBe('Default');
-  });
-
-  it('defaults night glow to a subtle warm tint', () => {
-    const { result } = renderHook(() => usePlanetLifeControls());
-    expect(result.current.cells.nightGlowIntensity).toBe(0.6);
-    expect(result.current.cells.nightGlowColor).toBe('#ffc46b');
-  });
-});
-
-describe('usePlanetLifeControls - reduced motion', () => {
-  beforeEach(() => {
-    setSpy = vi.fn();
-    for (const k of Object.keys(overrides)) delete overrides[k];
+describe('controls store - defaults', () => {
+  it('seeds the same defaults the Leva schema used', () => {
+    const s = store();
+    expect(s.running).toBe(true);
+    expect(s.tickMs).toBe(120);
+    expect(s.worldPreset).toBe('Custom');
+    expect(s.theme).toBe('Default');
+    expect(s.rulePreset).toBe('Conway');
+    expect(s.birthDigits).toBe('3');
+    expect(s.surviveDigits).toBe('23');
+    expect(s.cellRenderMode).toBe('Texture');
+    expect(s.seedPattern).toBe('Glider');
+    expect(s.adaptiveResolution).toBe(true);
+    expect(s.nightGlowIntensity).toBe(0.6);
+    expect(s.nightGlowColor).toBe('#ffc46b');
   });
 
   function mockReducedMotion(matches: boolean) {
@@ -316,18 +66,198 @@ describe('usePlanetLifeControls - reduced motion', () => {
       vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
     );
   }
+  afterEach(() => vi.unstubAllGlobals());
 
-  it('uses a softer impact flash when reduced motion is requested', () => {
+  it('uses a softer impact flash and no auto-rotate when reduced motion is requested', () => {
     mockReducedMotion(true);
-    const { result } = renderHook(() => usePlanetLifeControls());
-    expect(result.current.impacts.impactFlashIntensity).toBe(0.25);
-    vi.unstubAllGlobals();
+    const d = createControlDefaults();
+    expect(d.impactFlashIntensity).toBe(0.25);
+    expect(d.autoRotate).toBe(false);
   });
 
   it('keeps the normal impact flash otherwise', () => {
     mockReducedMotion(false);
+    const d = createControlDefaults();
+    expect(d.impactFlashIntensity).toBe(0.75);
+    expect(d.autoRotate).toBe(true);
+  });
+});
+
+describe('controls store - preset side effects', () => {
+  it('applies a rule preset', () => {
+    const name = Object.keys(RULE_PRESETS).find((n) => n !== 'Conway')!;
+    store().setControls({ rulePreset: name });
+    expect(store().birthDigits).toBe(RULE_PRESETS[name].birth);
+    expect(store().surviveDigits).toBe(RULE_PRESETS[name].survive);
+  });
+
+  it('leaves values alone for the Custom rule preset', () => {
+    store().setControls({ birthDigits: '36' });
+    store().setControls({ rulePreset: 'Custom' });
+    expect(store().birthDigits).toBe('36');
+  });
+
+  it('applies theme colours', () => {
+    const name = Object.keys(COLOR_THEMES).find((n) => n !== 'Default')!;
+    store().setControls({ theme: name });
+    expect(store().cellColor).toBe(COLOR_THEMES[name].cellColor);
+    expect(store().impactRingColor).toBe(COLOR_THEMES[name].impactRingColor);
+  });
+
+  it('leaves colours alone for the Custom theme', () => {
+    store().setControls({ cellColor: '#123456', theme: 'Custom' });
+    expect(store().cellColor).toBe('#123456');
+  });
+
+  it('applies a world preset and its theme', () => {
+    const name = Object.keys(WORLD_PRESETS)[0];
+    const p = WORLD_PRESETS[name];
+    store().setControls({ worldPreset: name });
+    const s = store();
+    expect(s.rulePreset).toBe('Custom');
+    expect(s.birthDigits).toBe(p.birth);
+    expect(s.gameMode).toBe(p.gameMode);
+    expect(s.theme).toBe(p.theme);
+    expect(s.seedPattern).toBe(p.seedPattern);
+    expect(s.showerInterval).toBe(p.showerInterval);
+    if (COLOR_THEMES[p.theme]) expect(s.cellColor).toBe(COLOR_THEMES[p.theme].cellColor);
+  });
+
+  it('forces Texture when GPU sim is on and Dots/Both is selected', () => {
+    store().setControls({ gpuSim: true, cellRenderMode: 'Dots' });
+    expect(store().cellRenderMode).toBe('Texture');
+    store().setControls({ cellRenderMode: 'Both' });
+    expect(store().cellRenderMode).toBe('Texture');
+  });
+
+  it('keeps Dots when GPU sim is off', () => {
+    store().setControls({ gpuSim: false, cellRenderMode: 'Dots' });
+    expect(store().cellRenderMode).toBe('Dots');
+  });
+});
+
+describe('usePlanetLifeControls', () => {
+  it('groups every control into domain slices', () => {
+    store().setControls({
+      tickMs: 333,
+      planetRadius: 4,
+      atmosphereHeight: 0.2,
+      meteorSpeed: 7,
+      impactRingSize: 1.5,
+      seedPattern: 'Blinker',
+      debugLogs: true,
+    });
     const { result } = renderHook(() => usePlanetLifeControls());
-    expect(result.current.impacts.impactFlashIntensity).toBe(0.75);
-    vi.unstubAllGlobals();
+    const c = result.current;
+    expect(Object.keys(c).sort()).toEqual(
+      ['sim', 'planet', 'atmosphere', 'cells', 'meteors', 'impacts', 'seeding', 'debug'].sort(),
+    );
+    expect(c.sim.tickMs).toBe(333);
+    expect(c.planet.planetRadius).toBe(4);
+    expect(c.atmosphere.atmosphereHeight).toBe(0.2);
+    expect(c.meteors.meteorSpeed).toBe(7);
+    expect(c.impacts.impactRingSize).toBe(1.5);
+    expect(c.seeding.seedPattern).toBe('Blinker');
+    expect(c.debug.debugLogs).toBe(true);
+    expect(c.sim.worldPreset).toBe('Custom');
+    expect(c.planet.theme).toBe('Default');
+  });
+
+  it('mirrors running/tickMs into the UI store', () => {
+    renderHook(() => usePlanetLifeControls());
+    act(() => store().setControls({ running: false, tickMs: 400 }));
+    expect(useUIStore.getState().simRunning).toBe(false);
+    expect(useUIStore.getState().simTickMs).toBe(400);
+  });
+
+  it('applies transport speed requests and the play/pause hotkey', () => {
+    renderHook(() => usePlanetLifeControls());
+    act(() => useUIStore.getState().requestSimTickMs(250));
+    expect(store().tickMs).toBe(250);
+    act(() => useUIStore.getState().requestSimCommand('togglePlay'));
+    expect(store().running).toBe(false);
+    act(() => useUIStore.getState().requestSimCommand('togglePlay'));
+    expect(store().running).toBe(true);
+  });
+});
+
+describe('LevaPanel', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('keeps the folder layout and seeds inputs from the store', () => {
+    store().setControls({ tickMs: 222 });
+    render(createElement(LevaPanel, { hidden: false }));
+    const s = capturedSchema!;
+    expect(Object.keys(s)).toEqual([
+      'Camera',
+      'Performance',
+      'Rendering',
+      'Basics',
+      'Simulation',
+      'Upgrades',
+      'Meteors',
+      'Seeding',
+      'Debug',
+      'Actions',
+    ]);
+    expect(Object.keys(s.Basics)).toEqual(['worldPreset', 'theme', 'cellRenderMode']);
+    expect(s.Simulation.tickMs.value).toBe(222);
+    expect(s.Basics.worldPreset.transient).toBe(false);
+  });
+
+  it('writes panel edits into the store, ignoring the initial onChange', () => {
+    render(createElement(LevaPanel, { hidden: false }));
+    const name = Object.keys(RULE_PRESETS).find((n) => n !== 'Conway')!;
+    capturedSchema!.Simulation.tickMs.onChange?.(999, 'Simulation.tickMs', { initial: true });
+    expect(store().tickMs).toBe(120);
+    capturedSchema!.Simulation.rulePreset.onChange?.(name, 'Simulation.rulePreset', {
+      initial: false,
+    });
+    expect(store().birthDigits).toBe(RULE_PRESETS[name].birth);
+  });
+
+  it('pushes store changes (presets, transport) into the panel', () => {
+    render(createElement(LevaPanel, { hidden: false }));
+    setValueAtPath.mockClear();
+    const name = Object.keys(RULE_PRESETS).find((n) => n !== 'Conway')!;
+    act(() => store().setControls({ rulePreset: name, running: false }));
+    expect(setValueAtPath).toHaveBeenCalledWith('Simulation.running', false);
+    expect(setValueAtPath).toHaveBeenCalledWith('Simulation.rulePreset', name);
+    expect(setValueAtPath).toHaveBeenCalledWith('Simulation.birthDigits', RULE_PRESETS[name].birth);
+  });
+
+  it('dispatches Actions buttons through the sim command bus', () => {
+    render(createElement(LevaPanel, { hidden: false }));
+    const actions = capturedSchema!.Actions as unknown as Record<string, { __button: () => void }>;
+    actions.Randomize.__button();
+    expect(useUIStore.getState().simCommand?.command).toBe('randomize');
+    actions.StepOnce.__button();
+    expect(useUIStore.getState().simCommand?.command).toBe('step');
+    actions.Clear.__button();
+    expect(useUIStore.getState().simCommand?.command).toBe('clear');
+  });
+
+  it('hides debug controls outside dev builds and without ?debug', () => {
+    vi.stubEnv('DEV', false);
+    render(createElement(LevaPanel, { hidden: false }));
+    expect(capturedSchema!.Debug.workerSim.render?.(() => undefined)).toBe(false);
+    expect(capturedSchema!.Debug.gpuSim.render?.(() => undefined)).toBe(false);
+  });
+
+  it('shows debug controls in dev builds', () => {
+    vi.stubEnv('DEV', true);
+    render(createElement(LevaPanel, { hidden: false }));
+    expect(capturedSchema!.Debug.workerSim.render?.(() => undefined)).toBe(true);
+  });
+
+  it('shows debug controls when the URL has ?debug', () => {
+    vi.stubEnv('DEV', false);
+    window.history.replaceState({}, '', '/?debug');
+    try {
+      render(createElement(LevaPanel, { hidden: false }));
+      expect(capturedSchema!.Debug.workerSim.render?.(() => undefined)).toBe(true);
+    } finally {
+      window.history.replaceState({}, '', '/');
+    }
   });
 });

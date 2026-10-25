@@ -107,12 +107,14 @@ export const gpuOverlayFragmentShader = /* glsl */ `
     float brightness = max(finalColor.r, max(finalColor.g, finalColor.b));
     alpha = clamp(brightness, 0.05, 1.0);
     
-    // Night glow: fades in just past the terminator, tinted toward the glow
-    // colour while keeping a hint of the cell's own hue. Unclamped so values
-    // above 1.0 bloom softly; with bloom off the canvas saturates instead.
+    // Night glow ("city lights"): past the terminator, dim the unlit cell
+    // and add a warm emissive on top. Both scale with uNightGlowIntensity, so
+    // 0 keeps the original unlit look. The glow is unclamped so values above
+    // 1.0 bloom softly; with bloom off the canvas just saturates.
     float darkness = smoothstep(0.05, 0.35, -dot(normalize(vWorldNormal), uLightDir));
-    vec3 glow = mix(finalColor, uNightGlowColor, 0.6) * (darkness * uNightGlowIntensity);
-    alpha = max(alpha, min(1.0, darkness * uNightGlowIntensity));
+    float nightDim = darkness * clamp(uNightGlowIntensity * 2.0, 0.0, 1.0);
+    vec3 glow = mix(finalColor, uNightGlowColor, 0.75) * (darkness * uNightGlowIntensity * 0.8);
+    finalColor *= mix(1.0, 0.3, nightDim);
 
     gl_FragColor = vec4(finalColor + glow, alpha * uCellOverlayOpacity);
     ${DISPLAY_REFERRED_OUTPUT}
