@@ -32,7 +32,7 @@ Successfully implemented GPU-based cellular automata for planet-life-3d using Re
 ### 4. Documentation
 
 - **`README.md`**: Added GPU mode usage instructions
-- **`docs/GPU_IMPLEMENTATION.md`**: Comprehensive technical documentation covering:
+- **`docs/design/GPU_IMPLEMENTATION.md`**: Comprehensive technical documentation covering:
   - Ping-pong buffer architecture
   - Shader implementation details
   - Sphere wrapping technique
@@ -148,7 +148,7 @@ uniform vec4 uBirthSurviveRules;    // Rule parameters (future use)
 - `src/shaders/simulation.vert.ts` (314 bytes)
 - `src/shaders/simulation.frag.ts` (2,402 bytes)
 - `src/components/GPUSimulation.tsx` (5,140 bytes)
-- `docs/GPU_IMPLEMENTATION.md` (7,006 bytes)
+- `docs/design/GPU_IMPLEMENTATION.md` (7,006 bytes)
 - `tests/unit/gpuSimulation.test.ts` (2,165 bytes)
 
 ### Modified Files
@@ -178,5 +178,5 @@ The GPU implementation successfully achieves the goal of enabling millions of ac
 ## Related Documentation
 
 - Main README: `README.md`
-- Technical Guide: `docs/GPU_IMPLEMENTATION.md`
+- Technical Guide: `docs/design/GPU_IMPLEMENTATION.md`
 - Shader Tests: `tests/unit/gpuSimulation.test.ts`
