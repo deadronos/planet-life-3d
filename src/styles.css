@@ -383,6 +383,23 @@ body,
   color: #ffffff;
 }
 
+.transport-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+}
+
+.transport-icon-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .transport-button:focus-visible,
 .transport-speed input:focus-visible {
   outline: 2px solid #a5b4fc;
@@ -462,6 +479,15 @@ body,
 @media (min-width: 721px) {
   .bottom-dock {
     left: 348px;
+  }
+}
+
+/* Mid widths: the dock only gets the space right of the HUD column, so let the
+   transport buttons size to their labels instead of an 86px minimum. */
+@media (min-width: 721px) and (max-width: 1180px) {
+  .transport-button:not(.transport-icon-button) {
+    min-width: 0;
+    padding: 0 10px;
   }
 }
 
@@ -649,8 +675,15 @@ body,
     letter-spacing: 0.02em;
   }
 
+  /* Speed takes its own row, sharing it only with the 44px Copy link icon (6px gap). */
   .transport-speed {
-    flex: 1 1 100%;
+    flex: 1 1 calc(100% - 50px);
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .transport-icon-button {
+    flex: 0 0 44px;
   }
 
   .transport-speed input {

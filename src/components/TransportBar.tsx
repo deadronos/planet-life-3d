@@ -66,7 +66,7 @@ export function TransportBar() {
     window.clearTimeout(resetTimer.current);
     resetTimer.current = window.setTimeout(() => setShareMessage(''), 2000);
   };
-  const shareLabel = shareMessage === 'Link copied' ? 'Copied' : 'Copy link';
+  const copied = shareMessage === 'Link copied';
 
   return (
     <div className="transport-bar" role="group" aria-label="Simulation controls">
@@ -103,17 +103,6 @@ export function TransportBar() {
       >
         Clear
       </button>
-      <button
-        type="button"
-        className="transport-button"
-        aria-label="Copy link to this world"
-        onClick={() => void share()}
-      >
-        {shareLabel}
-      </button>
-      <span className="sr-only" role="status" aria-live="polite">
-        {shareMessage}
-      </span>
       <div className="transport-speed">
         <label htmlFor="transport-speed">Speed</label>
         <input
@@ -128,6 +117,28 @@ export function TransportBar() {
         />
         <output htmlFor="transport-speed">{speed}/s</output>
       </div>
+      {/* Icon-only and next to Speed so it never adds a row to the button line. */}
+      <button
+        type="button"
+        className="transport-button transport-icon-button"
+        aria-label="Copy link to this world"
+        title={copied ? 'Copied' : 'Copy link'}
+        onClick={() => void share()}
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          {copied ? (
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          ) : (
+            <>
+              <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" />
+              <path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+            </>
+          )}
+        </svg>
+      </button>
+      <span className="sr-only" role="status" aria-live="polite">
+        {shareMessage}
+      </span>
     </div>
   );
 }

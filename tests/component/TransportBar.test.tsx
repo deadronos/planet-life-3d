@@ -1,5 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../src/utils/clipboard', () => ({ copyText: vi.fn() }));
 
 import {
   SLIDER_STEPS,
@@ -11,6 +13,7 @@ import {
   TransportBar,
 } from '../../src/components/TransportBar';
 import { useUIStore } from '../../src/store/useUIStore';
+import { copyText } from '../../src/utils/clipboard';
 
 describe('TransportBar', () => {
   beforeEach(() => {
@@ -100,5 +103,42 @@ describe('TransportBar', () => {
     const slider = screen.getByRole('slider', { name: 'Speed' });
     expect(slider).toHaveAttribute('step', '1');
     expect(slider).toHaveAttribute('max', String(SLIDER_STEPS));
+  });
+
+  // #178: Copy link is an icon button beside Speed, so it never adds a row.
+  describe('Copy link', () => {
+    it('is an icon-only button with an accessible name', () => {
+      render(<TransportBar />);
+      const button = screen.getByRole('button', { name: 'Copy link to this world' });
+      expect(button).toHaveClass('transport-icon-button');
+      expect(button.textContent).toBe('');
+    });
+
+    it('shows the copied state and announces it after a successful copy', async () => {
+      vi.mocked(copyText).mockResolvedValue(true);
+      render(<TransportBar />);
+      const button = screen.getByRole('button', { name: 'Copy link to this world' });
+      // Flush the async copy before asserting.
+      await act(() => {
+        fireEvent.click(button);
+        return Promise.resolve();
+      });
+      expect(button).toHaveAttribute('title', 'Copied');
+      // <output> is also role=status, so target the live region explicitly.
+      expect(document.querySelector('.sr-only[role="status"]')).toHaveTextContent('Link copied');
+    });
+
+    it('announces the fallback when the copy fails', async () => {
+      vi.mocked(copyText).mockResolvedValue(false);
+      render(<TransportBar />);
+      const button = screen.getByRole('button', { name: 'Copy link to this world' });
+      // Flush the async copy before asserting.
+      await act(() => {
+        fireEvent.click(button);
+        return Promise.resolve();
+      });
+      expect(button).toHaveAttribute('title', 'Copy link');
+      expect(document.querySelector('.sr-only[role="status"]')).toHaveTextContent('Copy failed');
+    });
   });
 });
