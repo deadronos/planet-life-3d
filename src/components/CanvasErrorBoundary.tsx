@@ -33,7 +33,7 @@ export class CanvasErrorBoundary extends Component<Props, State> {
         <h2>The 3D view couldn&apos;t start</h2>
         <p>Your browser or device may not support WebGL, or the graphics driver hit an error.</p>
         <p className="graphics-detail">{error.message}</p>
-        <button type="button" onClick={() => window.location.reload()}>
+        <button type="button" className="transport-button" onClick={() => window.location.reload()}>
           Reload
         </button>
       </div>

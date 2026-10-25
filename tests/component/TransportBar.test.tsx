@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   SLIDER_STEPS,
   sliderToTickMs,
+  SPEED_RATIO_PER_STEP,
   TICK_MS_MAX,
   TICK_MS_MIN,
   tickMsToSlider,
@@ -78,15 +79,26 @@ describe('TransportBar', () => {
     expect(v).toBeLessThan(0.55);
   });
 
-  it('is monotonic and round-trips within 1ms', () => {
+  it('is monotonic and round-trips within 1ms or 2% of the value', () => {
     let prev = -Infinity;
     for (let v = 0; v <= SLIDER_STEPS; v += 1) {
       const tickMs = sliderToTickMs(v);
       expect(tickMs).toBeLessThanOrEqual(prev === -Infinity ? TICK_MS_MAX : prev);
       prev = tickMs;
     }
+    // One slider step is ~2% of speed, so the round trip is only as exact as that.
     for (let tickMs = TICK_MS_MIN; tickMs <= TICK_MS_MAX; tickMs += 7) {
-      expect(Math.abs(sliderToTickMs(tickMsToSlider(tickMs)) - tickMs)).toBeLessThanOrEqual(1);
+      const error = Math.abs(sliderToTickMs(tickMsToSlider(tickMs)) - tickMs);
+      expect(error).toBeLessThanOrEqual(Math.max(1, tickMs * 0.02));
     }
+  });
+
+  it('makes one arrow-key press change speed by about 2%', () => {
+    expect(SPEED_RATIO_PER_STEP).toBeGreaterThan(1.015);
+    expect(SPEED_RATIO_PER_STEP).toBeLessThan(1.025);
+    render(<TransportBar />);
+    const slider = screen.getByRole('slider', { name: 'Speed' });
+    expect(slider).toHaveAttribute('step', '1');
+    expect(slider).toHaveAttribute('max', String(SLIDER_STEPS));
   });
 });
