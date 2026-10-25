@@ -12,14 +12,21 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        // Keep three.js, R3F and Leva in their own chunks so app-code changes
-        // don't invalidate their cache entries. Initial JS is still loaded at boot.
+        // Keep three.js, R3F, React and Leva in their own chunks so app-code changes
+        // don't invalidate their cache entries. Leva is only reached through the
+        // lazy LevaPanel import; React gets its own group so shared deps like
+        // react-dom are not pulled into the leva chunk (which would make it eager).
         codeSplitting: {
           groups: [
             {
               name: 'three',
               test: /node_modules[\\/](three|three-stdlib|@react-three[\\/]fiber)[\\/]/,
               priority: 30,
+            },
+            {
+              name: 'react',
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 25,
             },
             {
               name: 'leva',
