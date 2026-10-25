@@ -1,6 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
+import { useDocumentHidden } from '../../hooks/useDocumentHidden';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
 import type { Rules } from '../../sim/rules';
@@ -329,11 +330,13 @@ export function usePlanetLifeSim({
     simRef.current?.setEcologyProfile(ecologyProfile);
   }, [ecologyProfile, workerEnabled, workerRef, workerPostMessage]);
 
+  const documentHidden = useDocumentHidden();
+
   useSimTickLoop({
     // The CPU/worker sim is paused while the GPU sim is authoritative. It
     // remains initialized purely as a texture fallback if the GPU path
     // fails, and its stats are never published in GPU mode.
-    running: running && !gpuSim,
+    running: running && !gpuSim && !documentHidden,
     tickMs,
     workerEnabled,
     workerRef,

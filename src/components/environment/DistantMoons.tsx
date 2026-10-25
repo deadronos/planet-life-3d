@@ -2,6 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { clampFrameDelta } from '../performance/renderDemand';
+
 interface MoonConfig {
   distance: number;
   size: number;
@@ -44,8 +46,13 @@ export function DistantMoons() {
     [],
   );
 
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
+  // Accumulated (not clock-based) so the orbit does not jump after the
+  // on-demand frameloop has been idle.
+  const timeRef = useRef(0);
+
+  useFrame((_, delta) => {
+    timeRef.current += clampFrameDelta(delta);
+    const t = timeRef.current;
 
     if (moon1Ref.current) {
       const m = moons[0];

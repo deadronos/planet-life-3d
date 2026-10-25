@@ -2,6 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { clampFrameDelta } from '../performance/renderDemand';
+
 /**
  * Procedural nebula skybox using a custom shader.
  * Creates colorful cosmic clouds in the background.
@@ -157,7 +159,7 @@ export function NebulaSkybox() {
 
   useFrame((_, delta) => {
     // eslint-disable-next-line react-hooks/immutability
-    shaderMaterial.uniforms.uTime.value += delta;
+    shaderMaterial.uniforms.uTime.value += clampFrameDelta(delta);
   });
 
   return (
