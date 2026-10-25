@@ -271,6 +271,11 @@ export function PlanetLife({
     debugLogs,
   });
 
+  const activeEffectCount = meteors.length + impacts.length;
+  useEffect(() => {
+    useUIStore.getState().setActiveEffectCount(activeEffectCount);
+  }, [activeEffectCount]);
+
   const runRandomize = useCallback(() => {
     if (gpuSim && gpuSimRef.current) {
       gpuSimRef.current.randomize();

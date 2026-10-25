@@ -56,6 +56,9 @@ interface UIState {
   simSpeedRequest: { tickMs: number } | undefined;
   requestSimTickMs: (tickMs: number) => void;
   setSimPlayback: (playback: { running: boolean; tickMs: number }) => void;
+  /** Meteors + impacts currently animating; any non-zero value needs continuous rendering. */
+  activeEffectCount: number;
+  setActiveEffectCount: (count: number) => void;
   setStats: (stats: GameStats) => void;
   setPlanetStatus: (status: PlanetStatus) => void;
   setActiveTool: (tool: MeteorTool) => void;
@@ -90,6 +93,8 @@ export const useUIStore = create<UIState>((set) => ({
   // Optimistic mirror so a dragged slider does not snap back while Leva catches up.
   requestSimTickMs: (tickMs) => set({ simTickMs: tickMs, simSpeedRequest: { tickMs } }),
   setSimPlayback: ({ running, tickMs }) => set({ simRunning: running, simTickMs: tickMs }),
+  activeEffectCount: 0,
+  setActiveEffectCount: (activeEffectCount) => set({ activeEffectCount }),
   setStats: (stats) => set({ stats }),
   setPlanetStatus: (planetStatus) => set({ planetStatus }),
   setActiveTool: (activeTool) => set({ activeTool }),

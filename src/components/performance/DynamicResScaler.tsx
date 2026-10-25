@@ -7,6 +7,7 @@ import {
   DEFAULT_ADAPTIVE_RESOLUTION_CONFIG,
   FrameRateWindow,
 } from './adaptiveResolution';
+import { IDLE_GAP_SECONDS } from './renderDemand';
 
 export interface DynamicResScalerProps {
   /** Master switch; when false the scaler never touches the pixel ratio. */
@@ -79,6 +80,12 @@ export function DynamicResScaler({
 
     const sampler = windowRef.current;
     if (!sampler) return;
+
+    // After an idle stretch of the on-demand loop the first delta is the gap, not a slow frame.
+    if (delta > IDLE_GAP_SECONDS) {
+      sampler.reset();
+      return;
+    }
 
     sampler.push(delta);
 

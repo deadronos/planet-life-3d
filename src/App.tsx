@@ -8,6 +8,7 @@ import { SpaceEnvironment } from './components/environment';
 import { GraphicsRecovery } from './components/GraphicsRecovery';
 import { Overlay } from './components/Overlay';
 import { DynamicResScaler } from './components/performance/DynamicResScaler';
+import { RenderDemandDriver } from './components/performance/RenderDemandDriver';
 import { PlanetLife } from './components/PlanetLife';
 import { useHotkeys } from './hooks/useHotkeys';
 import { prefersReducedMotion } from './utils/reducedMotion';
@@ -70,13 +71,18 @@ export default function App() {
       <Overlay />
       <Leva collapsed={true} theme={levaTheme} hidden={levaHidden} />
       <CanvasErrorBoundary>
-        <Canvas camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }} dpr={[1, 2]}>
+        <Canvas
+          frameloop="demand"
+          camera={{ position: [-1, -4, -12], fov: 50, near: 0.1, far: 200 }}
+          dpr={[1, 2]}
+        >
           <color attach="background" args={['#05060a']} />
           <ambientLight intensity={0.75} />
           <directionalLight position={LIGHT_POSITION} intensity={1.2} />
           <SpaceEnvironment lightPosition={LIGHT_POSITION} />
 
           <GraphicsRecovery />
+          <RenderDemandDriver autoRotate={autoRotate} />
           <DynamicResScaler enabled={adaptiveResolution} />
 
           <PlanetLife lightPosition={LIGHT_POSITION} />
