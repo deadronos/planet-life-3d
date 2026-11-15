@@ -53,7 +53,6 @@ describe('LifeOverlay', () => {
       pulseIntensity: 0.2,
       cellOverlayOpacity: 0.9,
       gpuOverlayMaterial: material,
-      debugLogs: false,
     };
 
     const { rerender } = render(<LifeOverlay {...baseProps} lifeTexture={rtA.texture} />);
@@ -61,9 +60,11 @@ describe('LifeOverlay', () => {
     expect(material.uniforms.uLifeTexture.value).toBe(rtA.texture);
     expect(needsUpdateCallsA).toEqual([]);
     expect(rtA.texture.version).toBe(versionABefore);
+    expect(material.uniforms.uDebugMode.value).toBe(0);
+    expect(material.uniforms.uDebugScale.value).toBe(1.0);
 
-    // Simulate a GPU ping-pong buffer swap and a debugLogs toggle.
-    rerender(<LifeOverlay {...baseProps} lifeTexture={rtB.texture} debugLogs={true} />);
+    // Simulate a GPU ping-pong buffer swap and explicit channel-debug toggle.
+    rerender(<LifeOverlay {...baseProps} lifeTexture={rtB.texture} debugChannelView={true} />);
 
     expect(material.uniforms.uLifeTexture.value).toBe(rtB.texture);
     expect(needsUpdateCallsB).toEqual([]);
@@ -90,7 +91,6 @@ describe('LifeOverlay', () => {
         cellOverlayOpacity={0.9}
         lifeTexture={null}
         gpuOverlayMaterial={material}
-        debugLogs={false}
       />,
     );
 

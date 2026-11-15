@@ -101,8 +101,13 @@ export function usePlanetMaterial(params: {
           float noiseLow = noise.g * 2.0 - 1.0;
           float basinNoise = noise.b;
           float ridgeNoise = noise.a;
-          vec3 bumpParams = vec3(noiseHigh * 0.05); 
-          n = normalize(n + bumpParams * 0.2);
+          vec3 dPosDx = dFdx(vWorldPos);
+          vec3 dPosDy = dFdy(vWorldPos);
+          vec3 surfGrad = cross(dPosDy, n) * dFdx(noiseHigh) + cross(n, dPosDx) * dFdy(noiseHigh);
+          float det = dot(dPosDx, cross(dPosDy, n));
+          if (abs(det) > 1e-6) {
+            n = normalize(n - (surfGrad / det) * 0.03);
+          }
 
           // 2. Grid Anchor
           vec2 gridUV = vUv * uGridSize;

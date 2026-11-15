@@ -16,7 +16,7 @@ export interface LifeOverlayProps {
   cellOverlayOpacity: number;
   lifeTexture: Texture | null;
   gpuOverlayMaterial: THREE.ShaderMaterial;
-  debugLogs: boolean;
+  debugChannelView?: boolean;
 }
 
 export function LifeOverlay({
@@ -27,7 +27,7 @@ export function LifeOverlay({
   cellOverlayOpacity,
   lifeTexture,
   gpuOverlayMaterial,
-  debugLogs,
+  debugChannelView = false,
 }: LifeOverlayProps) {
   useEffect(() => {
     if (gpuOverlayMaterial) {
@@ -37,10 +37,10 @@ export function LifeOverlay({
       }
 
       gpuOverlayMaterial.uniforms.uDebugOverlay.value = false;
-      gpuOverlayMaterial.uniforms.uDebugMode.value = debugLogs ? 4 : 0;
-      gpuOverlayMaterial.uniforms.uDebugScale.value = debugLogs ? 4.0 : 1.0;
+      gpuOverlayMaterial.uniforms.uDebugMode.value = debugChannelView ? 4 : 0;
+      gpuOverlayMaterial.uniforms.uDebugScale.value = debugChannelView ? 4.0 : 1.0;
     }
-  }, [lifeTexture, gpuOverlayMaterial, debugLogs]);
+  }, [lifeTexture, gpuOverlayMaterial, debugChannelView]);
 
   useFrame((state) => {
     if (gpuOverlayMaterial) {
@@ -54,8 +54,10 @@ export function LifeOverlay({
   });
 
   return (
-    <mesh scale={1.01} raycast={() => null}>
-      <sphereGeometry args={[planetRadius, PLANET_SPHERE_SEGMENTS, PLANET_SPHERE_SEGMENTS]} />
+    <mesh scale={1} raycast={() => null}>
+      <sphereGeometry
+        args={[planetRadius + 0.002, PLANET_SPHERE_SEGMENTS, PLANET_SPHERE_SEGMENTS]}
+      />
       <primitive object={gpuOverlayMaterial} attach="material" />
     </mesh>
   );
