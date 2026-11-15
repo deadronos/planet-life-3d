@@ -12,17 +12,17 @@ import {
   tickMsToSlider,
   TransportBar,
 } from '../../src/components/TransportBar';
+import { useControlsStore } from '../../src/store/useControlsStore';
 import { useUIStore } from '../../src/store/useUIStore';
 import { copyText } from '../../src/utils/clipboard';
 
 describe('TransportBar', () => {
   beforeEach(() => {
     act(() => {
+      useControlsStore.getState().resetControls();
+      useControlsStore.getState().setControls({ running: true, tickMs: 120 });
       useUIStore.setState({
-        simRunning: true,
-        simTickMs: 120,
         simCommand: undefined,
-        simSpeedRequest: undefined,
       });
     });
   });
@@ -48,23 +48,22 @@ describe('TransportBar', () => {
     expect(pause).toHaveAttribute('aria-pressed', 'true');
     expect(pause).toHaveTextContent('Pause');
 
-    act(() => useUIStore.getState().setSimPlayback({ running: false, tickMs: 120 }));
+    act(() => useControlsStore.getState().setControls({ running: false, tickMs: 120 }));
     const play = screen.getByRole('button', { name: 'Play simulation' });
     expect(play).toHaveAttribute('aria-pressed', 'false');
     expect(play).toHaveTextContent('Play');
   });
 
-  it('writes tickMs through the speed request when the slider moves', () => {
+  it('writes tickMs to the controls store when the slider moves', () => {
     render(<TransportBar />);
     const slider = screen.getByRole('slider', { name: 'Speed' });
     const value = tickMsToSlider(500);
     fireEvent.change(slider, { target: { value: String(value) } });
-    expect(useUIStore.getState().simSpeedRequest?.tickMs).toBe(sliderToTickMs(value));
-    expect(useUIStore.getState().simTickMs).toBe(sliderToTickMs(value));
+    expect(useControlsStore.getState().tickMs).toBe(sliderToTickMs(value));
   });
 
-  it('shows the slider position from the mirrored tickMs', () => {
-    act(() => useUIStore.getState().setSimPlayback({ running: true, tickMs: 500 }));
+  it('shows the slider position from controls store tickMs', () => {
+    act(() => useControlsStore.getState().setControls({ running: true, tickMs: 500 }));
     render(<TransportBar />);
     expect(screen.getByRole('slider', { name: 'Speed' })).toHaveValue(String(tickMsToSlider(500)));
   });

@@ -13,13 +13,6 @@ describe('useUIStore', () => {
         birthsLastTick: 0,
         deathsLastTick: 0,
       },
-      planetStatus: {
-        preset: 'Custom',
-        ecologyProfile: 'None',
-        gameMode: 'Classic',
-        seedPattern: 'Glider',
-        gpuSim: false,
-      },
       activeTool: 'Life',
       probe: undefined,
     });
@@ -34,7 +27,6 @@ describe('useUIStore', () => {
       deathsLastTick: 0,
     });
     expect(state.activeTool).toBe('Life');
-    expect(state.planetStatus.ecologyProfile).toBe('None');
   });
 
   it('should update stats via setStats', () => {
@@ -74,24 +66,10 @@ describe('useUIStore', () => {
     expect(state.stats).toEqual(updatedStats);
   });
 
-  it('tracks player-facing planet status and selected meteor tool', () => {
-    useUIStore.getState().setPlanetStatus({
-      preset: 'Garden World',
-      ecologyProfile: 'Garden World',
-      gameMode: 'Colony',
-      seedPattern: 'Ring',
-      gpuSim: true,
-    });
+  it('tracks selected meteor tool', () => {
     useUIStore.getState().setActiveTool('Sterilizer');
 
     const state = useUIStore.getState();
-    expect(state.planetStatus).toMatchObject({
-      preset: 'Garden World',
-      ecologyProfile: 'Garden World',
-      gameMode: 'Colony',
-      seedPattern: 'Ring',
-      gpuSim: true,
-    });
     expect(state.activeTool).toBe('Sterilizer');
   });
 });
