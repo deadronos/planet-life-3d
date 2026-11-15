@@ -402,7 +402,6 @@ export function PlanetLife({
           cellOverlayOpacity={cellOverlayOpacity}
           lifeTexture={texture}
           gpuOverlayMaterial={gpuOverlayMaterial}
-          debugLogs={debugLogs}
         />
       )}
 

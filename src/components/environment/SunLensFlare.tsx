@@ -2,6 +2,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { useControlsStore } from '../../store/useControlsStore';
+
 interface FlareElement {
   texture: THREE.Texture;
   size: number;
@@ -14,12 +16,13 @@ interface FlareElement {
  * Positioned at the directional light source.
  */
 export function SunLensFlare({
-  lightPosition = [6, 6, 8],
+  lightPosition = [60, 60, 80],
 }: {
   lightPosition?: [number, number, number];
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
+  const planetRadius = useControlsStore((state) => state.planetRadius);
 
   // Create procedural flare textures
   const flareTextures = useMemo(() => {
@@ -93,6 +96,7 @@ export function SunLensFlare({
   const lightPos = useMemo(() => new THREE.Vector3(...lightPosition), [lightPosition]);
   const screenPos = useMemo(() => new THREE.Vector3(), []);
   const worldPos = useMemo(() => new THREE.Vector3(), []);
+  const rayDir = useMemo(() => new THREE.Vector3(), []);
 
   useEffect(() => {
     return () => {
@@ -117,9 +121,30 @@ export function SunLensFlare({
     // Check if light is in front of camera
     const isBehind = screenPos.z > 1;
 
-    // Calculate visibility based on screen position
+    // Attenuate flare when the camera-to-sun ray intersects the planet sphere
+    rayDir.copy(lightPos).sub(camera.position);
+    const rayLen = rayDir.length();
+    let occlusion = 1;
+    if (rayLen > 1e-4) {
+      rayDir.divideScalar(rayLen);
+      const tClosest = -camera.position.dot(rayDir);
+      if (tClosest > 0 && tClosest < rayLen) {
+        const distSq = Math.max(0, camera.position.lengthSq() - tClosest * tClosest);
+        const perpDist = Math.sqrt(distSq);
+        const innerR = planetRadius * 0.98;
+        const outerR = planetRadius * 1.08;
+        if (perpDist <= innerR) {
+          occlusion = 0;
+        } else if (perpDist < outerR) {
+          const u = (perpDist - innerR) / (outerR - innerR);
+          occlusion = u * u * (3 - 2 * u);
+        }
+      }
+    }
+
+    // Calculate visibility based on screen position and planet occlusion
     const distFromCenter = Math.sqrt(screenPos.x ** 2 + screenPos.y ** 2);
-    const visibility = isBehind ? 0 : Math.max(0, 1 - distFromCenter * 0.5);
+    const visibility = (isBehind ? 0 : Math.max(0, 1 - distFromCenter * 0.5)) * occlusion;
 
     // Update sprites along the screen-center to light-position line
     const children = groupRef.current.children as THREE.Sprite[];
