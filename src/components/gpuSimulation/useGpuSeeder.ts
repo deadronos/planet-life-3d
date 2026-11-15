@@ -39,8 +39,8 @@ export function useGpuSeeder({
   randomDensity,
   gameMode,
   pingPong,
-  simMaterial,
-  simScene,
+  copyMaterial,
+  copyScene,
   seedMaterial,
   seedScene,
   generationRef,
@@ -52,8 +52,8 @@ export function useGpuSeeder({
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   pingPong: GpuPingPong;
-  simMaterial: THREE.ShaderMaterial;
-  simScene: FullscreenPass;
+  copyMaterial: THREE.ShaderMaterial;
+  copyScene: FullscreenPass;
   seedMaterial: THREE.ShaderMaterial;
   seedScene: FullscreenPass;
   generationRef: React.MutableRefObject<number>;
@@ -123,21 +123,24 @@ export function useGpuSeeder({
         THREE.RGBAFormat,
         THREE.FloatType,
       );
+      texture.minFilter = THREE.NearestFilter;
+      texture.magFilter = THREE.NearestFilter;
       texture.needsUpdate = true;
 
       const prevTarget = gl.getRenderTarget();
 
       gl.setRenderTarget(targetA);
       gl.clear();
-      // eslint-disable-next-line react-hooks/immutability -- Seeds the material inside the imperative initializeState closure; uniforms are GPU handles, not React state.
-      simMaterial.uniforms.uTexture.value = texture;
-      gl.render(simScene.scene, simScene.camera);
+      // eslint-disable-next-line react-hooks/immutability -- Uploads the initial DataTexture via a passthrough copy pass without stepping CA rules at Gen 0.
+      copyMaterial.uniforms.uTexture.value = texture;
+      gl.render(copyScene.scene, copyScene.camera);
 
       gl.setRenderTarget(targetB);
       gl.clear();
-      gl.render(simScene.scene, simScene.camera);
+      gl.render(copyScene.scene, copyScene.camera);
 
       gl.setRenderTarget(prevTarget);
+      copyMaterial.uniforms.uTexture.value = null;
 
       texture.dispose();
 
@@ -157,12 +160,13 @@ export function useGpuSeeder({
     // below, wiping the simulation.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: gameMode/randomDensity are read through refs; listing them here would re-fire the init effect and wipe the simulation.
   }, [
+    copyMaterial,
+    copyScene,
     gl,
     onTextureUpdate,
     readStats,
     resolution.height,
     resolution.width,
-    simScene,
     targetA,
     targetB,
   ]);

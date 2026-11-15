@@ -251,4 +251,19 @@ describe('LevaPanel', () => {
       window.history.replaceState({}, '', '/');
     }
   });
+
+  it('hides CPU-only cellRenderMode and cellRadius when gpuSim is active', () => {
+    store().setControls({ gpuSim: true });
+    render(createElement(LevaPanel, { hidden: false }));
+    expect(capturedSchema!.Basics.cellRenderMode.render?.(() => undefined)).toBe(false);
+    expect(capturedSchema!.Rendering.cellRadius.render?.(() => undefined)).toBe(false);
+
+    act(() => store().setControls({ gpuSim: false, cellRenderMode: 'Texture' }));
+    expect(capturedSchema!.Basics.cellRenderMode.render?.(() => undefined)).toBe(true);
+    expect(capturedSchema!.Rendering.cellRadius.render?.(() => undefined)).toBe(false);
+
+    act(() => store().setControls({ gpuSim: false, cellRenderMode: 'Dots' }));
+    expect(capturedSchema!.Basics.cellRenderMode.render?.(() => undefined)).toBe(true);
+    expect(capturedSchema!.Rendering.cellRadius.render?.(() => undefined)).toBe(true);
+  });
 });

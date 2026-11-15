@@ -60,6 +60,13 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
     return out as unknown as FolderSchema;
   };
   const debugOnly = { render: () => debugUi };
+  const cpuRenderOnly = { render: () => !useControlsStore.getState().gpuSim };
+  const dotsRenderOnly = {
+    render: () => {
+      const s = useControlsStore.getState();
+      return !s.gpuSim && s.cellRenderMode !== 'Texture';
+    },
+  };
   const patternOptions = [...BUILTIN_PATTERN_NAMES, 'Custom ASCII', 'Random Disk'];
 
   return {
@@ -97,7 +104,13 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
         planetRoughness: { min: 0.05, max: 1, step: 0.01 },
         ecologyIntensity: { min: 0, max: 1, step: 0.01 },
         cellOverlayOpacity: { min: 0, max: 2, step: 0.01 },
-        cellRadius: { min: 0.01, max: 0.15, step: 0.005 },
+        cellRadius: {
+          min: 0.01,
+          max: 0.15,
+          step: 0.005,
+          ...dotsRenderOnly,
+          hint: 'Radius of instanced 3D cell spheres (CPU/Worker Dots or Both mode only).',
+        },
         cellLift: { min: SIM_CONSTRAINTS.cellLift.min, max: 0.25, step: 0.005 },
         pulseSpeed: { min: 0, max: 10, step: 0.1 },
         pulseIntensity: { min: 0, max: 1, step: 0.05 },
@@ -110,7 +123,12 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
       inFolder('Basics', {
         worldPreset: { label: 'World Preset', options: ['Custom', ...WORLD_PRESET_NAMES] },
         theme: { label: 'Theme', options: ['Custom', ...COLOR_THEME_NAMES] },
-        cellRenderMode: { label: 'Cell Render Mode', options: ['Texture', 'Dots', 'Both'] },
+        cellRenderMode: {
+          label: 'Cell Render Mode',
+          options: ['Texture', 'Dots', 'Both'],
+          ...cpuRenderOnly,
+          hint: 'Dots/Both instanced spheres require CPU/Worker simulation (GPU Sim off).',
+        },
       }),
       { collapsed: false },
     ),

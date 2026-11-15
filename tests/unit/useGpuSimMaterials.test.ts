@@ -73,14 +73,23 @@ describe('useGpuSimMaterials', () => {
     const r = result.current;
     unmount();
     expect(matSpy.mock.contexts).toEqual(
-      expect.arrayContaining([r.simMaterial, r.seedMaterial, r.statsMaterial]),
+      expect.arrayContaining([r.simMaterial, r.seedMaterial, r.copyMaterial, r.statsMaterial]),
     );
     expect(geoSpy.mock.contexts).toEqual(
       expect.arrayContaining([
         r.simScene.quad.geometry,
         r.seedScene.quad.geometry,
+        r.copyScene.quad.geometry,
         r.statsScene.quad.geometry,
       ]),
     );
+  });
+
+  it('uses a passthrough copy shader that does not evaluate CA rules', () => {
+    const { result } = renderHook((p: Props) => useGpuSimMaterials(p), {
+      initialProps: base,
+    });
+    expect(result.current.copyMaterial.fragmentShader).toContain('texture2D(uTexture, vUv)');
+    expect(result.current.copyMaterial.fragmentShader).not.toContain('uBirthRules');
   });
 });

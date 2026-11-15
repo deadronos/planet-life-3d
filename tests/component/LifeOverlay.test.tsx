@@ -101,4 +101,12 @@ describe('LifeOverlay', () => {
     consoleSpy.mockRestore();
     material.dispose();
   });
+
+  it('enables depthTest while keeping depthWrite disabled so meteors occlude cells', () => {
+    const material = makeMaterial();
+    expect(material.depthTest).toBe(true);
+    expect(material.depthWrite).toBe(false);
+    expect(material.transparent).toBe(true);
+    material.dispose();
+  });
 });

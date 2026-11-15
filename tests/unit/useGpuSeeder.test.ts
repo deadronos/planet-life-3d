@@ -13,7 +13,7 @@ type ReadStats = (c: THREE.Texture, p: THREE.Texture, force?: boolean) => void;
 
 function setup() {
   const fake = createFakeGl();
-  const simMaterial = new THREE.ShaderMaterial({ uniforms: { uTexture: { value: null } } });
+  const copyMaterial = new THREE.ShaderMaterial({ uniforms: { uTexture: { value: null } } });
   const seedMaterial = new THREE.ShaderMaterial({
     uniforms: {
       uCurrentState: { value: null },
@@ -27,7 +27,7 @@ function setup() {
       uRandomSeed: { value: 0 },
     },
   });
-  const simScene = createFullscreenPass(simMaterial);
+  const copyScene = createFullscreenPass(copyMaterial);
   const seedScene = createFullscreenPass(seedMaterial);
   const generationRef = { current: 5 };
   const readStats = vi.fn<ReadStats>();
@@ -40,8 +40,8 @@ function setup() {
       randomDensity: 0.5,
       gameMode: 'Classic',
       pingPong,
-      simMaterial,
-      simScene,
+      copyMaterial,
+      copyScene,
       seedMaterial,
       seedScene,
       generationRef,
@@ -50,7 +50,16 @@ function setup() {
     });
     return { pingPong, ...seeder };
   });
-  return { fake, hook, seedMaterial, generationRef, readStats, onTextureUpdate };
+  return {
+    fake,
+    hook,
+    copyMaterial,
+    copyScene,
+    seedMaterial,
+    generationRef,
+    readStats,
+    onTextureUpdate,
+  };
 }
 
 afterEach(() => vi.restoreAllMocks());
@@ -73,12 +82,18 @@ describe('useGpuSeeder', () => {
   });
 
   it('initializeState resets generation and current buffer', () => {
-    const { hook, generationRef } = setup();
+    const { fake, hook, copyMaterial, copyScene, generationRef } = setup();
     hook.result.current.pingPong.swap();
     generationRef.current = 9;
+    fake.mocks.render.mockClear();
     hook.result.current.initializeState(0);
     expect(generationRef.current).toBe(0);
     expect(hook.result.current.pingPong.currentBufferRef.current).toBe('A');
+    // Uses the passthrough copyScene rather than stepping CA rules at Gen 0.
+    expect(fake.mocks.render).toHaveBeenNthCalledWith(1, copyScene.scene, copyScene.camera);
+    expect(fake.mocks.render).toHaveBeenNthCalledWith(2, copyScene.scene, copyScene.camera);
+    // Clears the temporary DataTexture reference after uploading.
+    expect(copyMaterial.uniforms.uTexture.value).toBeNull();
   });
 
   it('seedAtUV renders into the write buffer, swaps, publishes and reads stats unforced', () => {
