@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useControlsStore } from '../store/useControlsStore';
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
 import { describePopulationTrend, sparklinePoints } from '../utils/populationHistory';
 import { GraphicsNotice } from './GraphicsNotice';
@@ -21,11 +22,16 @@ function readHudCollapsed(): boolean {
 
 export function Overlay() {
   const stats = useUIStore((state) => state.stats);
-  const planetStatus = useUIStore((state) => state.planetStatus);
   const activeTool = useUIStore((state) => state.activeTool);
   const setActiveTool = useUIStore((state) => state.setActiveTool);
   const probe = useUIStore((state) => state.probe);
   const populationHistory = useUIStore((state) => state.populationHistory);
+
+  const worldPreset = useControlsStore((state) => state.worldPreset);
+  const gpuSim = useControlsStore((state) => state.gpuSim);
+  const gameMode = useControlsStore((state) => state.gameMode);
+  const ecologyProfile = useControlsStore((state) => state.ecologyProfile);
+  const seedPattern = useControlsStore((state) => state.seedPattern);
 
   const [showHint, setShowHint] = useState<boolean>(() => {
     const hintShown = localStorage.getItem('onboardingHintShown');
@@ -88,7 +94,7 @@ export function Overlay() {
           aria-label="Planet status"
         >
           <div className="hud-header">
-            <div className="hud-kicker">{planetStatus.preset}</div>
+            <div className="hud-kicker">{worldPreset}</div>
             <button
               type="button"
               className="hud-toggle-btn"
@@ -130,19 +136,19 @@ export function Overlay() {
           <div className="hud-divider hud-detail" />
           <div className="hud-row hud-detail">
             <span className="hud-label">Engine</span>
-            <span className="hud-value">{planetStatus.gpuSim ? 'GPU' : 'CPU'}</span>
+            <span className="hud-value">{gpuSim ? 'GPU' : 'CPU'}</span>
           </div>
           <div className="hud-row hud-detail">
             <span className="hud-label">Mode</span>
-            <span className="hud-value">{planetStatus.gameMode}</span>
+            <span className="hud-value">{gameMode}</span>
           </div>
           <div className="hud-row hud-detail">
             <span className="hud-label">Biome</span>
-            <span className="hud-value">{planetStatus.ecologyProfile}</span>
+            <span className="hud-value">{ecologyProfile}</span>
           </div>
           <div className="hud-row hud-detail">
             <span className="hud-label">Seed</span>
-            <span className="hud-value">{planetStatus.seedPattern}</span>
+            <span className="hud-value">{seedPattern}</span>
           </div>
         </section>
 

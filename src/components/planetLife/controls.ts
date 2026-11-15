@@ -201,26 +201,18 @@ function toSlices(p: FlatControls): PlanetLifeControls {
 export function usePlanetLifeControls(): PlanetLifeControls {
   const flat = useControlsStore() as FlatControls;
 
-  // Mirror running/tickMs into the UI store so the transport bar can show them.
-  useEffect(() => {
-    useUIStore.getState().setSimPlayback({ running: flat.running, tickMs: flat.tickMs });
-  }, [flat.running, flat.tickMs]);
-
-  // Transport speed slider and Space hotkey write into the controls store, which
-  // the Leva panel (once loaded) mirrors. Subscribed (not effect-run) so a command
-  // fires once per request, not on every re-render.
+  // Space hotkey and transport Play/Pause toggle `running` in the controls store,
+  // which the Leva panel (once loaded) mirrors. Subscribed (not effect-run) so a
+  // command fires once per request, not on every re-render.
   useEffect(
     () =>
       useUIStore.subscribe((state, prev) => {
-        const { setControls, running } = useControlsStore.getState();
-        if (state.simSpeedRequest && state.simSpeedRequest !== prev.simSpeedRequest) {
-          setControls({ tickMs: state.simSpeedRequest.tickMs });
-        }
         if (
           state.simCommand &&
           state.simCommand !== prev.simCommand &&
           state.simCommand.command === 'togglePlay'
         ) {
+          const { setControls, running } = useControlsStore.getState();
           setControls({ running: !running });
         }
       }),

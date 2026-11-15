@@ -43,13 +43,13 @@ function ticksPerSecond(tickMs: number): string {
 
 /**
  * Basic sim controls that do not need the Leva panel. Buttons go through the
- * same command bus as the hotkeys; the speed slider writes `tickMs` via Leva.
+ * same command bus as the hotkeys; the speed slider writes `tickMs` directly to
+ * the controls store.
  */
 export function TransportBar() {
-  const running = useUIStore((state) => state.simRunning);
-  const tickMs = useUIStore((state) => state.simTickMs);
+  const running = useControlsStore((state) => state.running);
+  const tickMs = useControlsStore((state) => state.tickMs);
   const requestSimCommand = useUIStore((state) => state.requestSimCommand);
-  const requestSimTickMs = useUIStore((state) => state.requestSimTickMs);
 
   const speed = ticksPerSecond(tickMs);
 
@@ -113,7 +113,11 @@ export function TransportBar() {
           step={1}
           value={tickMsToSlider(tickMs)}
           aria-valuetext={`${speed} ticks per second`}
-          onChange={(event) => requestSimTickMs(sliderToTickMs(Number(event.target.value)))}
+          onChange={(event) =>
+            useControlsStore.getState().setControls({
+              tickMs: sliderToTickMs(Number(event.target.value)),
+            })
+          }
         />
         <output htmlFor="transport-speed">{speed}/s</output>
       </div>

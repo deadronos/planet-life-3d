@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Overlay } from '../../src/components/Overlay';
+import { useControlsStore } from '../../src/store/useControlsStore';
 
 describe('Overlay component', () => {
   const localStorageMock = (() => {
@@ -25,6 +26,7 @@ describe('Overlay component', () => {
   beforeEach(() => {
     localStorageMock.clear();
     vi.clearAllMocks();
+    useControlsStore.getState().resetControls();
   });
 
   afterEach(() => {
@@ -94,5 +96,25 @@ describe('Overlay component', () => {
     expect(live).toHaveTextContent(/Active meteor tool: /);
     fireEvent.click(screen.getByRole('button', { name: 'Comet' }));
     expect(live).toHaveTextContent('Active meteor tool: Comet');
+  });
+
+  it('reads planet status fields directly from useControlsStore', () => {
+    render(<Overlay />);
+    act(() => {
+      useControlsStore.getState().setControls({
+        worldPreset: 'Custom',
+        gpuSim: false,
+        gameMode: 'Colony',
+        ecologyProfile: 'Harsh Mars',
+        seedPattern: 'Blinker',
+      });
+    });
+
+    const hud = screen.getByRole('region', { name: 'Planet status' });
+    expect(hud).toHaveTextContent('Custom');
+    expect(hud).toHaveTextContent('CPU');
+    expect(hud).toHaveTextContent('Colony');
+    expect(hud).toHaveTextContent('Harsh Mars');
+    expect(hud).toHaveTextContent('Blinker');
   });
 });
