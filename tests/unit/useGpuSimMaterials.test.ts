@@ -39,6 +39,7 @@ describe('useGpuSimMaterials', () => {
     expect(result.current.seedMaterial).toBe(seed);
     expect(sim.uniforms.uBirthRules.value[6]).toBe(1);
     expect(sim.uniforms.uColonyMode.value).toBe(true);
+    expect(seed.uniforms.uColonyMode.value).toBe(true);
     expect(sim.uniforms.uEcologyEnabled.value).toBe(profileName !== 'None');
     expect(sim.uniforms.uEcologyFertilityBias.value).toBe(
       ECOLOGY_PROFILES[profileName].fertilityBias,

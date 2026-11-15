@@ -70,8 +70,8 @@ export const gpuOverlayFragmentShader = /* glsl */ `
     
     if (uColonyMode) {
       // Colony mode: choose color based on state
-      // State: 0.33 = Colony A, 0.67 = Colony B
-      if (state < 0.5) {
+      // State: 0.33 = Colony A, 0.67 = Colony B, 1.0 = Classic alive (Colony A)
+      if (state < 0.5 || state > 0.85) {
         finalColor = uColonyColorA;
       } else {
         finalColor = uColonyColorB;

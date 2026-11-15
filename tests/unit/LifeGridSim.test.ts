@@ -209,4 +209,75 @@ describe('LifeGridSim', () => {
     expect(sim.generation).toBe(1);
     expect(sim.population).toBe(3);
   });
+
+  it('keeps aliveIndices and population in sync when setCell toggles liveness (#186)', () => {
+    expect(sim.population).toBe(0);
+    expect(sim.getAliveCount()).toBe(0);
+
+    sim.setCell(5, 5, 1);
+    sim.setCell(5, 6, 2);
+    expect(sim.population).toBe(2);
+    expect(sim.getAliveCount()).toBe(2);
+
+    const alive: number[] = [];
+    sim.forEachAlive((idx) => alive.push(idx));
+    expect(alive).toEqual([5 * lonCells + 5, 5 * lonCells + 6]);
+
+    // Clearing one cell updates population and aliveIndices immediately
+    sim.setCell(5, 5, 0);
+    expect(sim.population).toBe(1);
+    expect(sim.getAliveCount()).toBe(1);
+    const remaining: number[] = [];
+    sim.forEachAlive((idx) => remaining.push(idx));
+    expect(remaining).toEqual([5 * lonCells + 6]);
+  });
+
+  it('normalizes Colony B (2) cells to Classic (1) when switching Colony -> Classic (#184)', () => {
+    sim.setGameMode('Colony');
+    // 2x2 Colony B block at (4..5, 4..5): still life in Conway rules
+    sim.setCell(4, 4, 2);
+    sim.setCell(4, 5, 2);
+    sim.setCell(5, 4, 2);
+    sim.setCell(5, 5, 2);
+
+    sim.setGameMode('Classic');
+    expect(sim.getCell(4, 4)).toBe(1);
+    expect(sim.getCell(5, 5)).toBe(1);
+
+    // Each cell has 3 neighbors (not 6!), so the 2x2 block must survive
+    sim.step();
+    expect(sim.population).toBe(4);
+    expect(sim.getCell(4, 4)).toBe(1);
+    expect(sim.getCell(5, 5)).toBe(1);
+  });
+
+  it('computes continuous ecology samples across the longitude seam (#185)', () => {
+    const sampleLon0 = computeEcologySample({
+      lat: 6,
+      lon: 0,
+      latCells: 64,
+      lonCells: 128,
+      profile: 'Garden World',
+    });
+    const sampleLonEnd = computeEcologySample({
+      lat: 6,
+      lon: 127,
+      latCells: 64,
+      lonCells: 128,
+      profile: 'Garden World',
+    });
+    const sampleLon1 = computeEcologySample({
+      lat: 6,
+      lon: 1,
+      latCells: 64,
+      lonCells: 128,
+      profile: 'Garden World',
+    });
+
+    // Seam step (127 -> 0) should be comparable to an interior 1-cell step (0 -> 1)
+    const seamDiff = Math.abs(sampleLon0.altitude - sampleLonEnd.altitude);
+    const interiorDiff = Math.abs(sampleLon0.altitude - sampleLon1.altitude);
+    expect(seamDiff).toBeLessThan(0.25);
+    expect(Math.abs(seamDiff - interiorDiff)).toBeLessThan(0.1);
+  });
 });
