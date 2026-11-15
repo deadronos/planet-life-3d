@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Overlay } from '../../src/components/Overlay';
 import { useControlsStore } from '../../src/store/useControlsStore';
+import { useUIStore } from '../../src/store/useUIStore';
 
 describe('Overlay component', () => {
   const localStorageMock = (() => {
@@ -116,5 +117,50 @@ describe('Overlay component', () => {
     expect(hud).toHaveTextContent('Colony');
     expect(hud).toHaveTextContent('Harsh Mars');
     expect(hud).toHaveTextContent('Blinker');
+  });
+
+  it('dismisses the probe card when its close button is clicked', () => {
+    act(() => {
+      useUIStore.getState().setProbe({
+        lat: 12,
+        lon: 34,
+        sample: {
+          biome: 'Temperate',
+          temperature: 0.5,
+          moisture: 0.6,
+          altitude: 0.2,
+          sunlight: 0.8,
+          fertility: 0.7,
+          viability: 0.75,
+          neighborBias: 0,
+        },
+      });
+    });
+
+    render(<Overlay />);
+    expect(screen.getByRole('region', { name: 'Impact probe' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss probe' }));
+    expect(useUIStore.getState().probe).toBeUndefined();
+    expect(screen.queryByRole('region', { name: 'Impact probe' })).not.toBeInTheDocument();
+  });
+
+  it('displays Colony A and Colony B counts in the HUD when Colony mode is active', () => {
+    act(() => {
+      useControlsStore.getState().setControls({ gameMode: 'Colony' });
+      useUIStore.getState().setStats({
+        generation: 4,
+        population: 15,
+        colonyAPopulation: 9,
+        colonyBPopulation: 6,
+        birthsLastTick: 2,
+        deathsLastTick: 1,
+      });
+    });
+
+    render(<Overlay />);
+    const hud = screen.getByRole('region', { name: 'Planet status' });
+    expect(hud).toHaveTextContent('A 9');
+    expect(hud).toHaveTextContent('B 6');
   });
 });

@@ -58,12 +58,16 @@ export function usePlanetLifeSim({
     (source: {
       generation: number;
       population: number;
+      colonyAPopulation?: number;
+      colonyBPopulation?: number;
       birthsLastTick: number;
       deathsLastTick: number;
     }) => {
       useUIStore.getState().setStats({
         generation: source.generation,
         population: source.population,
+        colonyAPopulation: source.colonyAPopulation,
+        colonyBPopulation: source.colonyBPopulation,
         birthsLastTick: source.birthsLastTick,
         deathsLastTick: source.deathsLastTick,
       });
@@ -75,6 +79,8 @@ export function usePlanetLifeSim({
     (msg: {
       generation: number;
       population: number;
+      colonyAPopulation?: number;
+      colonyBPopulation?: number;
       birthsLastTick: number;
       deathsLastTick: number;
     }) => {

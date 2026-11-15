@@ -17,8 +17,9 @@ describe('GPU stats readback shader', () => {
     );
   });
 
-  it('classifies the alive population into the B channel', () => {
+  it('classifies the alive population into B and Colony A into A', () => {
     expect(gpuStatsFragmentShader).toContain('float alive = (cur > 0.1) ? 1.0 : 0.0;');
-    expect(gpuStatsFragmentShader).toContain('gl_FragColor = vec4(birth, death, alive, 1.0)');
+    expect(gpuStatsFragmentShader).toContain('float colonyA = (cur > 0.75) ? 1.0 : 0.0;');
+    expect(gpuStatsFragmentShader).toContain('gl_FragColor = vec4(birth, death, alive, colonyA)');
   });
 });

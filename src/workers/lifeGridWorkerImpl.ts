@@ -68,6 +68,8 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       aliveIndices: buffers.aliveIndices,
       generation: sim.generation,
       population: sim.population,
+      colonyAPopulation: sim.colonyAPopulation,
+      colonyBPopulation: sim.colonyBPopulation,
       birthsLastTick: sim.birthsLastTick,
       deathsLastTick: sim.deathsLastTick,
     };

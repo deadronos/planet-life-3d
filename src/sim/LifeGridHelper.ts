@@ -21,6 +21,8 @@ export interface LifeGridStepContext {
   birthsLastTick: number;
   deathsLastTick: number;
   population: number;
+  colonyAPopulation: number;
+  colonyBPopulation: number;
   nextAliveCount: number;
 }
 
@@ -38,6 +40,8 @@ export function applyCellUpdate(
   if (nextVal > 0) {
     if (currentVal === 0) ctx.birthsLastTick++;
     ctx.population++;
+    if (nextVal === 1) ctx.colonyAPopulation++;
+    else ctx.colonyBPopulation++;
     const nextAge = ctx.age[idx] + 1;
     ctx.ageNext[idx] = nextAge > 255 ? 255 : nextAge;
     ctx.neighborHeatNext[idx] = neighbors;

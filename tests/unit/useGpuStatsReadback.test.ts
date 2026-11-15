@@ -71,6 +71,8 @@ describe('useGpuStatsReadback', () => {
     expect(onStats).toHaveBeenCalledWith({
       generation: 7,
       population: 1,
+      colonyAPopulation: 0,
+      colonyBPopulation: 1,
       birthsLastTick: 1,
       deathsLastTick: 0,
     });

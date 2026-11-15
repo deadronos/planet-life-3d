@@ -89,14 +89,19 @@ describe('share URL', () => {
   });
 
   it('applies the preset first so explicit params win over its defaults', () => {
-    // Garden World's preset sets birth '3'; the URL overrides it.
+    // Garden World's preset sets birth '3'; the URL overrides it, which flips worldPreset to Custom.
     applyWorld(
       decodeWorld('#w=Garden+World&b=36&g=40x50'),
       useControlsStore.getState().setControls,
     );
     const s = useControlsStore.getState();
-    expect(s.worldPreset).toBe('Garden World');
+    expect(s.worldPreset).toBe('Custom');
     expect(s.birthDigits).toBe('36');
     expect(s.latCells).toBe(40);
+  });
+
+  it('preserves Random Disk and Custom ASCII seed patterns in share URLs', () => {
+    expect(decodeWorld('#sp=Random+Disk').controls.seedPattern).toBe('Random Disk');
+    expect(decodeWorld('#sp=Custom+ASCII').controls.seedPattern).toBe('Custom ASCII');
   });
 });

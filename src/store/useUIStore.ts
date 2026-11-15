@@ -7,6 +7,8 @@ import { appendSample, replaceLastSample } from '../utils/populationHistory';
 export interface GameStats {
   generation: number;
   population: number;
+  colonyAPopulation?: number;
+  colonyBPopulation?: number;
   birthsLastTick: number;
   deathsLastTick: number;
 }

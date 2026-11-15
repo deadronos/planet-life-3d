@@ -26,7 +26,7 @@ const levaTheme = {
     sans: "'Rajdhani', sans-serif",
   },
   sizes: {
-    rootWidth: '340px',
+    rootWidth: 'min(340px, calc(100vw - 24px))',
   },
 };
 

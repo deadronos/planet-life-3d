@@ -16,6 +16,8 @@ type PendingStatsRead = {
 export interface GpuStats {
   generation: number;
   population: number;
+  colonyAPopulation?: number;
+  colonyBPopulation?: number;
   birthsLastTick: number;
   deathsLastTick: number;
 }
@@ -147,6 +149,8 @@ export function useGpuStatsReadback({
         onStats({
           generation,
           population: totals.population,
+          colonyAPopulation: totals.colonyA,
+          colonyBPopulation: totals.colonyB,
           birthsLastTick: totals.births,
           deathsLastTick: totals.deaths,
         });

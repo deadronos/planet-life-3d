@@ -202,6 +202,36 @@ function themeColors(name: string): Partial<ControlValues> {
   };
 }
 
+const WORLD_PRESET_DEPENDENTS: ReadonlySet<ControlKey> = new Set([
+  'rulePreset',
+  'birthDigits',
+  'surviveDigits',
+  'randomDensity',
+  'gameMode',
+  'ecologyProfile',
+  'theme',
+  'cellColorMode',
+  'seedPattern',
+  'seedScale',
+  'showerEnabled',
+  'showerInterval',
+  'cellColor',
+  'atmosphereColor',
+  'heatLowColor',
+  'heatMidColor',
+  'heatHighColor',
+  'impactRingColor',
+]);
+
+const THEME_COLOR_KEYS: ReadonlySet<ControlKey> = new Set([
+  'cellColor',
+  'atmosphereColor',
+  'heatLowColor',
+  'heatMidColor',
+  'heatHighColor',
+  'impactRingColor',
+]);
+
 /** Side effects of picking a preset (formerly the Leva onChange handlers). */
 function presetSideEffects(patch: Partial<ControlValues>): Partial<ControlValues> {
   const extra: Partial<ControlValues> = {};
@@ -250,6 +280,35 @@ export const useControlsStore = create<ControlsState>((set, get) => ({
   setControls: (patch) => {
     const state = get();
     const next: Partial<ControlValues> = { ...patch, ...presetSideEffects(patch) };
+    const patchKeys = Object.keys(patch) as ControlKey[];
+
+    if (
+      patch.worldPreset === undefined &&
+      state.worldPreset !== 'Custom' &&
+      patchKeys.some((k) => WORLD_PRESET_DEPENDENTS.has(k) && next[k] !== state[k])
+    ) {
+      next.worldPreset = 'Custom';
+    }
+
+    if (
+      patch.rulePreset === undefined &&
+      patch.worldPreset === undefined &&
+      state.rulePreset !== 'Custom' &&
+      ((patch.birthDigits !== undefined && patch.birthDigits !== state.birthDigits) ||
+        (patch.surviveDigits !== undefined && patch.surviveDigits !== state.surviveDigits))
+    ) {
+      next.rulePreset = 'Custom';
+    }
+
+    if (
+      patch.theme === undefined &&
+      patch.worldPreset === undefined &&
+      state.theme !== 'Custom' &&
+      patchKeys.some((k) => THEME_COLOR_KEYS.has(k) && next[k] !== state[k])
+    ) {
+      next.theme = 'Custom';
+    }
+
     const gpuSim = next.gpuSim ?? state.gpuSim;
     const mode = next.cellRenderMode ?? state.cellRenderMode;
     if (gpuSim && mode !== 'Texture') next.cellRenderMode = 'Texture';
