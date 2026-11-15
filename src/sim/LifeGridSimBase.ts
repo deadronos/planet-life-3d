@@ -1,6 +1,6 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import type { EcologyProfileName } from './ecology';
-import { calculateNextCellState } from './LifeGridHelper';
+import { calculateNextCellState, type LifeGridStepContext } from './LifeGridHelper';
 import { type Offset, transformOffsets } from './patterns';
 import type { Rules } from './rules';
 import type { GameMode, SeedMode } from './types';
@@ -201,15 +201,31 @@ export class LifeGridSimBase {
     return this.aliveCount;
   }
 
-  protected applyCellUpdate(idx: number, currentVal: number, nextVal: number, neighbors: number) {
-    if (nextVal > 0 && currentVal === 0) this.birthsLastTick++;
-    if (currentVal > 0 && nextVal === 0) this.deathsLastTick++;
-    if (nextVal > 0) this.population++;
+  protected runStep(stepFn: (ctx: LifeGridStepContext) => void): void {
+    const ctx: LifeGridStepContext = {
+      latCells: this.latCells,
+      lonCells: this.lonCells,
+      grid: this.grid,
+      next: this.next,
+      age: this.age,
+      ageNext: this.ageNext,
+      neighborHeatNext: this.neighborHeatNext,
+      nextAliveIndices: this.nextAliveIndices,
+      rules: this.rules,
+      ecologyProfile: this.ecologyProfile,
+      birthsLastTick: 0,
+      deathsLastTick: 0,
+      population: 0,
+      nextAliveCount: 0,
+    };
 
-    this.next[idx] = nextVal;
-    this.ageNext[idx] = nextVal > 0 ? Math.min(255, this.age[idx] + 1) : 0;
-    this.neighborHeatNext[idx] = nextVal > 0 ? neighbors : 0;
-    if (nextVal > 0) this.nextAliveIndices[this.nextAliveCount++] = idx;
+    stepFn(ctx);
+
+    this.birthsLastTick = ctx.birthsLastTick;
+    this.deathsLastTick = ctx.deathsLastTick;
+    this.population = ctx.population;
+    this.nextAliveCount = ctx.nextAliveCount;
+    this.swapBuffers();
   }
 
   protected swapBuffers() {
