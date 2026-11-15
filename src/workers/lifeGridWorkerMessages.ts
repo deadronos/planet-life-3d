@@ -83,6 +83,8 @@ export type LifeGridWorkerSnapshot = {
   aliveIndices: ArrayBuffer;
   generation: number;
   population: number;
+  colonyAPopulation?: number;
+  colonyBPopulation?: number;
   birthsLastTick: number;
   deathsLastTick: number;
 };

@@ -28,6 +28,8 @@ export class LifeGridSimBase {
 
   generation = 0;
   population = 0;
+  colonyAPopulation = 0;
+  colonyBPopulation = 0;
   birthsLastTick = 0;
   deathsLastTick = 0;
 
@@ -114,6 +116,8 @@ export class LifeGridSimBase {
     this.aliveCount = 0;
     this.nextAliveCount = 0;
     this.population = 0;
+    this.colonyAPopulation = 0;
+    this.colonyBPopulation = 0;
     this.birthsLastTick = 0;
     this.deathsLastTick = 0;
     this.generation = 0;
@@ -176,14 +180,21 @@ export class LifeGridSimBase {
 
   protected rebuildAliveIndices() {
     let pop = 0;
+    let colA = 0;
+    let colB = 0;
     this.aliveCount = 0;
     for (let i = 0; i < this.cellCount; i++) {
-      if (this.grid[i] > 0) {
+      const v = this.grid[i];
+      if (v > 0) {
         pop++;
+        if (v === 1) colA++;
+        else colB++;
         this.aliveIndices[this.aliveCount++] = i;
       }
     }
     this.population = pop;
+    this.colonyAPopulation = colA;
+    this.colonyBPopulation = colB;
   }
 
   forEachAlive(fn: (idx: number) => void) {
@@ -229,6 +240,8 @@ export class LifeGridSimBase {
       birthsLastTick: 0,
       deathsLastTick: 0,
       population: 0,
+      colonyAPopulation: 0,
+      colonyBPopulation: 0,
       nextAliveCount: 0,
     };
 
@@ -237,6 +250,8 @@ export class LifeGridSimBase {
     this.birthsLastTick = ctx.birthsLastTick;
     this.deathsLastTick = ctx.deathsLastTick;
     this.population = ctx.population;
+    this.colonyAPopulation = ctx.colonyAPopulation;
+    this.colonyBPopulation = ctx.colonyBPopulation;
     this.nextAliveCount = ctx.nextAliveCount;
     this.swapBuffers();
   }

@@ -30,6 +30,8 @@ describe('sumStatsPixels', () => {
   it('returns all zeros for an empty buffer', () => {
     expect(sumStatsPixels(new Uint8Array(0), 0)).toEqual({
       population: 0,
+      colonyA: 0,
+      colonyB: 0,
       births: 0,
       deaths: 0,
     });
@@ -44,14 +46,37 @@ describe('sumStatsPixels', () => {
     const buf = makeBuffer({ birth: 3, death: 5, alive: 100 });
     expect(sumStatsPixels(buf, buf.length / 4)).toEqual({
       population: 100,
+      colonyA: 0,
+      colonyB: 100,
       births: 3,
       deaths: 5,
     });
   });
 
+  it('splits Colony A (alpha) and Colony B (alive - alpha) totals', () => {
+    const buf = new Uint8Array(5 * 4);
+    for (let c = 0; c < 5; c++) {
+      buf[c * 4 + 2] = 255; // alive
+      if (c < 2) buf[c * 4 + 3] = 255; // Colony A
+    }
+    expect(sumStatsPixels(buf, 5)).toEqual({
+      population: 5,
+      colonyA: 2,
+      colonyB: 3,
+      births: 0,
+      deaths: 0,
+    });
+  });
+
   it('reports zero for a dead board', () => {
     const buf = makeBuffer({ birth: 0, death: 0, alive: 0 });
-    expect(sumStatsPixels(buf, 0)).toEqual({ population: 0, births: 0, deaths: 0 });
+    expect(sumStatsPixels(buf, 0)).toEqual({
+      population: 0,
+      colonyA: 0,
+      colonyB: 0,
+      births: 0,
+      deaths: 0,
+    });
   });
 
   it('handles a birth and death on the same texel independently', () => {
@@ -60,7 +85,13 @@ describe('sumStatsPixels', () => {
     const buf = new Uint8Array(2 * 4);
     buf[0] = 255; // birth
     buf[5] = 255; // death
-    expect(sumStatsPixels(buf, 2)).toEqual({ population: 0, births: 1, deaths: 1 });
+    expect(sumStatsPixels(buf, 2)).toEqual({
+      population: 0,
+      colonyA: 0,
+      colonyB: 0,
+      births: 1,
+      deaths: 1,
+    });
   });
 
   it('scales down partial channel values (anti-aliased/filtered input)', () => {
@@ -83,7 +114,13 @@ describe('sumStatsPixels', () => {
     buf[9] = 255;
     buf[10] = 255;
 
-    expect(sumStatsPixels(buf, 2)).toEqual({ population: 2, births: 0, deaths: 0 });
+    expect(sumStatsPixels(buf, 2)).toEqual({
+      population: 2,
+      colonyA: 0,
+      colonyB: 2,
+      births: 0,
+      deaths: 0,
+    });
   });
 
   it('clamps a texelCount larger than the buffer', () => {
@@ -93,7 +130,13 @@ describe('sumStatsPixels', () => {
 
   it('handles a zero texel count', () => {
     const buf = makeBuffer({ birth: 0, death: 0, alive: 5 });
-    expect(sumStatsPixels(buf, 0)).toEqual({ population: 0, births: 0, deaths: 0 });
+    expect(sumStatsPixels(buf, 0)).toEqual({
+      population: 0,
+      colonyA: 0,
+      colonyB: 0,
+      births: 0,
+      deaths: 0,
+    });
   });
 });
 

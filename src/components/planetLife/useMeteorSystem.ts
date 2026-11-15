@@ -11,6 +11,7 @@ type MeteorSystemParams = {
   meteors: MeteorsSlice;
   impacts: ImpactsSlice;
   seedAtPoint: (point: THREE.Vector3, options: { updateProbe: boolean }) => void;
+  isProbeActive?: boolean;
   debugLogs: boolean;
 };
 
@@ -18,6 +19,7 @@ export function useMeteorSystem({
   meteors: meteorControls,
   impacts: impactControls,
   seedAtPoint,
+  isProbeActive = false,
   debugLogs,
 }: MeteorSystemParams) {
   const {
@@ -98,6 +100,11 @@ export function useMeteorSystem({
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
 
+      if (isProbeActive) {
+        seedAtPoint(e.point.clone(), { updateProbe: true });
+        return;
+      }
+
       const now = performance.now();
       if (now - lastShotMsRef.current < meteorCooldownMs) return;
       lastShotMsRef.current = now;
@@ -116,7 +123,7 @@ export function useMeteorSystem({
 
       addMeteor(origin, direction, 'user');
     },
-    [meteorCooldownMs, addMeteor],
+    [isProbeActive, meteorCooldownMs, addMeteor, seedAtPoint],
   );
 
   const onMeteorImpact = useCallback(

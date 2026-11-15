@@ -20,6 +20,8 @@ export const STATS_READBACK_INTERVAL = 8;
 /** Population/birth/death totals decoded from a stats readback. */
 export interface GpuStatsTotals {
   population: number;
+  colonyA: number;
+  colonyB: number;
   births: number;
   deaths: number;
 }
@@ -42,14 +44,20 @@ export function sumStatsPixels(pixels: Uint8Array, texelCount: number): GpuStats
   let births = 0;
   let deaths = 0;
   let population = 0;
+  let colonyA = 0;
   for (let i = 0; i < limit; i += 4) {
     births += pixels[i];
     deaths += pixels[i + 1];
     population += pixels[i + 2];
+    colonyA += pixels[i + 3];
   }
+  const totalPop = population / 255;
+  const colA = colonyA / 255;
   // Each contributing texel contributes a full 255 to its channel.
   return {
-    population: population / 255,
+    population: totalPop,
+    colonyA: colA,
+    colonyB: Math.max(0, totalPop - colA),
     births: births / 255,
     deaths: deaths / 255,
   };

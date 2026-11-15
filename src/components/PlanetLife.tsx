@@ -232,6 +232,8 @@ export function PlanetLife({
     (stats: {
       generation: number;
       population: number;
+      colonyAPopulation?: number;
+      colonyBPopulation?: number;
       birthsLastTick: number;
       deathsLastTick: number;
     }) => {
@@ -289,6 +291,7 @@ export function PlanetLife({
     meteors: meteorControls,
     impacts: impactControls,
     seedAtPoint,
+    isProbeActive: activeTool === 'Probe',
     debugLogs,
   });
 

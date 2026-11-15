@@ -86,6 +86,8 @@ describe('usePlanetLifeSim stats publishing', () => {
       expect(useUIStore.getState().stats).toEqual({
         generation: sim?.generation ?? -1,
         population: sim?.population ?? -1,
+        colonyAPopulation: sim?.colonyAPopulation ?? -1,
+        colonyBPopulation: sim?.colonyBPopulation ?? -1,
         birthsLastTick: sim?.birthsLastTick ?? -1,
         deathsLastTick: sim?.deathsLastTick ?? -1,
       });

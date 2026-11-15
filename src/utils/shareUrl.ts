@@ -16,6 +16,8 @@ export type SharedWorld = {
   seed?: number;
 };
 
+const VALID_SEED_PATTERNS = new Set([...BUILTIN_PATTERN_NAMES, 'Random Disk', 'Custom ASCII']);
+
 const clampInt = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 function digits(value: string | null): string | undefined {
@@ -50,7 +52,7 @@ export function decodeWorld(hash: string): SharedWorld {
   }
 
   const sp = params.get('sp');
-  if (sp && BUILTIN_PATTERN_NAMES.includes(sp)) controls.seedPattern = sp;
+  if (sp && VALID_SEED_PATTERNS.has(sp)) controls.seedPattern = sp;
 
   const g = /^(\d{1,4})x(\d{1,4})$/.exec(params.get('g') ?? '');
   if (g) {

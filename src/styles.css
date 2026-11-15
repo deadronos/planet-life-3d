@@ -207,11 +207,6 @@ body,
   color: white;
 }
 
-/* Leva tweaks if needed via CSS, though theme prop is better */
-.leva-c-bXlA-ibHfrNq-fill-true {
-  background-color: #6366f1 !important;
-}
-
 .hud-stats {
   padding: 1rem 1.5rem;
   width: min(280px, calc(100vw - 48px));
@@ -298,6 +293,90 @@ body,
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.probe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.probe-header .hud-kicker {
+  margin-bottom: 0.45rem;
+}
+
+.probe-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: 0.9rem;
+  border-radius: 3px;
+  line-height: 1;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+
+.probe-dismiss-btn:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.probe-dismiss-btn:focus-visible {
+  outline: 2px solid #818cf8;
+  color: white;
+}
+
+.hud-colony {
+  margin: 0.2rem 0 0.45rem;
+}
+
+.hud-colony-counts {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hud-colony-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hud-colony-tag strong {
+  color: #ffffff;
+  font-family: 'Rajdhani', monospace;
+  font-weight: 700;
+}
+
+.hud-colony-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.hud-colony-bar {
+  display: flex;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hud-colony-bar-a,
+.hud-colony-bar-b {
+  height: 100%;
+  transition: width 0.2s ease;
 }
 
 .probe-grid strong {

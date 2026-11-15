@@ -25,11 +25,14 @@ export function Overlay() {
   const activeTool = useUIStore((state) => state.activeTool);
   const setActiveTool = useUIStore((state) => state.setActiveTool);
   const probe = useUIStore((state) => state.probe);
+  const setProbe = useUIStore((state) => state.setProbe);
   const populationHistory = useUIStore((state) => state.populationHistory);
 
   const worldPreset = useControlsStore((state) => state.worldPreset);
   const gpuSim = useControlsStore((state) => state.gpuSim);
   const gameMode = useControlsStore((state) => state.gameMode);
+  const colonyColorA = useControlsStore((state) => state.colonyColorA);
+  const colonyColorB = useControlsStore((state) => state.colonyColorB);
   const ecologyProfile = useControlsStore((state) => state.ecologyProfile);
   const seedPattern = useControlsStore((state) => state.seedPattern);
 
@@ -80,6 +83,7 @@ export function Overlay() {
               </span>
             </p>
             <button
+              type="button"
               onClick={dismissHint}
               aria-label="Dismiss instructions"
               className="hint-dismiss-btn"
@@ -113,6 +117,38 @@ export function Overlay() {
             <span className="hud-label">Pop</span>
             <span className="hud-value">{stats.population}</span>
           </div>
+          {gameMode === 'Colony' && (
+            <div className="hud-colony" aria-label="Colony population breakdown">
+              <div className="hud-colony-counts">
+                <span className="hud-colony-tag">
+                  <span className="hud-colony-swatch" style={{ backgroundColor: colonyColorA }} />A{' '}
+                  <strong>{stats.colonyAPopulation ?? 0}</strong>
+                </span>
+                <span className="hud-colony-tag">
+                  <span className="hud-colony-swatch" style={{ backgroundColor: colonyColorB }} />B{' '}
+                  <strong>{stats.colonyBPopulation ?? 0}</strong>
+                </span>
+              </div>
+              {stats.population > 0 && (
+                <div className="hud-colony-bar" aria-hidden="true">
+                  <div
+                    className="hud-colony-bar-a"
+                    style={{
+                      width: `${Math.round(((stats.colonyAPopulation ?? 0) / stats.population) * 100)}%`,
+                      backgroundColor: colonyColorA,
+                    }}
+                  />
+                  <div
+                    className="hud-colony-bar-b"
+                    style={{
+                      width: `${Math.round(((stats.colonyBPopulation ?? 0) / stats.population) * 100)}%`,
+                      backgroundColor: colonyColorB,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           {populationHistory.length >= 2 && (
             <svg
               className="hud-sparkline"
@@ -154,7 +190,17 @@ export function Overlay() {
 
         {probe && (
           <section className="probe-card" aria-label="Impact probe">
-            <div className="hud-kicker">{probe.sample.biome}</div>
+            <div className="probe-header">
+              <div className="hud-kicker">{probe.sample.biome}</div>
+              <button
+                type="button"
+                className="probe-dismiss-btn"
+                onClick={() => setProbe(undefined)}
+                aria-label="Dismiss probe"
+              >
+                ✕
+              </button>
+            </div>
             <div className="probe-grid">
               <span>Lat</span>
               <strong>{probe.lat}</strong>
