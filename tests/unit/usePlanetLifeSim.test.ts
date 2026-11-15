@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import * as THREE from 'three';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePlanetLifeSim } from '../../src/components/planetLife/usePlanetLifeSim';
+import type { EcologyProfileName } from '../../src/sim/ecology';
+import type { Rules } from '../../src/sim/rules';
 import { useUIStore } from '../../src/store/useUIStore';
+import type { LifeGridWorkerInMessage } from '../../src/workers/lifeGridWorkerMessages';
 import { sliced } from './sliceArgs';
 
 const RULES = {
@@ -499,5 +502,197 @@ describe('usePlanetLifeSim geometry-only updates', () => {
     expect(afterSim!.getCell(1, 2)).toBe(1);
     expect(afterSim!.population).toBe(popBefore);
     expect(afterSim!.positions[0].length()).toBeCloseTo(3.6, 4);
+  });
+});
+
+describe('usePlanetLifeSim worker settings sync deduplication', () => {
+  class FakeWorker {
+    static instances: FakeWorker[] = [];
+    public messages: LifeGridWorkerInMessage[] = [];
+    public terminated = false;
+    public addEventListener = vi.fn();
+    public removeEventListener = vi.fn();
+    public postMessage(msg: LifeGridWorkerInMessage) {
+      this.messages.push(msg);
+    }
+    public terminate() {
+      this.terminated = true;
+    }
+    constructor() {
+      FakeWorker.instances.push(this);
+    }
+  }
+
+  const originalWorker = globalThis.Worker;
+
+  beforeEach(() => {
+    FakeWorker.instances = [];
+    // @ts-expect-error test mock
+    globalThis.Worker = FakeWorker;
+  });
+
+  afterEach(() => {
+    globalThis.Worker = originalWorker;
+  });
+
+  function makeMesh() {
+    return {
+      instanceMatrix: {
+        setUsage: vi.fn(),
+        needsUpdate: false,
+        array: new Float32Array(64 * 16),
+      },
+      instanceColor: { setUsage: vi.fn(), needsUpdate: false },
+      setMatrixAt: vi.fn(),
+      setColorAt: vi.fn(),
+      count: 0,
+    } as unknown as THREE.InstancedMesh;
+  }
+
+  function makeLifeTex() {
+    return {
+      w: 4,
+      h: 3,
+      data: new Uint8Array(4 * 3 * 4),
+      tex: new THREE.DataTexture(new Uint8Array(4 * 3 * 4), 4, 3, THREE.RGBAFormat),
+    };
+  }
+
+  it('posts exactly one worker message per setting change (no duplicate sync)', () => {
+    const HIGHLIFE: Rules = {
+      birth: [false, false, false, true, false, false, true, false, false],
+      survive: [false, false, true, true, false, false, false, false, false],
+    };
+
+    const { rerender } = renderHook(
+      (props: {
+        rules: Rules;
+        gameMode: 'Classic' | 'Colony';
+        ecologyProfile: EcologyProfileName;
+      }) =>
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: props.gameMode,
+            rules: props.rules,
+            ecologyProfile: props.ecologyProfile,
+            randomDensity: 0.5,
+            workerSim: true,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
+      {
+        initialProps: {
+          rules: RULES,
+          gameMode: 'Classic' as 'Classic' | 'Colony',
+          ecologyProfile: 'None' as EcologyProfileName,
+        },
+      },
+    );
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    const w = FakeWorker.instances[0];
+    const countByType = (type: LifeGridWorkerInMessage['type']) =>
+      w.messages.filter((m) => m.type === type).length;
+
+    // Initial render should never duplicate per-setting messages.
+    expect(countByType('setRules')).toBe(1);
+    expect(countByType('setGameMode')).toBe(1);
+    expect(countByType('setEcologyProfile')).toBe(1);
+
+    rerender({
+      rules: HIGHLIFE,
+      gameMode: 'Classic',
+      ecologyProfile: 'None',
+    });
+    expect(countByType('setRules')).toBe(2);
+    expect(countByType('setGameMode')).toBe(1);
+    expect(countByType('setEcologyProfile')).toBe(1);
+
+    rerender({
+      rules: HIGHLIFE,
+      gameMode: 'Colony',
+      ecologyProfile: 'None',
+    });
+    expect(countByType('setRules')).toBe(2);
+    expect(countByType('setGameMode')).toBe(2);
+    expect(countByType('setEcologyProfile')).toBe(1);
+
+    rerender({
+      rules: HIGHLIFE,
+      gameMode: 'Colony',
+      ecologyProfile: 'Garden World',
+    });
+    expect(countByType('setRules')).toBe(2);
+    expect(countByType('setGameMode')).toBe(2);
+    expect(countByType('setEcologyProfile')).toBe(2);
+  });
+
+  it('updates simRef in CPU mode without spawning a worker', () => {
+    const HIGHLIFE: Rules = {
+      birth: [false, false, false, true, false, false, true, false, false],
+      survive: [false, false, true, true, false, false, false, false, false],
+    };
+
+    const { result, rerender } = renderHook(
+      (props: {
+        rules: Rules;
+        gameMode: 'Classic' | 'Colony';
+        ecologyProfile: EcologyProfileName;
+      }) =>
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: props.gameMode,
+            rules: props.rules,
+            ecologyProfile: props.ecologyProfile,
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
+      {
+        initialProps: {
+          rules: RULES,
+          gameMode: 'Classic' as 'Classic' | 'Colony',
+          ecologyProfile: 'None' as EcologyProfileName,
+        },
+      },
+    );
+
+    expect(FakeWorker.instances).toHaveLength(0);
+    const sim = result.current.simRef.current;
+    expect(sim).not.toBeNull();
+
+    rerender({
+      rules: HIGHLIFE,
+      gameMode: 'Colony',
+      ecologyProfile: 'Garden World',
+    });
+
+    expect(FakeWorker.instances).toHaveLength(0);
+    expect(result.current.simRef.current).toBe(sim);
+    expect(sim!.gameMode).toBe('Colony');
+    expect((sim as unknown as { rules: Rules }).rules).toEqual(HIGHLIFE);
   });
 });

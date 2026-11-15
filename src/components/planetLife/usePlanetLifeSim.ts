@@ -253,8 +253,8 @@ export function usePlanetLifeSim({
     if (workerEnabled) {
       // In worker mode we still keep a geometry-only sim around for the
       // instanced-mesh dots path, but the authoritative state lives in
-      // the worker. Per-setting updates are posted by the per-setting
-      // effects below.
+      // the worker. Per-setting worker updates are posted inside
+      // useSimWorker.
       geometrySimRef.current = new LifeSphereSim({
         latCells: safeLatCells,
         lonCells: safeLonCells,
@@ -302,35 +302,25 @@ export function usePlanetLifeSim({
     updateInstancesRef.current();
   }, [planetRadius, cellLift]);
 
+  // Worker `setRules` / `setGameMode` / `setEcologyProfile` sync lives
+  // exclusively in `useSimWorker`; only update `simRef.current` in CPU mode.
   useEffect(() => {
-    if (workerEnabled && workerRef.current) {
-      workerPostMessage({ type: 'setRules', rules } satisfies LifeGridWorkerInMessage);
-      return;
+    if (!workerEnabled) {
+      simRef.current?.setRules(rules);
     }
-    simRef.current?.setRules(rules);
-  }, [rules, workerEnabled, workerRef, workerPostMessage]);
+  }, [rules, workerEnabled]);
 
   useEffect(() => {
-    if (workerEnabled && workerRef.current) {
-      workerPostMessage({
-        type: 'setGameMode',
-        mode: gameMode,
-      } satisfies LifeGridWorkerInMessage);
-      return;
+    if (!workerEnabled) {
+      simRef.current?.setGameMode(gameMode);
     }
-    simRef.current?.setGameMode(gameMode);
-  }, [gameMode, workerEnabled, workerRef, workerPostMessage]);
+  }, [gameMode, workerEnabled]);
 
   useEffect(() => {
-    if (workerEnabled && workerRef.current) {
-      workerPostMessage({
-        type: 'setEcologyProfile',
-        profile: ecologyProfile,
-      } satisfies LifeGridWorkerInMessage);
-      return;
+    if (!workerEnabled) {
+      simRef.current?.setEcologyProfile(ecologyProfile);
     }
-    simRef.current?.setEcologyProfile(ecologyProfile);
-  }, [ecologyProfile, workerEnabled, workerRef, workerPostMessage]);
+  }, [ecologyProfile, workerEnabled]);
 
   const documentHidden = useDocumentHidden();
 
