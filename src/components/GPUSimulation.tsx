@@ -49,8 +49,16 @@ export const GPUSimulation = ({
   const generationRef = useRef(0);
 
   const pingPong = useGpuPingPong(resolution);
-  const { simMaterial, simScene, seedMaterial, seedScene, statsMaterial, statsScene } =
-    useGpuSimMaterials({ resolution, rules, gameMode, ecologyProfile });
+  const {
+    simMaterial,
+    simScene,
+    seedMaterial,
+    seedScene,
+    copyMaterial,
+    copyScene,
+    statsMaterial,
+    statsScene,
+  } = useGpuSimMaterials({ resolution, rules, gameMode, ecologyProfile });
   const { readStats } = useGpuStatsReadback({
     gl,
     resolution,
@@ -67,8 +75,8 @@ export const GPUSimulation = ({
     randomDensity,
     gameMode,
     pingPong,
-    simMaterial,
-    simScene,
+    copyMaterial,
+    copyScene,
     seedMaterial,
     seedScene,
     generationRef,

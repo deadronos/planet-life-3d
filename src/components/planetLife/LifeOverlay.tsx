@@ -113,7 +113,7 @@ export function createGpuOverlayMaterial(params: {
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
     toneMapped: false,
   });
 }

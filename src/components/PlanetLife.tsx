@@ -148,22 +148,45 @@ export function PlanetLife({
         nightGlowColor,
         lightPosition,
       }),
-    [
-      cellColorMode,
-      cellColor,
-      colonyColorA,
-      colonyColorB,
-      heatLowColor,
-      heatMidColor,
-      heatHighColor,
-      ageFadeHalfLife,
-      cellOverlayOpacity,
-      gameMode,
-      nightGlowIntensity,
-      nightGlowColor,
-      lightPosition,
-    ],
+    // Created once and updated in place below so slider/color changes never recompile the shader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
+
+  useEffect(() => {
+    const u = gpuOverlayMaterial.uniforms;
+    (u.uCellColor.value as THREE.Color).set(cellColor);
+    (u.uColonyColorA.value as THREE.Color).set(colonyColorA);
+    (u.uColonyColorB.value as THREE.Color).set(colonyColorB);
+    (u.uHeatLowColor.value as THREE.Color).set(heatLowColor);
+    (u.uHeatMidColor.value as THREE.Color).set(heatMidColor);
+    (u.uHeatHighColor.value as THREE.Color).set(heatHighColor);
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are GPU handles updated in place to avoid shader recompilation.
+    u.uAgeFadeHalfLife.value = Math.max(1, ageFadeHalfLife);
+    u.uColorMode.value = cellColorMode === 'Solid' ? 0 : cellColorMode === 'Age Fade' ? 1 : 2;
+    u.uCellOverlayOpacity.value = cellOverlayOpacity;
+    u.uColonyMode.value = gameMode === 'Colony';
+    (u.uLightDir.value as THREE.Vector3)
+      .set(lightPosition[0], lightPosition[1], lightPosition[2])
+      .normalize();
+    (u.uNightGlowColor.value as THREE.Color).set(nightGlowColor);
+    u.uNightGlowIntensity.value = nightGlowIntensity;
+  }, [
+    gpuOverlayMaterial,
+    cellColorMode,
+    cellColor,
+    colonyColorA,
+    colonyColorB,
+    heatLowColor,
+    heatMidColor,
+    heatHighColor,
+    ageFadeHalfLife,
+    cellOverlayOpacity,
+    gameMode,
+    nightGlowIntensity,
+    nightGlowColor,
+    lightPosition,
+  ]);
 
   useEffect(() => {
     return () => gpuOverlayMaterial.dispose();
@@ -391,7 +414,6 @@ export function PlanetLife({
           cellsRef={cellsRef}
           maxInstances={maxInstances}
           cellRadius={cellRadius}
-          cellColor={cellColor}
         />
       )}
 

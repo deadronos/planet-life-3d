@@ -172,7 +172,30 @@ export function usePlanetMaterial(params: {
     material.toneMapped = true;
     material.depthWrite = true;
     return material;
+    // Created once and updated in place below so slider changes never recompile the shader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms and wireframe are GPU handles updated in place to avoid shader recompilation.
+    planetMaterial.wireframe = params.planetWireframe;
+    const u = planetMaterial.uniforms;
+    (u.uRimColor.value as THREE.Color).set(params.atmosphereColor);
+    (u.uLightDir.value as THREE.Vector3)
+      .set(params.lightPosition[0], params.lightPosition[1], params.lightPosition[2])
+      .normalize();
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are GPU handles updated in place to avoid shader recompilation.
+    u.uRimPower.value = params.rimPower;
+    u.uRimIntensity.value = params.rimIntensity;
+    u.uTerminatorSharpness.value = params.terminatorSharpness;
+    u.uTerminatorBoost.value = params.terminatorBoost;
+    u.uAmbientFloor.value = THREE.MathUtils.clamp(params.planetRoughness * 0.65, 0.05, 0.95);
+    (u.uGridSize.value as THREE.Vector2).set(params.lonCells, params.latCells);
+    u.uRoughnessBase.value = params.planetRoughness;
+    u.uEcologyIntensity.value = params.ecologyIntensity;
+    u.uNoiseMap.value = params.noiseTexture;
   }, [
+    planetMaterial,
     params.atmosphereColor,
     params.rimIntensity,
     params.rimPower,

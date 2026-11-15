@@ -14,11 +14,22 @@ import {
   rulesToFloatArray,
 } from './common';
 
+const copyFragmentShader = /* glsl */ `
+  uniform sampler2D uTexture;
+  varying vec2 vUv;
+
+  void main() {
+    gl_FragColor = texture2D(uTexture, vUv);
+  }
+`;
+
 export interface GpuSimMaterials {
   simMaterial: THREE.ShaderMaterial;
   simScene: FullscreenPass;
   seedMaterial: THREE.ShaderMaterial;
   seedScene: FullscreenPass;
+  copyMaterial: THREE.ShaderMaterial;
+  copyScene: FullscreenPass;
   statsMaterial: THREE.ShaderMaterial;
   statsScene: FullscreenPass;
 }
@@ -134,6 +145,20 @@ export function useGpuSimMaterials({
 
   const seedScene = useMemo(() => createFullscreenPass(seedMaterial), [seedMaterial]);
 
+  // Passthrough copy pass: uploads initial CPU DataTexture into ping-pong
+  // targets without stepping the CA rules at Gen 0.
+  const copyMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTexture: { value: null },
+      },
+      vertexShader: simulationVertexShader,
+      fragmentShader: copyFragmentShader,
+    });
+  }, []);
+
+  const copyScene = useMemo(() => createFullscreenPass(copyMaterial), [copyMaterial]);
+
   // Stats pass: renders birth/death/alive buckets for the HUD.
   const statsMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
@@ -187,10 +212,25 @@ export function useGpuSimMaterials({
   }, [seedMaterial, seedScene]);
   useEffect(() => {
     return () => {
+      copyMaterial.dispose();
+      copyScene.quad.geometry.dispose();
+    };
+  }, [copyMaterial, copyScene]);
+  useEffect(() => {
+    return () => {
       statsMaterial.dispose();
       statsScene.quad.geometry.dispose();
     };
   }, [statsMaterial, statsScene]);
 
-  return { simMaterial, simScene, seedMaterial, seedScene, statsMaterial, statsScene };
+  return {
+    simMaterial,
+    simScene,
+    seedMaterial,
+    seedScene,
+    copyMaterial,
+    copyScene,
+    statsMaterial,
+    statsScene,
+  };
 }
