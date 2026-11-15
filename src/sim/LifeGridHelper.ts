@@ -92,28 +92,32 @@ export function countNeighborsColony(
   right: number,
   stats: ColonyStats,
 ): void {
-  const addNeighbor = (idx: number) => {
-    const v = grid[idx];
-    if (v) {
-      stats.neighbors++;
-      if (v === 1) stats.countA++;
-    }
-  };
+  let neighbors = 0;
+  let countA = 0;
 
   if (hasTop) {
-    addNeighbor(rTop + left);
-    addNeighbor(rTop + lo);
-    addNeighbor(rTop + right);
+    const t0 = grid[rTop + left];
+    const t1 = grid[rTop + lo];
+    const t2 = grid[rTop + right];
+    neighbors += (t0 > 0 ? 1 : 0) + (t1 > 0 ? 1 : 0) + (t2 > 0 ? 1 : 0);
+    countA += (t0 === 1 ? 1 : 0) + (t1 === 1 ? 1 : 0) + (t2 === 1 ? 1 : 0);
   }
 
-  addNeighbor(rMid + left);
-  addNeighbor(rMid + right);
+  const m0 = grid[rMid + left];
+  const m2 = grid[rMid + right];
+  neighbors += (m0 > 0 ? 1 : 0) + (m2 > 0 ? 1 : 0);
+  countA += (m0 === 1 ? 1 : 0) + (m2 === 1 ? 1 : 0);
 
   if (hasBot) {
-    addNeighbor(rBot + left);
-    addNeighbor(rBot + lo);
-    addNeighbor(rBot + right);
+    const b0 = grid[rBot + left];
+    const b1 = grid[rBot + lo];
+    const b2 = grid[rBot + right];
+    neighbors += (b0 > 0 ? 1 : 0) + (b1 > 0 ? 1 : 0) + (b2 > 0 ? 1 : 0);
+    countA += (b0 === 1 ? 1 : 0) + (b1 === 1 ? 1 : 0) + (b2 === 1 ? 1 : 0);
   }
+
+  stats.neighbors = neighbors;
+  stats.countA = countA;
 }
 
 /**

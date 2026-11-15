@@ -47,6 +47,8 @@ function stepColonyCell(
   applyCellUpdate(ctx, idx, current, nextVal, effectiveNeighbors);
 }
 
+const SCRATCH_COLONY_STATS: ColonyStats = { neighbors: 0, countA: 0 };
+
 /**
  * Advance one generation on `ctx` using two-colony Game of Life rules.
  */
@@ -54,7 +56,7 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
   const L = ctx.latCells;
   const W = ctx.lonCells;
   const centerEnd = W - 1;
-  const stats: ColonyStats = { neighbors: 0, countA: 0 };
+  const stats = SCRATCH_COLONY_STATS;
 
   for (let la = 0; la < L; la++) {
     const rowOffset = la * W;

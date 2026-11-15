@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 interface FlareElement {
@@ -92,6 +92,21 @@ export function SunLensFlare({
 
   const lightPos = useMemo(() => new THREE.Vector3(...lightPosition), [lightPosition]);
   const screenPos = useMemo(() => new THREE.Vector3(), []);
+  const worldPos = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    return () => {
+      flareTextures.main.dispose();
+      flareTextures.ring.dispose();
+      flareTextures.spot.dispose();
+    };
+  }, [flareTextures]);
+
+  useEffect(() => {
+    return () => {
+      spriteMaterials.forEach((mat) => mat.dispose());
+    };
+  }, [spriteMaterials]);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -118,7 +133,7 @@ export function SunLensFlare({
       const y = screenPos.y * t;
 
       // Convert back to world space (approximate)
-      const worldPos = new THREE.Vector3(x, y, 0.5).unproject(camera);
+      worldPos.set(x, y, 0.5).unproject(camera);
       sprite.position.copy(worldPos);
 
       // Scale based on distance from camera

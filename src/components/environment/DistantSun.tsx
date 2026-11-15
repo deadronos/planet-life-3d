@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { DISPLAY_REFERRED_OUTPUT } from '../../shaders/displayReferredOutput';
@@ -67,6 +67,8 @@ export function DistantSun({ position = [60, 60, 80], size = 3 }: DistantSunProp
       depthWrite: false,
     });
   }, []);
+
+  useEffect(() => () => material.dispose(), [material]);
 
   const meshRef = useRef<THREE.Mesh>(null);
   // Billboard: keep the quad facing the camera.
