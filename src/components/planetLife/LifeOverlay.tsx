@@ -31,12 +31,9 @@ export function LifeOverlay({
 }: LifeOverlayProps) {
   useEffect(() => {
     if (gpuOverlayMaterial) {
-      const tex = lifeTexture;
-      if (tex) {
+      if (lifeTexture) {
         // eslint-disable-next-line react-hooks/immutability
-        gpuOverlayMaterial.uniforms.uLifeTexture.value = tex;
-        // eslint-disable-next-line react-hooks/immutability
-        tex.needsUpdate = true;
+        gpuOverlayMaterial.uniforms.uLifeTexture.value = lifeTexture;
       }
 
       gpuOverlayMaterial.uniforms.uDebugOverlay.value = false;

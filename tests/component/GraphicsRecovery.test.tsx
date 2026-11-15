@@ -7,6 +7,7 @@ import {
   CONTEXT_RESTORE_TIMEOUT_MS,
   GraphicsRecovery,
 } from '../../src/components/GraphicsRecovery';
+import { useControlsStore } from '../../src/store/useControlsStore';
 import { useUIStore } from '../../src/store/useUIStore';
 
 const canvas = document.createElement('canvas');
@@ -36,7 +37,9 @@ describe('CanvasErrorBoundary', () => {
 describe('context loss handling', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    useUIStore.setState({ graphicsStatus: 'ok', graphicsEpoch: 0, simRunning: true });
+    useControlsStore.getState().resetControls();
+    useControlsStore.getState().setControls({ running: true });
+    useUIStore.setState({ graphicsStatus: 'ok', graphicsEpoch: 0 });
   });
   afterEach(() => {
     cleanup();
@@ -61,7 +64,7 @@ describe('context loss handling', () => {
     );
     expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull();
     // The user's own play/pause state is never touched.
-    expect(useUIStore.getState().simRunning).toBe(true);
+    expect(useControlsStore.getState().running).toBe(true);
 
     act(() => {
       canvas.dispatchEvent(new Event('webglcontextrestored'));

@@ -39,7 +39,7 @@ export function PlanetLife({
     debug,
   } = usePlanetLifeControls();
 
-  const { running, tickMs, latCells, lonCells, worldPreset, birthDigits, surviveDigits } = sim;
+  const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits } = sim;
   const { ecologyProfile, gameMode, randomDensity } = sim;
   const {
     planetRadius,
@@ -70,10 +70,8 @@ export function PlanetLife({
     heatMidColor,
     heatHighColor,
   } = cells;
-  const { seedPattern } = seeding;
   const { debugLogs, gpuSim } = debug;
   const activeTool = useUIStore((state) => state.activeTool);
-  const setPlanetStatus = useUIStore((state) => state.setPlanetStatus);
   const setProbe = useUIStore((state) => state.setProbe);
   const graphicsEpoch = useUIStore((state) => state.graphicsEpoch);
   const graphicsOk = useUIStore((state) => state.graphicsStatus === 'ok');
@@ -218,16 +216,6 @@ export function PlanetLife({
     },
     [],
   );
-
-  useEffect(() => {
-    setPlanetStatus({
-      preset: worldPreset,
-      ecologyProfile,
-      gameMode,
-      seedPattern,
-      gpuSim,
-    });
-  }, [ecologyProfile, gameMode, gpuSim, seedPattern, setPlanetStatus, worldPreset]);
 
   const seedAtPoint = useCallback(
     (point: THREE.Vector3, { updateProbe }: { updateProbe: boolean }) => {

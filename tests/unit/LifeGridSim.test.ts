@@ -121,4 +121,92 @@ describe('LifeGridSim', () => {
 
     expect(sim.getCell(target.lat, target.lon)).toBe(1);
   });
+
+  it('tracks Classic generation, population, age, neighborHeat, and alive indices through step()', () => {
+    // Horizontal blinker at lat=5, lon=4..6
+    sim.setCell(5, 4, 1);
+    sim.setCell(5, 5, 1);
+    sim.setCell(5, 6, 1);
+
+    sim.step();
+
+    expect(sim.generation).toBe(1);
+    expect(sim.population).toBe(3);
+    expect(sim.birthsLastTick).toBe(2);
+    expect(sim.deathsLastTick).toBe(2);
+    expect(sim.getAliveCount()).toBe(3);
+
+    // Center cell survived (age incremented from 1 -> 2, had 2 neighbors)
+    const centerIdx = 5 * lonCells + 5;
+    expect(sim.getAgeView()[centerIdx]).toBe(2);
+    expect(sim.getNeighborHeatView()[centerIdx]).toBe(2);
+
+    // Newly born top cell (age 1, had 3 neighbors)
+    const topIdx = 4 * lonCells + 5;
+    expect(sim.getAgeView()[topIdx]).toBe(1);
+    expect(sim.getNeighborHeatView()[topIdx]).toBe(3);
+
+    const alive: number[] = [];
+    sim.forEachAlive((idx) => alive.push(idx));
+    expect(alive).toEqual([4 * lonCells + 5, centerIdx, 6 * lonCells + 5]);
+  });
+
+  it('executes Colony mode stepping via step()', () => {
+    sim.setGameMode('Colony');
+
+    // Colony A birth at (5,5): 2 type-1 and 1 type-2 non-adjacent neighbors -> countA=2 >= 2 -> type 1
+    sim.setCell(4, 4, 1);
+    sim.setCell(4, 6, 1);
+    sim.setCell(6, 5, 2);
+
+    sim.step();
+
+    expect(sim.generation).toBe(1);
+    expect(sim.getCell(5, 5)).toBe(1);
+    expect(sim.birthsLastTick).toBe(1);
+    expect(sim.deathsLastTick).toBe(3);
+    expect(sim.population).toBe(1);
+    expect(sim.getAliveCount()).toBe(1);
+
+    // Colony B birth at (5,5): 1 type-1 and 2 type-2 non-adjacent neighbors -> countA=1 < 2 -> type 2
+    sim.clear();
+    sim.setCell(4, 4, 1);
+    sim.setCell(4, 6, 2);
+    sim.setCell(6, 5, 2);
+
+    sim.step();
+
+    expect(sim.generation).toBe(1);
+    expect(sim.getCell(5, 5)).toBe(2);
+    expect(sim.birthsLastTick).toBe(1);
+    expect(sim.deathsLastTick).toBe(3);
+    expect(sim.population).toBe(1);
+    expect(sim.getAliveCount()).toBe(1);
+  });
+
+  it('switches cleanly between Classic and Colony stepping on the same instance', () => {
+    sim.setGameMode('Colony');
+    sim.setCell(4, 4, 2);
+    sim.setCell(4, 5, 2);
+    sim.setCell(5, 4, 2);
+    sim.setCell(5, 5, 2);
+
+    sim.step();
+    expect(sim.getCell(4, 4)).toBe(2);
+    expect(sim.generation).toBe(1);
+
+    // Switch back to Classic and step a Classic blinker
+    sim.clear();
+    sim.setGameMode('Classic');
+    sim.setCell(5, 4, 1);
+    sim.setCell(5, 5, 1);
+    sim.setCell(5, 6, 1);
+
+    sim.step();
+    expect(sim.getCell(4, 5)).toBe(1);
+    expect(sim.getCell(5, 5)).toBe(1);
+    expect(sim.getCell(6, 5)).toBe(1);
+    expect(sim.generation).toBe(1);
+    expect(sim.population).toBe(3);
+  });
 });

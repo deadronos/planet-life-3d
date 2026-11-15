@@ -15,7 +15,7 @@ import { needsContinuousRender } from './renderDemand';
 export function RenderDemandDriver({ autoRotate }: { autoRotate: boolean }) {
   const invalidate = useThree((s) => s.invalidate);
   const hidden = useDocumentHidden();
-  const simRunning = useUIStore((s) => s.simRunning);
+  const simRunning = useControlsStore((s) => s.running);
   const activeEffects = useUIStore((s) => s.activeEffectCount);
   const continuous = needsContinuousRender({
     simRunning,

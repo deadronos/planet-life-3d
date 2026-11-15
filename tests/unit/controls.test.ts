@@ -163,17 +163,8 @@ describe('usePlanetLifeControls', () => {
     expect(c.planet.theme).toBe('Default');
   });
 
-  it('mirrors running/tickMs into the UI store', () => {
+  it('applies the play/pause hotkey', () => {
     renderHook(() => usePlanetLifeControls());
-    act(() => store().setControls({ running: false, tickMs: 400 }));
-    expect(useUIStore.getState().simRunning).toBe(false);
-    expect(useUIStore.getState().simTickMs).toBe(400);
-  });
-
-  it('applies transport speed requests and the play/pause hotkey', () => {
-    renderHook(() => usePlanetLifeControls());
-    act(() => useUIStore.getState().requestSimTickMs(250));
-    expect(store().tickMs).toBe(250);
     act(() => useUIStore.getState().requestSimCommand('togglePlay'));
     expect(store().running).toBe(false);
     act(() => useUIStore.getState().requestSimCommand('togglePlay'));
