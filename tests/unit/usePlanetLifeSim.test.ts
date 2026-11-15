@@ -429,6 +429,18 @@ describe('usePlanetLifeSim seed stats & GPU-mode stats suppression', () => {
     act(() => result.current.stepOnce());
     expect(useUIStore.getState().stats).toEqual(STALE_STATS);
   });
+
+  it('defers LifeSphereSim allocation while gpuSim is true and creates it on fallback', () => {
+    let props = hookProps({ gpuSim: true });
+    const { result, rerender } = renderHook(() => usePlanetLifeSim(sliced(props)));
+
+    expect(result.current.simRef.current).toBeNull();
+
+    props = hookProps({ gpuSim: false });
+    rerender();
+
+    expect(result.current.simRef.current).not.toBeNull();
+  });
 });
 
 describe('usePlanetLifeSim geometry-only updates', () => {

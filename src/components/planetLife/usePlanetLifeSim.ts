@@ -52,7 +52,7 @@ export function usePlanetLifeSim({
     /* noop */
   });
 
-  const workerEnabled = workerSim && typeof Worker !== 'undefined';
+  const workerEnabled = !gpuSim && workerSim && typeof Worker !== 'undefined';
 
   const publishStats = useCallback(
     (source: {
@@ -123,8 +123,8 @@ export function usePlanetLifeSim({
   }, [updateInstances]);
 
   useEffect(() => {
-    if (cellRenderMode === 'Texture' || cellRenderMode === 'Both') updateTexture();
-  }, [cellRenderMode, updateTexture]);
+    if (!gpuSim && (cellRenderMode === 'Texture' || cellRenderMode === 'Both')) updateTexture();
+  }, [gpuSim, cellRenderMode, updateTexture]);
 
   const clear = useCallback(() => {
     if (workerEnabled && workerRef.current) {
@@ -242,14 +242,21 @@ export function usePlanetLifeSim({
     randomDensityRef.current = randomDensity;
   }, [randomDensity]);
 
-  // Sim lifecycle: only re-create the sim when the grid resolution changes
-  // or when worker mode toggles. Per-setting
+  // Sim lifecycle: skip CPU/Worker allocation while gpuSim is authoritative,
+  // and only re-create the sim when gpuSim turns off, the grid resolution
+  // changes, or worker mode toggles. Per-setting
   // changes (rules, gameMode, ecologyProfile) are applied in place by the
   // three per-setting effects below, and the randomDensity slider no
   // longer wipes the world — it's only sampled when the user explicitly
   // clicks the Randomize action. Planet radius / cell lift are handled by a
   // separate geometry-only effect below so they don't wipe the world either.
   useEffect(() => {
+    if (gpuSim) {
+      simRef.current = null;
+      geometrySimRef.current = null;
+      return;
+    }
+
     if (workerEnabled) {
       // In worker mode we still keep a geometry-only sim around for the
       // instanced-mesh dots path, but the authoritative state lives in
@@ -291,7 +298,7 @@ export function usePlanetLifeSim({
     // user clicks Randomize. Listing them here would recreate the sim
     // (and re-randomize) on every Leva change.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load-bearing: values are routed via refs; see the comment above and the regression tests in tests/unit/usePlanetLifeSim.test.ts.
-  }, [safeLatCells, safeLonCells, workerEnabled]);
+  }, [gpuSim, safeLatCells, safeLonCells, workerEnabled]);
 
   // Geometry-only updates (planetRadius / cellLift) recompute surface
   // positions in place instead of recreating the sim — recreating would
