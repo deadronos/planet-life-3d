@@ -26,10 +26,7 @@ export const PLANET_NOISE_BAKE_VERT = `
   }
 `;
 
-export const PLANET_NOISE_BAKE_FRAG = `
-  uniform float uRadius;
-  varying vec2 vUv;
-
+export const SNOISE_3D_GLSL = `
   // --- Simplex Noise 3D (Ashima/WebGl-Noise) ---
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -82,6 +79,13 @@ export const PLANET_NOISE_BAKE_FRAG = `
     return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1),
                                   dot(p2,x2), dot(p3,x3) ) );
   }
+`;
+
+export const PLANET_NOISE_BAKE_FRAG = `
+  uniform float uRadius;
+  varying vec2 vUv;
+
+  ${SNOISE_3D_GLSL}
 
   #define PI 3.141592653589793
 
@@ -91,11 +95,14 @@ export const PLANET_NOISE_BAKE_FRAG = `
     float lat = (vUv.y - 0.5) * PI;
     vec3 dir = vec3(cos(lat) * cos(lon), sin(lat), cos(lat) * sin(lon));
     vec3 p = dir * uRadius;
+    // Biome channels use a fixed reference radius (2.5) so they match
+    // ecology.ts / simulation.frag.ts regardless of planetRadius.
+    vec3 pBiome = dir * 2.5;
 
     float noiseHigh = snoise(p * 8.0);
     float noiseLow = snoise(p * 1.5);
-    float basinNoise = snoise(p * 2.2 + vec3(3.1, 0.4, 1.7)) * 0.5 + 0.5;
-    float ridgeNoise = snoise(p * 4.5 + vec3(0.2, 2.8, 1.1)) * 0.5 + 0.5;
+    float basinNoise = snoise(pBiome * 2.2 + vec3(3.1, 0.4, 1.7)) * 0.5 + 0.5;
+    float ridgeNoise = snoise(pBiome * 4.5 + vec3(0.2, 2.8, 1.1)) * 0.5 + 0.5;
     gl_FragColor = vec4(noiseHigh * 0.5 + 0.5, noiseLow * 0.5 + 0.5, basinNoise, ridgeNoise);
   }
 `;

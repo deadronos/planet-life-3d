@@ -1,3 +1,5 @@
+import { SNOISE_3D_GLSL } from './planetNoiseBake';
+
 // Fragment shader for GPU-based cellular automata simulation
 // Implements customizable cellular automata rules with sphere wrapping support
 // Tracks age and neighbor heat for color visualization
@@ -18,34 +20,35 @@ export const simulationFragmentShader = /* glsl */ `
   
   varying vec2 vUv;
 
-  float wave(float a, float b, float c) {
-    return (sin(a * 12.9898 + b * 78.233 + c * 37.719) + 1.0) * 0.5;
-  }
+  ${SNOISE_3D_GLSL}
 
   // Per-cell neighbor-count bias, ported 1:1 from computeEcologySample() in
-  // sim/ecology.ts. Uses integer pixel coordinates so each texel matches the
-  // CPU's integer lat/lon indexing.
+  // sim/ecology.ts and matching the baked terrain biomes in planetNoiseBake.ts.
+  // Uses integer pixel coordinates so each texel matches CPU lat/lon indexing.
   float ecologyBias(vec2 uv) {
     vec2 pixelPos = floor(uv * uResolution);
     float lat01 = pixelPos.y / max(1.0, uResolution.y - 1.0);
     float lon01 = pixelPos.x / uResolution.x;
+    float latRad = (lat01 - 0.5) * 3.141592653589793;
+    float lonRad = (lon01 - 0.5) * 6.283185307179586;
+    float cosLat = cos(latRad);
+    vec3 dir = vec3(cosLat * cos(lonRad), sin(latRad), cosLat * sin(lonRad));
+    vec3 pBiome = dir * 2.5;
 
-    float equator = 1.0 - abs(lat01 - 0.5) * 2.0;
-    float ridge = wave(lat01 * 1.8, lon01 * 1.5, 0.13);
-    float basin = wave(lat01 * 2.7 + 0.25, lon01 * 2.2, 0.61);
+    float basin = snoise(pBiome * 2.2 + vec3(3.1, 0.4, 1.7)) * 0.5 + 0.5;
+    float ridge = snoise(pBiome * 4.5 + vec3(0.2, 2.8, 1.1)) * 0.5 + 0.5;
 
-    float altitude = clamp(
-      ridge * 0.7 + wave(lat01 * 7.1, lon01 * 4.3, 0.29) * 0.3, 0.0, 1.0);
+    float equator = 1.0 - abs(dir.y);
+    float altitude = clamp(ridge, 0.0, 1.0);
+    float temperature = clamp(equator * 0.78 + basin * 0.22, 0.0, 1.0);
     float moisture = clamp(
-      basin * 0.6 +
-        equator * 0.28 +
+      basin * 0.62 +
+        equator * 0.24 -
+        max(0.0, ridge - 0.62) * 0.35 +
         uEcologyFertilityBias -
-        uEcologyDroughtBias -
-        max(0.0, altitude - 0.62) * 0.32,
+        uEcologyDroughtBias,
       0.0,
       1.0);
-    float temperature = clamp(
-      equator * 0.78 + wave(lat01 * 2.2, lon01 * 0.7, 0.41) * 0.22, 0.0, 1.0);
     float sunlight = clamp(
       0.5 + cos((lon01 - 0.18) * 6.283185307179586) * 0.3 + equator * 0.12, 0.0, 1.0);
     float fertility = clamp(
@@ -108,18 +111,27 @@ export const simulationFragmentShader = /* glsl */ `
     
     if (uColonyMode) {
       // Colony mode: count total neighbors and Colony A neighbors
-      // State encoding: 0.0 = dead, 0.33 = colony A (1), 0.67 = colony B (2)
-      if (n1.r > 0.1) { neighbors += 1.0; if (n1.r < 0.5) neighborsColonyA += 1.0; }
-      if (n2.r > 0.1) { neighbors += 1.0; if (n2.r < 0.5) neighborsColonyA += 1.0; }
-      if (n3.r > 0.1) { neighbors += 1.0; if (n3.r < 0.5) neighborsColonyA += 1.0; }
-      if (n4.r > 0.1) { neighbors += 1.0; if (n4.r < 0.5) neighborsColonyA += 1.0; }
-      if (n5.r > 0.1) { neighbors += 1.0; if (n5.r < 0.5) neighborsColonyA += 1.0; }
-      if (n6.r > 0.1) { neighbors += 1.0; if (n6.r < 0.5) neighborsColonyA += 1.0; }
-      if (n7.r > 0.1) { neighbors += 1.0; if (n7.r < 0.5) neighborsColonyA += 1.0; }
-      if (n8.r > 0.1) { neighbors += 1.0; if (n8.r < 0.5) neighborsColonyA += 1.0; }
+      // State encoding: 0.0 = dead, 0.33 = colony A (1), 0.67 = colony B (2),
+      // 1.0 = legacy Classic alive (normalized to Colony A to match CPU).
+      if (n1.r > 0.1) { neighbors += 1.0; if (n1.r < 0.5 || n1.r > 0.85) neighborsColonyA += 1.0; }
+      if (n2.r > 0.1) { neighbors += 1.0; if (n2.r < 0.5 || n2.r > 0.85) neighborsColonyA += 1.0; }
+      if (n3.r > 0.1) { neighbors += 1.0; if (n3.r < 0.5 || n3.r > 0.85) neighborsColonyA += 1.0; }
+      if (n4.r > 0.1) { neighbors += 1.0; if (n4.r < 0.5 || n4.r > 0.85) neighborsColonyA += 1.0; }
+      if (n5.r > 0.1) { neighbors += 1.0; if (n5.r < 0.5 || n5.r > 0.85) neighborsColonyA += 1.0; }
+      if (n6.r > 0.1) { neighbors += 1.0; if (n6.r < 0.5 || n6.r > 0.85) neighborsColonyA += 1.0; }
+      if (n7.r > 0.1) { neighbors += 1.0; if (n7.r < 0.5 || n7.r > 0.85) neighborsColonyA += 1.0; }
+      if (n8.r > 0.1) { neighbors += 1.0; if (n8.r < 0.5 || n8.r > 0.85) neighborsColonyA += 1.0; }
     } else {
-      // Classic mode: simple sum of alive neighbors
-      neighbors = n1.r + n2.r + n3.r + n4.r + n5.r + n6.r + n7.r + n8.r;
+      // Classic mode: count any live neighbor (including 0.33/0.67 from Colony mode) as 1.0
+      neighbors =
+        (n1.r > 0.1 ? 1.0 : 0.0) +
+        (n2.r > 0.1 ? 1.0 : 0.0) +
+        (n3.r > 0.1 ? 1.0 : 0.0) +
+        (n4.r > 0.1 ? 1.0 : 0.0) +
+        (n5.r > 0.1 ? 1.0 : 0.0) +
+        (n6.r > 0.1 ? 1.0 : 0.0) +
+        (n7.r > 0.1 ? 1.0 : 0.0) +
+        (n8.r > 0.1 ? 1.0 : 0.0);
     }
 
     // Apply the ecology neighbor-count bias, matching the CPU/worker path
@@ -154,8 +166,8 @@ export const simulationFragmentShader = /* glsl */ `
       
       if (shouldLive) {
         if (isAlive) {
-          // Stay alive with same colony
-          nextState = current;
+          // Stay alive with same colony (normalize Classic 1.0 -> Colony A 0.33)
+          nextState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67;
         } else {
           // Birth typing matches the CPU/worker sim (LifeGridSimColony): a
           // new cell becomes Colony A when at least 2 of its neighbors are
@@ -170,8 +182,8 @@ export const simulationFragmentShader = /* glsl */ `
         nextHeat = neighbors / 8.0;  // Store neighbor count normalized
       }
     } else {
-      // Classic mode logic
-      if (current > 0.5) {
+      // Classic mode logic: treat any live state (> 0.1, including Colony 0.33/0.67) as alive
+      if (current > 0.1) {
         // Cell is alive - check survive rule
         if (neighborCount >= 0 && neighborCount <= 8) {
           nextState = uSurviveRules[neighborCount];

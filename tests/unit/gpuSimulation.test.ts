@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { gpuSeedFragmentShader } from '../../src/shaders/gpuSeed.frag';
 import { simulationFragmentShader } from '../../src/shaders/simulation.frag';
 import { simulationVertexShader } from '../../src/shaders/simulation.vert';
 
@@ -44,7 +45,7 @@ describe('GPU Simulation Shaders', () => {
   it('should implement customizable birth and survival rules', () => {
     expect(simulationFragmentShader).toContain('nextState');
     // Check for alive/dead state transitions
-    expect(simulationFragmentShader).toContain('current > 0.5');
+    expect(simulationFragmentShader).toContain('current > 0.1');
     // Check for neighbor-based rules using uniform arrays
     expect(simulationFragmentShader).toContain('neighborCount');
     expect(simulationFragmentShader).toContain('uBirthRules[neighborCount]');
@@ -72,5 +73,22 @@ describe('GPU Simulation Shaders', () => {
   it('should output to gl_FragColor', () => {
     expect(simulationFragmentShader).toContain('gl_FragColor');
     expect(simulationFragmentShader).toContain('vec4');
+  });
+
+  it('normalizes Classic and Colony cell states across gameMode switches (#184)', () => {
+    // Classic mode counts any live neighbor (> 0.1) as 1.0 and treats > 0.1 as alive
+    expect(simulationFragmentShader).toContain('n1.r > 0.1 ? 1.0 : 0.0');
+    expect(simulationFragmentShader).toContain('if (current > 0.1)');
+    // Colony mode normalizes Classic 1.0 (> 0.85) to Colony A (0.33)
+    expect(simulationFragmentShader).toContain('n1.r < 0.5 || n1.r > 0.85');
+    expect(simulationFragmentShader).toContain(
+      'nextState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67',
+    );
+  });
+
+  it('wraps GPU seeding offsets across the longitude seam (#183)', () => {
+    expect(gpuSeedFragmentShader).toContain(
+      'gridOffset.x = mod(gridOffset.x + uResolution.x * 1.5, uResolution.x) - uResolution.x * 0.5;',
+    );
   });
 });

@@ -64,8 +64,180 @@ function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-function wave(a: number, b: number, c: number): number {
-  return (Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) + 1) * 0.5;
+function mod289(x: number): number {
+  return x - Math.floor(x * (1 / 289)) * 289;
+}
+
+function permute(x: number): number {
+  return mod289((x * 34 + 1) * x);
+}
+
+function taylorInvSqrt(r: number): number {
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+/**
+ * 3D Simplex noise matching `SNOISE_3D_GLSL` in `src/shaders/planetNoiseBake.ts`
+ * so ecology biomes and CA viability align seamlessly across the sphere.
+ */
+function snoise3D(vx: number, vy: number, vz: number): number {
+  const C1 = 1 / 6;
+  const C2 = 1 / 3;
+  const s = (vx + vy + vz) * C2;
+  const ix = Math.floor(vx + s);
+  const iy = Math.floor(vy + s);
+  const iz = Math.floor(vz + s);
+  const t = (ix + iy + iz) * C1;
+  const x0x = vx - ix + t;
+  const x0y = vy - iy + t;
+  const x0z = vz - iz + t;
+
+  const gx = x0y <= x0x ? 1 : 0;
+  const gy = x0z <= x0y ? 1 : 0;
+  const gz = x0x <= x0z ? 1 : 0;
+  const lx = 1 - gx;
+  const ly = 1 - gy;
+  const lz = 1 - gz;
+
+  const i1x = Math.min(gx, lz);
+  const i1y = Math.min(gy, lx);
+  const i1z = Math.min(gz, ly);
+  const i2x = Math.max(gx, lz);
+  const i2y = Math.max(gy, lx);
+  const i2z = Math.max(gz, ly);
+
+  const x1x = x0x - i1x + C1;
+  const x1y = x0y - i1y + C1;
+  const x1z = x0z - i1z + C1;
+  const x2x = x0x - i2x + C2;
+  const x2y = x0y - i2y + C2;
+  const x2z = x0z - i2z + C2;
+  const x3x = x0x - 0.5;
+  const x3y = x0y - 0.5;
+  const x3z = x0z - 0.5;
+
+  const mx = mod289(ix);
+  const my = mod289(iy);
+  const mz = mod289(iz);
+
+  const p0 = permute(permute(permute(mz) + my) + mx);
+  const p1 = permute(permute(permute(mz + i1z) + my + i1y) + mx + i1x);
+  const p2 = permute(permute(permute(mz + i2z) + my + i2y) + mx + i2x);
+  const p3 = permute(permute(permute(mz + 1) + my + 1) + mx + 1);
+
+  const n_ = 0.142857142857;
+  const nsx = n_ * 2 - 0;
+  const nsy = n_ * 0.5 - 1;
+  const nsz = n_ * 1 - 0;
+
+  const nszz = nsz * nsz;
+  const j0 = p0 - 49 * Math.floor(p0 * nszz);
+  const j1 = p1 - 49 * Math.floor(p1 * nszz);
+  const j2 = p2 - 49 * Math.floor(p2 * nszz);
+  const j3 = p3 - 49 * Math.floor(p3 * nszz);
+
+  const x_0 = Math.floor(j0 * nsz);
+  const x_1 = Math.floor(j1 * nsz);
+  const x_2 = Math.floor(j2 * nsz);
+  const x_3 = Math.floor(j3 * nsz);
+  const y_0 = Math.floor(j0 - 7 * x_0);
+  const y_1 = Math.floor(j1 - 7 * x_1);
+  const y_2 = Math.floor(j2 - 7 * x_2);
+  const y_3 = Math.floor(j3 - 7 * x_3);
+
+  const fx0 = x_0 * nsx + nsy;
+  const fx1 = x_1 * nsx + nsy;
+  const fx2 = x_2 * nsx + nsy;
+  const fx3 = x_3 * nsx + nsy;
+  const fy0 = y_0 * nsx + nsy;
+  const fy1 = y_1 * nsx + nsy;
+  const fy2 = y_2 * nsx + nsy;
+  const fy3 = y_3 * nsx + nsy;
+
+  const h0 = 1 - Math.abs(fx0) - Math.abs(fy0);
+  const h1 = 1 - Math.abs(fx1) - Math.abs(fy1);
+  const h2 = 1 - Math.abs(fx2) - Math.abs(fy2);
+  const h3 = 1 - Math.abs(fx3) - Math.abs(fy3);
+
+  const b0x = fx0;
+  const b0y = fx1;
+  const b0z = fy0;
+  const b0w = fy1;
+  const b1x = fx2;
+  const b1y = fx3;
+  const b1z = fy2;
+  const b1w = fy3;
+
+  const s0x = Math.floor(b0x) * 2 + 1;
+  const s0y = Math.floor(b0y) * 2 + 1;
+  const s0z = Math.floor(b0z) * 2 + 1;
+  const s0w = Math.floor(b0w) * 2 + 1;
+  const s1x = Math.floor(b1x) * 2 + 1;
+  const s1y = Math.floor(b1y) * 2 + 1;
+  const s1z = Math.floor(b1z) * 2 + 1;
+  const s1w = Math.floor(b1w) * 2 + 1;
+
+  const sh0 = h0 < 0 ? -1 : 0;
+  const sh1 = h1 < 0 ? -1 : 0;
+  const sh2 = h2 < 0 ? -1 : 0;
+  const sh3 = h3 < 0 ? -1 : 0;
+
+  const a0x = b0x + s0x * sh0;
+  const a0y = b0z + s0z * sh0;
+  const a0z = b0y + s0y * sh1;
+  const a0w = b0w + s0w * sh1;
+  const a1x = b1x + s1x * sh2;
+  const a1y = b1z + s1z * sh2;
+  const a1z = b1y + s1y * sh3;
+  const a1w = b1w + s1w * sh3;
+
+  let p0x = a0x;
+  let p0y = a0y;
+  let p0z = h0;
+  let p1x = a0z;
+  let p1y = a0w;
+  let p1z = h1;
+  let p2x = a1x;
+  let p2y = a1y;
+  let p2z = h2;
+  let p3x = a1z;
+  let p3y = a1w;
+  let p3z = h3;
+
+  const norm0 = taylorInvSqrt(p0x * p0x + p0y * p0y + p0z * p0z);
+  const norm1 = taylorInvSqrt(p1x * p1x + p1y * p1y + p1z * p1z);
+  const norm2 = taylorInvSqrt(p2x * p2x + p2y * p2y + p2z * p2z);
+  const norm3 = taylorInvSqrt(p3x * p3x + p3y * p3y + p3z * p3z);
+  p0x *= norm0;
+  p0y *= norm0;
+  p0z *= norm0;
+  p1x *= norm1;
+  p1y *= norm1;
+  p1z *= norm1;
+  p2x *= norm2;
+  p2y *= norm2;
+  p2z *= norm2;
+  p3x *= norm3;
+  p3y *= norm3;
+  p3z *= norm3;
+
+  const m0 = Math.max(0.6 - (x0x * x0x + x0y * x0y + x0z * x0z), 0);
+  const m1 = Math.max(0.6 - (x1x * x1x + x1y * x1y + x1z * x1z), 0);
+  const m2 = Math.max(0.6 - (x2x * x2x + x2y * x2y + x2z * x2z), 0);
+  const m3 = Math.max(0.6 - (x3x * x3x + x3y * x3y + x3z * x3z), 0);
+
+  const m0_4 = m0 * m0 * (m0 * m0);
+  const m1_4 = m1 * m1 * (m1 * m1);
+  const m2_4 = m2 * m2 * (m2 * m2);
+  const m3_4 = m3 * m3 * (m3 * m3);
+
+  return (
+    42 *
+    (m0_4 * (p0x * x0x + p0y * x0y + p0z * x0z) +
+      m1_4 * (p1x * x1x + p1y * x1y + p1z * x1z) +
+      m2_4 * (p2x * x2x + p2y * x2y + p2z * x2z) +
+      m3_4 * (p3x * x3x + p3y * x3y + p3z * x3z))
+  );
 }
 
 export function computeEcologySample(params: {
@@ -93,19 +265,29 @@ export function computeEcologySample(params: {
   const lonDenom = Math.max(1, params.lonCells);
   const lat01 = params.lat / latDenom;
   const lon01 = params.lon / lonDenom;
-  const equator = 1 - Math.abs(lat01 - 0.5) * 2;
-  const ridge = wave(lat01 * 1.8, lon01 * 1.5, 0.13);
-  const basin = wave(lat01 * 2.7 + 0.25, lon01 * 2.2, 0.61);
+  const latRad = (lat01 - 0.5) * Math.PI;
+  const lonRad = (lon01 - 0.5) * Math.PI * 2;
+  const cosLat = Math.cos(latRad);
+  const dirX = cosLat * Math.cos(lonRad);
+  const dirY = Math.sin(latRad);
+  const dirZ = cosLat * Math.sin(lonRad);
 
-  const altitude = clamp01(ridge * 0.7 + wave(lat01 * 7.1, lon01 * 4.3, 0.29) * 0.3);
+  const px = dirX * 2.5;
+  const py = dirY * 2.5;
+  const pz = dirZ * 2.5;
+  const basin = snoise3D(px * 2.2 + 3.1, py * 2.2 + 0.4, pz * 2.2 + 1.7) * 0.5 + 0.5;
+  const ridge = snoise3D(px * 4.5 + 0.2, py * 4.5 + 2.8, pz * 4.5 + 1.1) * 0.5 + 0.5;
+
+  const equator = 1 - Math.abs(dirY);
+  const altitude = clamp01(ridge);
+  const temperature = clamp01(equator * 0.78 + basin * 0.22);
   const moisture = clamp01(
-    basin * 0.6 +
-      equator * 0.28 +
+    basin * 0.62 +
+      equator * 0.24 -
+      Math.max(0, ridge - 0.62) * 0.35 +
       profile.fertilityBias -
-      profile.droughtBias -
-      Math.max(0, altitude - 0.62) * 0.32,
+      profile.droughtBias,
   );
-  const temperature = clamp01(equator * 0.78 + wave(lat01 * 2.2, lon01 * 0.7, 0.41) * 0.22);
   const sunlight = clamp01(0.5 + Math.cos((lon01 - 0.18) * Math.PI * 2) * 0.3 + equator * 0.12);
   const fertility = clamp01(
     moisture * 0.42 +

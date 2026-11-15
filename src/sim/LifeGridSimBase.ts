@@ -65,6 +65,13 @@ export class LifeGridSimBase {
 
   setGameMode(mode: GameMode) {
     this.gameMode = mode;
+    if (mode === 'Classic') {
+      // Normalize Colony B (2) cells to Classic alive (1) so Classic neighbor
+      // sums don't double-count Colony B cells.
+      for (let i = 0; i < this.cellCount; i++) {
+        if (this.grid[i] > 1) this.grid[i] = 1;
+      }
+    }
   }
 
   setEcologyProfile(profile: EcologyProfileName) {
@@ -88,7 +95,13 @@ export class LifeGridSimBase {
   }
 
   setCell(lat: number, lon: number, value: number) {
-    this.setCellState(this.coordsToIdx(lat, lon), value);
+    const idx = this.coordsToIdx(lat, lon);
+    const wasAlive = this.grid[idx] > 0;
+    const isAlive = value > 0;
+    this.setCellState(idx, value);
+    if (wasAlive !== isAlive) {
+      this.rebuildAliveIndices();
+    }
   }
 
   clear() {

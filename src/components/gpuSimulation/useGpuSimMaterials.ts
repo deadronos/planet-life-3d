@@ -181,7 +181,9 @@ export function useGpuSimMaterials({
     simMaterial.uniforms.uBirthRules.value = birthRules;
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
-  }, [rules, gameMode, simMaterial]);
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling gameMode does not recreate seedMaterial.
+    seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
+  }, [rules, gameMode, simMaterial, seedMaterial]);
 
   // Update ecology params in place when the profile changes (same rationale
   // as the rules effect: recreate the material and the sim is wiped).

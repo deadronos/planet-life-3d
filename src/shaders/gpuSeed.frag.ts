@@ -28,6 +28,9 @@ export const gpuSeedFragmentShader = /* glsl */ `
 
     // Calculate relative grid offset from seed center
     vec2 gridOffset = pixelPos - seedPixelPos;
+    // Wrap longitude offset to the shortest signed arc across [0, uResolution.x)
+    // so stamps near the prime/antimeridian wrap seamlessly like CPU coordsToIdx.
+    gridOffset.x = mod(gridOffset.x + uResolution.x * 1.5, uResolution.x) - uResolution.x * 0.5;
 
     // Map grid offset to pattern matrix coordinates using the pattern origin
     // patternCoord.y corresponds to the row index, patternCoord.x to the column index
