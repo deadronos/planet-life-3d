@@ -1,4 +1,3 @@
-import type { EcologyProfileName } from './ecology';
 import type { Rules } from './rules';
 import type { GameMode, SeedMode } from './types';
 
@@ -17,7 +16,7 @@ export interface LifeGridStepContext {
   readonly neighborHeatNext: Uint8Array;
   readonly nextAliveIndices: Int32Array;
   readonly rules: Rules;
-  readonly ecologyProfile: EcologyProfileName;
+  readonly ecologyBias: Int8Array | null;
   readonly polarWrap: boolean;
   birthsLastTick: number;
   deathsLastTick: number;
@@ -25,6 +24,20 @@ export interface LifeGridStepContext {
   colonyAPopulation: number;
   colonyBPopulation: number;
   nextAliveCount: number;
+}
+
+/**
+ * Apply cached per-cell ecology neighbor bias, clamping to [0, 8].
+ * Returns `rawNeighbors` untouched when `ecologyBias` is null (`None` profile).
+ */
+export function applyEcologyBias(
+  rawNeighbors: number,
+  idx: number,
+  ecologyBias: Int8Array | null,
+): number {
+  if (ecologyBias === null) return rawNeighbors;
+  const biased = rawNeighbors + ecologyBias[idx];
+  return biased < 0 ? 0 : biased > 8 ? 8 : biased;
 }
 
 /**

@@ -52,17 +52,17 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).toContain('uSurviveRules[neighborCount]');
   });
 
-  it('should implement ecology neighbor-count bias matching the CPU sim', () => {
-    // Mirrors adjustNeighborsForEcology / computeEcologySample in sim/ecology.ts.
+  it('should sample static ecology bias texture instead of per-tick 3D simplex noise', () => {
+    // Mirrors adjustNeighborsForEcology / computeEcologySample in sim/ecology.ts
+    // via a static DataTexture baked when ecologyProfile or resolution changes.
     expect(simulationFragmentShader).toContain('uEcologyEnabled');
-    expect(simulationFragmentShader).toContain('uEcologyFertilityBias');
-    expect(simulationFragmentShader).toContain('uEcologyDroughtBias');
-    expect(simulationFragmentShader).toContain('uEcologyMountainBias');
-    expect(simulationFragmentShader).toContain('uEcologySunlightBias');
+    expect(simulationFragmentShader).toContain('uEcologyBiasTexture');
     expect(simulationFragmentShader).toContain('ecologyBias');
     expect(simulationFragmentShader).toContain(
       'neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0)',
     );
+    expect(simulationFragmentShader).not.toContain('snoise(');
+    expect(simulationFragmentShader).not.toContain('uEcologyFertilityBias');
   });
 
   it('should use CPU colony birth typing (Colony A when countA >= 2)', () => {

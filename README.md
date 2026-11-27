@@ -9,7 +9,7 @@ Click the planet to shoot a meteor. On impact it seeds the grid using a configur
 - **GPU Simulation**: High-performance GPU-based simulation using WebGL shaders for massive grid sizes
 - Multiple rendering modes (Texture, Dots, or Both)
 - Custom rule sets and patterns
-- Biome/ecology profiles that bias CPU and worker simulation growth
+- Biome/ecology profiles that bias CPU, worker, and GPU simulation growth
 - Named world presets for garden, harsh, colony, meteor, and extinction scenarios
 - Player-facing HUD with population, ecology, selected tool, and impact probe readouts
 - Meteor toolbelt with life, sterilizer, mutation, comet, and probe modes
@@ -65,6 +65,7 @@ GPU mode has high parity with CPU mode:
 - ✅ Running state (running/paused)
 - ✅ Cell color modes (Solid, Age Fade, Neighbor Heat)
 - ✅ Colony mode (two-colony competition)
+- ✅ Ecology profiles (cached per-cell neighbor bias with full CPU/GPU parity)
 - ✅ Meteor impacts with pattern seeding
 - ✅ All seed modes (set, toggle, clear, random)
 - ✅ All pattern types (builtin, Custom ASCII, Random Disk)
@@ -72,7 +73,6 @@ GPU mode has high parity with CPU mode:
 ### Limitations
 
 - Dots rendering mode disabled in GPU mode (requires expensive GPU→CPU readback)
-- Ecology profiles are visual-only in GPU mode; CPU and worker simulation modes use them to bias effective neighbor counts.
 
 Key files:
 

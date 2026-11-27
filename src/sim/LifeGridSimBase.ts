@@ -1,5 +1,5 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import type { EcologyProfileName } from './ecology';
+import { buildEcologyBiasTable, ECOLOGY_PROFILES, type EcologyProfileName } from './ecology';
 import { calculateNextCellState, type LifeGridStepContext } from './LifeGridHelper';
 import { type Offset, transformOffsets } from './patterns';
 import { normalizeDecayStates, type Rules } from './rules';
@@ -10,6 +10,7 @@ export class LifeGridSimBase {
   gameMode: GameMode = 'Classic';
   polarWrap = false;
   protected ecologyProfile: EcologyProfileName = 'None';
+  protected ecologyBias: Int8Array | null = null;
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -100,7 +101,15 @@ export class LifeGridSimBase {
   }
 
   setEcologyProfile(profile: EcologyProfileName) {
-    this.ecologyProfile = profile;
+    const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
+    if (this.ecologyProfile === resolved) return;
+    this.ecologyProfile = resolved;
+    this.ecologyBias =
+      resolved === 'None' ? null : buildEcologyBiasTable(this.latCells, this.lonCells, resolved);
+  }
+
+  getEcologyBiasView(): Int8Array | null {
+    return this.ecologyBias;
   }
 
   setPolarWrap(polarWrap: boolean) {
@@ -277,7 +286,7 @@ export class LifeGridSimBase {
       neighborHeatNext: this.neighborHeatNext,
       nextAliveIndices: this.nextAliveIndices,
       rules: this.rules,
-      ecologyProfile: this.ecologyProfile,
+      ecologyBias: this.ecologyBias,
       polarWrap: this.polarWrap,
       birthsLastTick: 0,
       deathsLastTick: 0,

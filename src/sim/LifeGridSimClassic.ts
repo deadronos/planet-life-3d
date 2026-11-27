@@ -1,6 +1,6 @@
-import { adjustNeighborsForEcology } from './ecology';
 import {
   applyCellUpdate,
+  applyEcologyBias,
   type LifeGridStepContext,
   shiftLon,
   sumNeighborsEdge,
@@ -57,7 +57,6 @@ function nextGenerationsState(
 
 function stepGenerationsEdgeCell(
   ctx: LifeGridStepContext,
-  la: number,
   rowOffset: number,
   rTop: number,
   rMid: number,
@@ -73,7 +72,7 @@ function stepGenerationsEdgeCell(
   topShift: number,
   botShift: number,
 ): void {
-  const { grid, latCells: L, lonCells: W, ecologyProfile } = ctx;
+  const { grid, lonCells: W, ecologyBias } = ctx;
   const rawNeighbors = sumFiringNeighborsEdge(
     grid,
     rTop,
@@ -88,9 +87,9 @@ function stepGenerationsEdgeCell(
     botShift,
     W,
   );
-  const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
-
   const idx = rowOffset + lo;
+  const neighbors = applyEcologyBias(rawNeighbors, idx, ecologyBias);
+
   const current = grid[idx];
   const nextVal = nextGenerationsState(current, neighbors, birthMask, surviveMask, decayStates);
 
@@ -106,7 +105,7 @@ function stepGenerationsGrid(
   const L = ctx.latCells;
   const W = ctx.lonCells;
   const grid = ctx.grid;
-  const ecologyProfile = ctx.ecologyProfile;
+  const ecologyBias = ctx.ecologyBias;
   const polarWrap = ctx.polarWrap;
   const halfW = polarWrap ? Math.floor(W / 2) : 0;
 
@@ -124,7 +123,6 @@ function stepGenerationsGrid(
 
     stepGenerationsEdgeCell(
       ctx,
-      la,
       rowOffset,
       rTop,
       rMid,
@@ -160,9 +158,9 @@ function stepGenerationsGrid(
 
         const centerFiring = grid[rMid + lo] === 1 ? 1 : 0;
         const rawNeighbors = sLeft + sCurr + sRight - centerFiring;
-        const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
-
         const idx = rowOffset + lo;
+        const neighbors = applyEcologyBias(rawNeighbors, idx, ecologyBias);
+
         const current = grid[idx];
         const nextVal = nextGenerationsState(
           current,
@@ -181,7 +179,6 @@ function stepGenerationsGrid(
       for (let lo = 1; lo < centerEnd; lo++) {
         stepGenerationsEdgeCell(
           ctx,
-          la,
           rowOffset,
           rTop,
           rMid,
@@ -202,7 +199,6 @@ function stepGenerationsGrid(
 
     stepGenerationsEdgeCell(
       ctx,
-      la,
       rowOffset,
       rTop,
       rMid,
@@ -223,7 +219,6 @@ function stepGenerationsGrid(
 
 function stepClassicEdgeCell(
   ctx: LifeGridStepContext,
-  la: number,
   rowOffset: number,
   rTop: number,
   rMid: number,
@@ -238,7 +233,7 @@ function stepClassicEdgeCell(
   topShift: number,
   botShift: number,
 ): void {
-  const { grid, latCells: L, lonCells: W, ecologyProfile } = ctx;
+  const { grid, lonCells: W, ecologyBias } = ctx;
   const rawNeighbors = sumNeighborsEdge(
     grid,
     rTop,
@@ -253,9 +248,9 @@ function stepClassicEdgeCell(
     botShift,
     W,
   );
-  const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
-
   const idx = rowOffset + lo;
+  const neighbors = applyEcologyBias(rawNeighbors, idx, ecologyBias);
+
   const alive = grid[idx];
   const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
 
@@ -272,7 +267,7 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
   const { birth, survive } = ctx.rules;
   const decayStates = normalizeDecayStates(ctx.rules.decayStates);
   const grid = ctx.grid;
-  const ecologyProfile = ctx.ecologyProfile;
+  const ecologyBias = ctx.ecologyBias;
   const polarWrap = ctx.polarWrap;
   const halfW = polarWrap ? Math.floor(W / 2) : 0;
 
@@ -304,7 +299,6 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
 
     stepClassicEdgeCell(
       ctx,
-      la,
       rowOffset,
       rTop,
       rMid,
@@ -338,9 +332,9 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
         if (hasBot) sRight += grid[rBot + nextCol];
 
         const rawNeighbors = sLeft + sCurr + sRight - grid[rMid + lo];
-        const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
-
         const idx = rowOffset + lo;
+        const neighbors = applyEcologyBias(rawNeighbors, idx, ecologyBias);
+
         const alive = grid[idx];
         const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
 
@@ -353,7 +347,6 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
       for (let lo = 1; lo < centerEnd; lo++) {
         stepClassicEdgeCell(
           ctx,
-          la,
           rowOffset,
           rTop,
           rMid,
@@ -373,7 +366,6 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
 
     stepClassicEdgeCell(
       ctx,
-      la,
       rowOffset,
       rTop,
       rMid,

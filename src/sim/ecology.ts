@@ -323,6 +323,30 @@ export function computeEcologySample(params: {
   };
 }
 
+export function buildEcologyBiasTable(
+  latCells: number,
+  lonCells: number,
+  profile: EcologyProfileName,
+): Int8Array {
+  const table = new Int8Array(latCells * lonCells);
+  const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
+  if (resolved === 'None') return table;
+
+  for (let lat = 0; lat < latCells; lat++) {
+    const rowOffset = lat * lonCells;
+    for (let lon = 0; lon < lonCells; lon++) {
+      table[rowOffset + lon] = computeEcologySample({
+        lat,
+        lon,
+        latCells,
+        lonCells,
+        profile: resolved,
+      }).neighborBias;
+    }
+  }
+  return table;
+}
+
 export function adjustNeighborsForEcology(
   neighbors: number,
   lat: number,
