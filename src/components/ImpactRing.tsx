@@ -4,6 +4,7 @@ import * as THREE from 'three';
 
 import { clamp01 } from '../sim/utils';
 import { computeImpactBasis, type ImpactSpec } from './impactTypes';
+import { getMeteorVisualStyle } from './meteorTypes';
 
 export function computeImpactProgress(start: number, duration: number, nowSeconds: number) {
   return clamp01((nowSeconds - start) / duration);
@@ -16,10 +17,16 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
   const flashRef = useRef<THREE.Mesh>(null!);
   const flashMatRef = useRef<THREE.MeshBasicMaterial>(null!);
 
+  const visualStyle = useMemo(
+    () => getMeteorVisualStyle(props.spec.source ?? 'user', props.spec.tool, props.spec.color),
+    [props.spec.source, props.spec.tool, props.spec.color],
+  );
+  const ringColor = props.spec.color ?? visualStyle.impactRingColor;
+
   // HDR (>1.0) so the additive flash crosses the bloom threshold.
   const flashColor = useMemo(
-    () => new THREE.Color(props.spec.color).multiplyScalar(1.8),
-    [props.spec.color],
+    () => new THREE.Color(ringColor).multiplyScalar(visualStyle.flashMultiplier),
+    [ringColor, visualStyle.flashMultiplier],
   );
 
   const basis = useMemo(
@@ -47,7 +54,7 @@ export function ImpactRing(props: { spec: ImpactSpec; planetRadius: number }) {
         <ringGeometry args={[0.06, 0.12, 32]} />
         <meshBasicMaterial
           ref={matRef}
-          color={props.spec.color}
+          color={ringColor}
           transparent
           opacity={1}
           side={THREE.DoubleSide}

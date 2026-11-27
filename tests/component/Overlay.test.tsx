@@ -108,6 +108,7 @@ describe('Overlay component', () => {
         gameMode: 'Colony',
         ecologyProfile: 'Harsh Mars',
         seedPattern: 'Blinker',
+        seedRotation: 90,
       });
     });
 
@@ -117,6 +118,7 @@ describe('Overlay component', () => {
     expect(hud).toHaveTextContent('Colony');
     expect(hud).toHaveTextContent('Harsh Mars');
     expect(hud).toHaveTextContent('Blinker');
+    expect(hud).toHaveTextContent('90°');
   });
 
   it('dismisses the probe card when its close button is clicked', () => {

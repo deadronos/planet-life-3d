@@ -55,6 +55,7 @@ describe('controls store - defaults', () => {
     expect(s.surviveDigits).toBe('23');
     expect(s.cellRenderMode).toBe('Texture');
     expect(s.seedPattern).toBe('Glider');
+    expect(s.seedRotation).toBe(0);
     expect(s.adaptiveResolution).toBe(true);
     expect(s.nightGlowIntensity).toBe(0.6);
     expect(s.nightGlowColor).toBe('#ffc46b');

@@ -2,8 +2,9 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+import type { MeteorTool } from '../../store/useUIStore';
 import type { ImpactSpec } from '../impactTypes';
-import type { MeteorSource, MeteorSpec } from '../meteorTypes';
+import { getMeteorVisualStyle, type MeteorSource, type MeteorSpec } from '../meteorTypes';
 import type { ImpactsSlice, MeteorsSlice } from './controls';
 import { formatVector3, uid } from './utils';
 
@@ -11,6 +12,7 @@ type MeteorSystemParams = {
   meteors: MeteorsSlice;
   impacts: ImpactsSlice;
   seedAtPoint: (point: THREE.Vector3, options: { updateProbe: boolean }) => void;
+  activeTool?: MeteorTool;
   isProbeActive?: boolean;
   debugLogs: boolean;
 };
@@ -19,6 +21,7 @@ export function useMeteorSystem({
   meteors: meteorControls,
   impacts: impactControls,
   seedAtPoint,
+  activeTool,
   isProbeActive = false,
   debugLogs,
 }: MeteorSystemParams) {
@@ -39,26 +42,27 @@ export function useMeteorSystem({
     impactRingDuration,
     impactRingSize,
   } = impactControls;
-  const lastShotMsRef = useRef(0);
+  const lastShotMsRef = useRef(-Infinity);
+  const meteorsRef = useRef<MeteorSpec[]>([]);
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
   const addMeteor = useCallback(
-    (origin: THREE.Vector3, direction: THREE.Vector3, source: MeteorSource) => {
-      setMeteors((list) => [
-        ...list,
-        {
-          id: uid('meteor'),
-          source,
-          origin,
-          direction,
-          speed: meteorSpeed,
-          radius: meteorRadius,
-          trailLength: meteorTrailLength,
-          trailWidth: meteorTrailWidth,
-          emissiveIntensity: meteorEmissive,
-        },
-      ]);
+    (origin: THREE.Vector3, direction: THREE.Vector3, source: MeteorSource, tool?: MeteorTool) => {
+      const meteor: MeteorSpec = {
+        id: uid('meteor'),
+        source,
+        ...(source === 'user' && tool ? { tool } : {}),
+        origin,
+        direction,
+        speed: meteorSpeed,
+        radius: meteorRadius,
+        trailLength: meteorTrailLength,
+        trailWidth: meteorTrailWidth,
+        emissiveIntensity: meteorEmissive,
+      };
+      meteorsRef.current = [...meteorsRef.current, meteor];
+      setMeteors((list) => [...list, meteor]);
     },
     [meteorSpeed, meteorRadius, meteorTrailLength, meteorTrailWidth, meteorEmissive],
   );
@@ -100,7 +104,7 @@ export function useMeteorSystem({
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
 
-      if (isProbeActive) {
+      if (isProbeActive || activeTool === 'Probe') {
         seedAtPoint(e.point.clone(), { updateProbe: true });
         return;
       }
@@ -121,20 +125,27 @@ export function useMeteorSystem({
 
       const direction = point.clone().sub(origin).normalize();
 
-      addMeteor(origin, direction, 'user');
+      addMeteor(origin, direction, 'user', activeTool);
     },
-    [isProbeActive, meteorCooldownMs, addMeteor, seedAtPoint],
+    [activeTool, isProbeActive, meteorCooldownMs, addMeteor, seedAtPoint],
   );
 
   const onMeteorImpact = useCallback(
-    (id: string, impactPoint: THREE.Vector3, source: MeteorSource) => {
+    (id: string, impactPoint: THREE.Vector3, source: MeteorSource, tool?: MeteorTool) => {
       if (debugLogs) {
         // eslint-disable-next-line no-console
         console.log(`[PlanetLife] onMeteorImpact id=${id} point=${formatVector3(impactPoint)}`);
       }
 
+      const resolvedTool =
+        source === 'user'
+          ? (tool ?? meteorsRef.current.find((m) => m.id === id)?.tool ?? activeTool)
+          : undefined;
+      const visualStyle = getMeteorVisualStyle(source, resolvedTool, impactRingColor);
+
       // Shower impacts still seed, but must not move the probe card.
       seedAtPoint(impactPoint, { updateProbe: source === 'user' });
+      meteorsRef.current = meteorsRef.current.filter((m) => m.id !== id);
       setMeteors((list) => list.filter((m) => m.id !== id));
 
       // Visual ring
@@ -147,14 +158,17 @@ export function useMeteorSystem({
           normal: n,
           start: performance.now() / 1000,
           duration: impactRingDuration,
-          color: impactRingColor,
+          color: visualStyle.impactRingColor,
           flashIntensity: impactFlashIntensity,
           flashRadius: impactFlashRadius,
           ringSize: impactRingSize,
+          source,
+          ...(resolvedTool ? { tool: resolvedTool } : {}),
         },
       ]);
     },
     [
+      activeTool,
       seedAtPoint,
       debugLogs,
       impactRingDuration,

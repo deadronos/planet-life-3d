@@ -35,6 +35,7 @@ export function Overlay() {
   const colonyColorB = useControlsStore((state) => state.colonyColorB);
   const ecologyProfile = useControlsStore((state) => state.ecologyProfile);
   const seedPattern = useControlsStore((state) => state.seedPattern);
+  const seedRotation = useControlsStore((state) => state.seedRotation);
 
   const [showHint, setShowHint] = useState<boolean>(() => {
     const hintShown = localStorage.getItem('onboardingHintShown');
@@ -79,7 +80,7 @@ export function Overlay() {
               <span className="hint-keys">
                 {' '}
                 • Press &apos;h&apos; to toggle UI • Space play/pause • N step • R randomize • C
-                clear • 1–5 meteor tools.
+                clear • 1–5 meteor tools • Q/E rotate.
               </span>
             </p>
             <button
@@ -185,6 +186,10 @@ export function Overlay() {
           <div className="hud-row hud-detail">
             <span className="hud-label">Seed</span>
             <span className="hud-value">{seedPattern}</span>
+          </div>
+          <div className="hud-row hud-detail">
+            <span className="hud-label">Rotation</span>
+            <span className="hud-value">{seedRotation}°</span>
           </div>
         </section>
 

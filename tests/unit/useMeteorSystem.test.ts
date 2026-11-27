@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getMeteorVisualStyle, TOOL_METEOR_STYLES } from '../../src/components/meteorTypes';
 import { useMeteorSystem } from '../../src/components/planetLife/useMeteorSystem';
 import { sliced } from './sliceArgs';
 
@@ -314,5 +315,65 @@ describe('useMeteorSystem', () => {
       updateProbe: true,
     });
     unmount();
+  });
+
+  it('tags user meteors and impacts with tool-specific colors while keeping shower meteors theme-colored', () => {
+    vi.useFakeTimers();
+    const { result, rerender, unmount } = renderHook(
+      ({ activeTool }: { activeTool: 'Life' | 'Sterilizer' | 'Mutation' | 'Comet' }) =>
+        useMeteorSystem(
+          sliced({
+            ...defaultParams,
+            showerEnabled: true,
+            showerInterval: 50,
+            impactRingColor: '#abcdef',
+            activeTool,
+          }),
+        ),
+      { initialProps: { activeTool: 'Sterilizer' } },
+    );
+
+    act(() => {
+      result.current.onPlanetPointerDown({
+        stopPropagation: vi.fn(),
+        point: new THREE.Vector3(2, 0, 0),
+        camera: {},
+      } as unknown as ThreeEvent<PointerEvent>);
+    });
+
+    const userMeteor = result.current.meteors.find((m) => m.source === 'user');
+    expect(userMeteor).toBeDefined();
+    expect(userMeteor?.tool).toBe('Sterilizer');
+
+    // Advance timer to spawn a shower meteor while activeTool is still Sterilizer.
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+    const showerMeteor = result.current.meteors.find((m) => m.source === 'shower');
+    expect(showerMeteor).toBeDefined();
+    expect(showerMeteor?.tool).toBeUndefined();
+
+    // Switch activeTool mid-flight to Comet; the in-flight Sterilizer meteor must keep its Sterilizer impact ring.
+    rerender({ activeTool: 'Comet' });
+
+    act(() => {
+      result.current.onMeteorImpact(
+        userMeteor!.id,
+        new THREE.Vector3(1, 0, 0),
+        'user',
+        userMeteor!.tool,
+      );
+      result.current.onMeteorImpact(showerMeteor!.id, new THREE.Vector3(0, 1, 0), 'shower');
+    });
+
+    expect(result.current.impacts[0].color).toBe(TOOL_METEOR_STYLES.Sterilizer.impactRingColor);
+    expect(result.current.impacts[0].tool).toBe('Sterilizer');
+    expect(result.current.impacts[1].color).toBe(
+      getMeteorVisualStyle('shower', 'Comet', '#abcdef').impactRingColor,
+    );
+    expect(result.current.impacts[1].tool).toBeUndefined();
+
+    unmount();
+    vi.useRealTimers();
   });
 });

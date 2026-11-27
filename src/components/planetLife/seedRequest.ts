@@ -1,4 +1,9 @@
-import { getBuiltinPatternOffsets, type Offset, parseAsciiPattern } from '../../sim/patterns';
+import {
+  getBuiltinPatternOffsets,
+  type Offset,
+  parsePattern,
+  rotateOffsets,
+} from '../../sim/patterns';
 import type { SeedMode } from '../../sim/types';
 import { buildRandomDiskOffsets } from '../../sim/utils';
 import type { MeteorTool } from '../../store/useUIStore';
@@ -75,6 +80,7 @@ function resolveToolSeed(
 
 function resolveLifeSeed({
   seedPattern,
+  seedRotation = 0,
   seedScale,
   seedMode,
   seedJitter,
@@ -93,10 +99,11 @@ function resolveLifeSeed({
     };
   }
 
-  const offsets =
+  const baseOffsets =
     seedPattern === 'Custom ASCII'
-      ? parseAsciiPattern(customPattern)
+      ? parsePattern(customPattern)
       : getBuiltinPatternOffsets(seedPattern);
+  const offsets = rotateOffsets(baseOffsets, seedRotation);
 
   return {
     offsets,

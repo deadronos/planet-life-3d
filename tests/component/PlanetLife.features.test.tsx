@@ -75,6 +75,7 @@ vi.mock('../../src/components/planetLife/controls', () => ({
     seeding: {
       seedMode: 'set',
       seedPattern: 'Glider',
+      seedRotation: 0,
       seedScale: 1,
       seedJitter: 0,
       seedProbability: 0.7,

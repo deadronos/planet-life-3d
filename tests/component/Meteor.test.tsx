@@ -6,7 +6,11 @@ import * as THREE from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Meteor } from '../../src/components/Meteor';
-import type { MeteorSpec } from '../../src/components/meteorTypes';
+import {
+  DEFAULT_METEOR_STYLE,
+  type MeteorSpec,
+  TOOL_METEOR_STYLES,
+} from '../../src/components/meteorTypes';
 
 expect.extend(matchers);
 
@@ -57,5 +61,48 @@ describe('Meteor', () => {
 
     expect(container.querySelector('mesh')).toBeInTheDocument();
     expect(container.querySelector('sphereGeometry')).toBeInTheDocument();
+  });
+
+  it.each(['Life', 'Sterilizer', 'Mutation', 'Comet'] as const)(
+    'applies %s core and emissive colors to user meteors',
+    (tool) => {
+      const spec: MeteorSpec = {
+        id: `m-${tool}`,
+        origin: new THREE.Vector3(10, 0, 0),
+        direction: new THREE.Vector3(-1, 0, 0),
+        speed: 1,
+        radius: 0.5,
+        trailLength: 0.6,
+        trailWidth: 0.1,
+        emissiveIntensity: 1.2,
+        source: 'user',
+        tool,
+      };
+
+      const { container } = render(<Meteor spec={spec} planetRadius={5} onImpact={() => {}} />);
+      const headMat = container.querySelector('meshStandardMaterial');
+      expect(headMat).toHaveAttribute('color', TOOL_METEOR_STYLES[tool].coreColor);
+      expect(headMat).toHaveAttribute('emissive', TOOL_METEOR_STYLES[tool].emissiveColor);
+    },
+  );
+
+  it('keeps shower meteors at default warm colors', () => {
+    const spec: MeteorSpec = {
+      id: 'm-shower',
+      origin: new THREE.Vector3(10, 0, 0),
+      direction: new THREE.Vector3(-1, 0, 0),
+      speed: 1,
+      radius: 0.5,
+      trailLength: 0.6,
+      trailWidth: 0.1,
+      emissiveIntensity: 1.2,
+      source: 'shower',
+      tool: 'Sterilizer',
+    };
+
+    const { container } = render(<Meteor spec={spec} planetRadius={5} onImpact={() => {}} />);
+    const headMat = container.querySelector('meshStandardMaterial');
+    expect(headMat).toHaveAttribute('color', DEFAULT_METEOR_STYLE.coreColor);
+    expect(headMat).toHaveAttribute('emissive', DEFAULT_METEOR_STYLE.emissiveColor);
   });
 });
