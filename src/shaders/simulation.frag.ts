@@ -1,5 +1,3 @@
-import { SNOISE_3D_GLSL } from './planetNoiseBake';
-
 // Fragment shader for GPU-based cellular automata simulation
 // Implements customizable cellular automata rules with sphere wrapping support
 // Tracks age and neighbor heat for color visualization
@@ -11,65 +9,18 @@ export const simulationFragmentShader = /* glsl */ `
   uniform int uDecayStates;           // Generations state count (2 = classic binary Life, 3..16 = refractory decay)
   uniform bool uColonyMode;           // Whether colony mode is enabled
   uniform bool uPolarWrap;            // Whether latitude wraps across poles to antipodal longitude
-  // Ecology profile params (mirror of ECOLOGY_PROFILES in sim/ecology.ts).
-  // The GPU path must replicate the CPU's adjustNeighborsForEcology or the
-  // two sims silently run different rules.
+  // Ecology bias lookup texture baked 1:1 from sim/ecology.ts on profile or
+  // resolution change (NearestFilter, R channel: 0 = -1, 128 = 0, 255 = +1).
   uniform bool uEcologyEnabled;
-  uniform float uEcologyFertilityBias;
-  uniform float uEcologyDroughtBias;
-  uniform float uEcologyMountainBias;
-  uniform float uEcologySunlightBias;
+  uniform sampler2D uEcologyBiasTexture;
   
   varying vec2 vUv;
 
-  ${SNOISE_3D_GLSL}
-
-  // Per-cell neighbor-count bias, ported 1:1 from computeEcologySample() in
-  // sim/ecology.ts and matching the baked terrain biomes in planetNoiseBake.ts.
-  // Uses integer pixel coordinates so each texel matches CPU lat/lon indexing.
+  // Per-cell neighbor-count bias sampled from the static ecology bias texture.
   float ecologyBias(vec2 uv) {
-    vec2 pixelPos = floor(uv * uResolution);
-    float lat01 = pixelPos.y / max(1.0, uResolution.y - 1.0);
-    float lon01 = pixelPos.x / uResolution.x;
-    float latRad = (lat01 - 0.5) * 3.141592653589793;
-    float lonRad = (lon01 - 0.5) * 6.283185307179586;
-    float cosLat = cos(latRad);
-    vec3 dir = vec3(cosLat * cos(lonRad), sin(latRad), cosLat * sin(lonRad));
-    vec3 pBiome = dir * 2.5;
-
-    float basin = snoise(pBiome * 2.2 + vec3(3.1, 0.4, 1.7)) * 0.5 + 0.5;
-    float ridge = snoise(pBiome * 4.5 + vec3(0.2, 2.8, 1.1)) * 0.5 + 0.5;
-
-    float equator = 1.0 - abs(dir.y);
-    float altitude = clamp(ridge, 0.0, 1.0);
-    float temperature = clamp(equator * 0.78 + basin * 0.22, 0.0, 1.0);
-    float moisture = clamp(
-      basin * 0.62 +
-        equator * 0.24 -
-        max(0.0, ridge - 0.62) * 0.35 +
-        uEcologyFertilityBias -
-        uEcologyDroughtBias,
-      0.0,
-      1.0);
-    float sunlight = clamp(
-      0.5 + cos((lon01 - 0.18) * 6.283185307179586) * 0.3 + equator * 0.12, 0.0, 1.0);
-    float fertility = clamp(
-      moisture * 0.42 +
-        (1.0 - abs(temperature - 0.58) * 1.6) * 0.32 +
-        (1.0 - altitude) * 0.18 +
-        uEcologyFertilityBias,
-      0.0,
-      1.0);
-    float viability = clamp(
-      fertility +
-        sunlight * uEcologySunlightBias -
-        max(0.0, 0.28 - moisture) * (0.9 + uEcologyDroughtBias) -
-        max(0.0, altitude - 0.7) * (0.72 + uEcologyMountainBias),
-      0.0,
-      1.0);
-
-    if (viability >= 0.68) return 1.0;
-    if (viability <= 0.28) return -1.0;
+    float encoded = texture2D(uEcologyBiasTexture, uv).r;
+    if (encoded > 0.75) return 1.0;
+    if (encoded < 0.25) return -1.0;
     return 0.0;
   }
   

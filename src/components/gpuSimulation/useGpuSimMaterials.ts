@@ -5,7 +5,7 @@ import { gpuSeedFragmentShader } from '../../shaders/gpuSeed.frag';
 import { gpuStatsFragmentShader } from '../../shaders/gpuStats.frag';
 import { simulationFragmentShader } from '../../shaders/simulation.frag';
 import { simulationVertexShader } from '../../shaders/simulation.vert';
-import { ECOLOGY_PROFILES, type EcologyProfileName } from '../../sim/ecology';
+import type { EcologyProfileName } from '../../sim/ecology';
 import { normalizeDecayStates, type Rules } from '../../sim/rules';
 import {
   createFullscreenPass,
@@ -13,6 +13,7 @@ import {
   type Resolution,
   rulesToFloatArray,
 } from './common';
+import { createEcologyBiasTexture } from './ecologyBiasTexture';
 
 const copyFragmentShader = /* glsl */ `
   uniform sampler2D uTexture;
@@ -53,6 +54,12 @@ export function useGpuSimMaterials({
   ecologyProfile: EcologyProfileName;
   polarWrap?: boolean;
 }): GpuSimMaterials {
+  const { width, height } = resolution;
+  const ecologyBiasTexture = useMemo(
+    () => createEcologyBiasTexture({ width, height }, ecologyProfile),
+    [height, width, ecologyProfile],
+  );
+
   // Create the simulation material exactly once per resolution. We mutate its
   // uniforms in place from a separate effect when rules/gameMode change, so the
   // material's identity stays stable. (Previously this useMemo depended on
@@ -69,18 +76,7 @@ export function useGpuSimMaterials({
         uColonyMode: { value: gameMode === 'Colony' },
         uPolarWrap: { value: polarWrap },
         uEcologyEnabled: { value: ecologyProfile !== 'None' },
-        uEcologyFertilityBias: {
-          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).fertilityBias,
-        },
-        uEcologyDroughtBias: {
-          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).droughtBias,
-        },
-        uEcologyMountainBias: {
-          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).mountainBias,
-        },
-        uEcologySunlightBias: {
-          value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).sunlightBias,
-        },
+        uEcologyBiasTexture: { value: null },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
@@ -190,17 +186,20 @@ export function useGpuSimMaterials({
     seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
   }, [rules, gameMode, simMaterial, seedMaterial]);
 
-  // Update ecology params in place when the profile changes (same rationale
-  // as the rules effect: recreate the material and the sim is wiped).
+  // Update ecology bias texture and flag in place when the profile or
+  // resolution changes (same rationale as the rules effect: recreate
+  // simMaterial and the sim is wiped).
   useEffect(() => {
-    const profile = ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None;
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so changing the ecology profile does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uEcologyEnabled.value = ecologyProfile !== 'None';
-    simMaterial.uniforms.uEcologyFertilityBias.value = profile.fertilityBias;
-    simMaterial.uniforms.uEcologyDroughtBias.value = profile.droughtBias;
-    simMaterial.uniforms.uEcologyMountainBias.value = profile.mountainBias;
-    simMaterial.uniforms.uEcologySunlightBias.value = profile.sunlightBias;
-  }, [ecologyProfile, simMaterial]);
+    simMaterial.uniforms.uEcologyBiasTexture.value = ecologyBiasTexture;
+  }, [ecologyProfile, ecologyBiasTexture, simMaterial]);
+
+  useEffect(() => {
+    return () => {
+      ecologyBiasTexture.dispose();
+    };
+  }, [ecologyBiasTexture]);
 
   // Update polarWrap uniform in place without recreating simMaterial.
   useEffect(() => {

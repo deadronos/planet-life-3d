@@ -1,6 +1,6 @@
-import { adjustNeighborsForEcology } from './ecology';
 import {
   applyCellUpdate,
+  applyEcologyBias,
   type ColonyStats,
   countNeighborsColony,
   type LifeGridStepContext,
@@ -10,7 +10,6 @@ import { LifeGridSimBase } from './LifeGridSimBase';
 function stepColonyCell(
   ctx: LifeGridStepContext,
   stats: ColonyStats,
-  la: number,
   rowOffset: number,
   rTop: number,
   rMid: number,
@@ -23,7 +22,7 @@ function stepColonyCell(
   topShift: number,
   botShift: number,
 ): void {
-  const { grid, latCells: L, lonCells: W, ecologyProfile, rules } = ctx;
+  const { grid, lonCells: W, ecologyBias, rules } = ctx;
   stats.neighbors = 0;
   stats.countA = 0;
   countNeighborsColony(
@@ -44,14 +43,7 @@ function stepColonyCell(
 
   const idx = rowOffset + lo;
   const current = grid[idx];
-  const effectiveNeighbors = adjustNeighborsForEcology(
-    stats.neighbors,
-    la,
-    lo,
-    L,
-    W,
-    ecologyProfile,
-  );
+  const effectiveNeighbors = applyEcologyBias(stats.neighbors, idx, ecologyBias);
   let nextVal = 0;
 
   if (current > 0) {
@@ -92,7 +84,6 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
     stepColonyCell(
       ctx,
       stats,
-      la,
       rowOffset,
       rTop,
       rMid,
@@ -110,7 +101,6 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
       stepColonyCell(
         ctx,
         stats,
-        la,
         rowOffset,
         rTop,
         rMid,
@@ -128,7 +118,6 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
     stepColonyCell(
       ctx,
       stats,
-      la,
       rowOffset,
       rTop,
       rMid,

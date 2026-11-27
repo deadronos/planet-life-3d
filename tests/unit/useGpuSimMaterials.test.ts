@@ -29,8 +29,13 @@ describe('useGpuSimMaterials', () => {
     });
     const sim = result.current.simMaterial;
     const seed = result.current.seedMaterial;
+    const initialBiasTex = sim.uniforms.uEcologyBiasTexture.value as THREE.DataTexture;
     expect(sim.uniforms.uBirthRules.value).toEqual([0, 0, 0, 1, 0, 0, 0, 0, 0]);
+    expect(initialBiasTex).toBeInstanceOf(THREE.DataTexture);
+    expect(initialBiasTex.minFilter).toBe(THREE.NearestFilter);
+    expect(initialBiasTex.magFilter).toBe(THREE.NearestFilter);
 
+    const disposeSpy = vi.spyOn(initialBiasTex, 'dispose');
     const profileName = (Object.keys(ECOLOGY_PROFILES).find((k) => k !== 'None') ??
       'None') as Props['ecologyProfile'];
     rerender({
@@ -40,6 +45,7 @@ describe('useGpuSimMaterials', () => {
       ecologyProfile: profileName,
     });
 
+    const nextBiasTex = sim.uniforms.uEcologyBiasTexture.value as THREE.DataTexture;
     expect(result.current.simMaterial).toBe(sim);
     expect(result.current.seedMaterial).toBe(seed);
     expect(sim.uniforms.uBirthRules.value[6]).toBe(1);
@@ -47,9 +53,11 @@ describe('useGpuSimMaterials', () => {
     expect(sim.uniforms.uColonyMode.value).toBe(true);
     expect(seed.uniforms.uColonyMode.value).toBe(true);
     expect(sim.uniforms.uEcologyEnabled.value).toBe(profileName !== 'None');
-    expect(sim.uniforms.uEcologyFertilityBias.value).toBe(
-      ECOLOGY_PROFILES[profileName].fertilityBias,
-    );
+    expect(nextBiasTex).toBeInstanceOf(THREE.DataTexture);
+    expect(nextBiasTex).not.toBe(initialBiasTex);
+    expect(nextBiasTex.image.width).toBe(base.resolution.width);
+    expect(nextBiasTex.image.height).toBe(base.resolution.height);
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
   });
 
   it('syncs polarWrap uniform in place without recreating materials', () => {
@@ -84,13 +92,15 @@ describe('useGpuSimMaterials', () => {
     expect(err).not.toHaveBeenCalled(); // resolution change is a legitimate recreate
   });
 
-  it('disposes every material and quad geometry on unmount', () => {
+  it('disposes every material, quad geometry, and ecology bias texture on unmount', () => {
     const matSpy = vi.spyOn(THREE.ShaderMaterial.prototype, 'dispose');
     const geoSpy = vi.spyOn(THREE.PlaneGeometry.prototype, 'dispose');
+    const texSpy = vi.spyOn(THREE.DataTexture.prototype, 'dispose');
     const { result, unmount } = renderHook((p: Props) => useGpuSimMaterials(p), {
       initialProps: base,
     });
     const r = result.current;
+    const biasTex = r.simMaterial.uniforms.uEcologyBiasTexture.value as THREE.DataTexture;
     unmount();
     expect(matSpy.mock.contexts).toEqual(
       expect.arrayContaining([r.simMaterial, r.seedMaterial, r.copyMaterial, r.statsMaterial]),
@@ -103,6 +113,7 @@ describe('useGpuSimMaterials', () => {
         r.statsScene.quad.geometry,
       ]),
     );
+    expect(texSpy.mock.contexts).toContain(biasTex);
   });
 
   it('uses a passthrough copy shader that does not evaluate CA rules', () => {
