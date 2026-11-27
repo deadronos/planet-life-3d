@@ -291,6 +291,7 @@ export function PlanetLife({
     meteors: meteorControls,
     impacts: impactControls,
     seedAtPoint,
+    activeTool,
     isProbeActive: activeTool === 'Probe',
     debugLogs,
   });

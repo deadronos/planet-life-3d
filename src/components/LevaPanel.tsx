@@ -194,10 +194,17 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
       inFolder('Seeding', {
         seedMode: { options: ['set', 'toggle', 'clear', 'random'] },
         seedPattern: { options: patternOptions },
+        seedRotation: {
+          label: 'Rotation (°)',
+          options: [0, 90, 180, 270],
+          hint: 'Rotate seed pattern clockwise (Q / E hotkeys).',
+        },
         seedScale: { min: 1, max: 8, step: 1 },
         seedJitter: { min: 0, max: 6, step: 1 },
         seedProbability: { min: 0, max: 1, step: 0.01 },
-        customPattern: {},
+        customPattern: {
+          hint: 'Supports ASCII art (. / O) or LifeWiki RLE (x = ..., y = ...).',
+        },
       }),
       { collapsed: true },
     ),

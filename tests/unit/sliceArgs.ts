@@ -64,6 +64,7 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
   seeding: [
     'seedMode',
     'seedPattern',
+    'seedRotation',
     'seedScale',
     'seedJitter',
     'seedProbability',

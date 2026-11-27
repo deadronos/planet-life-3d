@@ -2,6 +2,7 @@ import { cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useHotkeys } from '../../src/hooks/useHotkeys';
+import { useControlsStore } from '../../src/store/useControlsStore';
 import { useUIStore } from '../../src/store/useUIStore';
 
 function press(key: string, init: KeyboardEventInit = {}, target: EventTarget = window) {
@@ -15,6 +16,7 @@ describe('useHotkeys', () => {
 
   beforeEach(() => {
     onToggleUI = vi.fn<() => void>();
+    useControlsStore.getState().resetControls();
     useUIStore.setState({ activeTool: 'Life', simCommand: undefined });
     renderHook(() => useHotkeys({ onToggleUI }));
   });
@@ -123,6 +125,39 @@ describe('useHotkeys', () => {
     it('ignores number keys with modifiers', () => {
       press('3', { ctrlKey: true });
       expect(useUIStore.getState().activeTool).toBe('Life');
+    });
+  });
+
+  describe('seed rotation (Q/E)', () => {
+    it('rotates clockwise on E and counter-clockwise on Q in 90-degree steps', () => {
+      expect(useControlsStore.getState().seedRotation).toBe(0);
+
+      press('e');
+      expect(useControlsStore.getState().seedRotation).toBe(90);
+      press('E');
+      expect(useControlsStore.getState().seedRotation).toBe(180);
+      press('e');
+      expect(useControlsStore.getState().seedRotation).toBe(270);
+      press('e');
+      expect(useControlsStore.getState().seedRotation).toBe(0);
+
+      press('q');
+      expect(useControlsStore.getState().seedRotation).toBe(270);
+      press('Q');
+      expect(useControlsStore.getState().seedRotation).toBe(180);
+      press('q');
+      expect(useControlsStore.getState().seedRotation).toBe(90);
+      press('q');
+      expect(useControlsStore.getState().seedRotation).toBe(0);
+    });
+
+    it('ignores Q/E in typing targets, with modifiers, or on auto-repeat', () => {
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+      press('e', {}, input);
+      press('q', { ctrlKey: true });
+      press('e', { repeat: true });
+      expect(useControlsStore.getState().seedRotation).toBe(0);
     });
   });
 });

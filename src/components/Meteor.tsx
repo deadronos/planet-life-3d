@@ -3,15 +3,17 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 import { intersectPlanetShell, MAX_METEOR_DT_SECONDS } from './meteorCollision';
-import { computeMeteorState, type MeteorSpec } from './meteorTypes';
-
-// HDR (>1.0) so the additive trail crosses the bloom threshold.
-const TRAIL_COLOR = new THREE.Color('#ffbb55').multiplyScalar(2.5);
+import { computeMeteorState, getMeteorVisualStyle, type MeteorSpec } from './meteorTypes';
 
 export function Meteor(props: {
   spec: MeteorSpec;
   planetRadius: number;
-  onImpact: (id: string, impactPoint: THREE.Vector3, source: MeteorSpec['source']) => void;
+  onImpact: (
+    id: string,
+    impactPoint: THREE.Vector3,
+    source: MeteorSpec['source'],
+    tool?: MeteorSpec['tool'],
+  ) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null!);
   const headMatRef = useRef<THREE.MeshStandardMaterial>(null!);
@@ -22,6 +24,16 @@ export function Meteor(props: {
   // Scratch vectors reused across frames to avoid per-tick allocations.
   const nextScratch = useMemo(() => new THREE.Vector3(), []);
   const impactScratch = useMemo(() => new THREE.Vector3(), []);
+
+  const visualStyle = useMemo(
+    () => getMeteorVisualStyle(props.spec.source, props.spec.tool),
+    [props.spec.source, props.spec.tool],
+  );
+  // HDR (>1.0) so the additive trail crosses the bloom threshold.
+  const trailColor = useMemo(
+    () => new THREE.Color(visualStyle.trailColor).multiplyScalar(2.5),
+    [visualStyle.trailColor],
+  );
 
   const state = useMemo(
     () => computeMeteorState(props.spec.origin, props.spec.direction),
@@ -64,7 +76,7 @@ export function Meteor(props: {
       // Use the pre-allocated scratch point copy so the impact callback
       // can keep a reference without us having to clone.
       const impactPoint = impact.point.clone();
-      props.onImpact(props.spec.id, impactPoint, props.spec.source);
+      props.onImpact(props.spec.id, impactPoint, props.spec.source, props.spec.tool);
     }
   });
 
@@ -74,8 +86,8 @@ export function Meteor(props: {
         <sphereGeometry args={[props.spec.radius, 16, 16]} />
         <meshStandardMaterial
           ref={headMatRef}
-          color={'#ffd68a'}
-          emissive={'#ffcc66'}
+          color={visualStyle.coreColor}
+          emissive={visualStyle.emissiveColor}
           emissiveIntensity={props.spec.emissiveIntensity}
           roughness={0.2}
           metalness={0.1}
@@ -84,7 +96,7 @@ export function Meteor(props: {
       <mesh ref={trailRef}>
         <coneGeometry args={[props.spec.trailWidth, 1, 14, 1, true]} />
         <meshBasicMaterial
-          color={TRAIL_COLOR}
+          color={trailColor}
           transparent
           opacity={0.6}
           blending={THREE.AdditiveBlending}

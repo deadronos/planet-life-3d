@@ -7,6 +7,7 @@ import {
 import { SIM_DEFAULTS } from '../sim/constants';
 import type { EcologyProfileName } from '../sim/ecology';
 import { isGpuSimulationSupported } from '../sim/gpuSupport';
+import { normalizeSeedRotation, type SeedRotation } from '../sim/patterns';
 import { COLOR_THEMES, RULE_PRESETS, WORLD_PRESETS } from '../sim/presets';
 import { prefersReducedMotion } from '../utils/reducedMotion';
 
@@ -90,6 +91,7 @@ export type ControlValues = {
   // Seeding
   seedMode: 'set' | 'toggle' | 'clear' | 'random';
   seedPattern: string;
+  seedRotation: SeedRotation;
   seedScale: number;
   seedJitter: number;
   seedProbability: number;
@@ -175,6 +177,7 @@ export function createControlDefaults(): ControlValues {
 
     seedMode: 'set',
     seedPattern: 'Glider',
+    seedRotation: 0,
     seedScale: 1,
     seedJitter: 0,
     seedProbability: 0.7,
@@ -312,6 +315,9 @@ export const useControlsStore = create<ControlsState>((set, get) => ({
     const gpuSim = next.gpuSim ?? state.gpuSim;
     const mode = next.cellRenderMode ?? state.cellRenderMode;
     if (gpuSim && mode !== 'Texture') next.cellRenderMode = 'Texture';
+    if (next.seedRotation !== undefined) {
+      next.seedRotation = normalizeSeedRotation(next.seedRotation);
+    }
 
     const changed = (Object.keys(next) as ControlKey[]).some((k) => next[k] !== state[k]);
     if (changed) set(next);

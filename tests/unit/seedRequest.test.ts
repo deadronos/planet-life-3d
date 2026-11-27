@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { type SeedingSlice } from '../../src/components/planetLife/controls';
 import { resolveSeedRequest } from '../../src/components/planetLife/seedRequest';
-import { BUILTIN_PATTERN_NAMES, getBuiltinPatternOffsets } from '../../src/sim/patterns';
+import {
+  BUILTIN_PATTERN_NAMES,
+  getBuiltinPatternOffsets,
+  rotateOffsets,
+} from '../../src/sim/patterns';
 import { buildRandomDiskOffsets } from '../../src/sim/utils';
 
 const base: SeedingSlice = {
   seedMode: 'set',
   seedPattern: 'Glider',
+  seedRotation: 0,
   seedScale: 2,
   seedJitter: 0,
   seedProbability: 0.7,
@@ -96,6 +101,37 @@ describe('resolveSeedRequest', () => {
         seeding: { ...base, seedPattern: 'Custom ASCII', customPattern: '' },
       });
       expect(req?.offsets).toEqual([]);
+    });
+
+    it('Custom ASCII parses LifeWiki RLE customPattern', () => {
+      const req = resolveSeedRequest({
+        tool: 'Life',
+        seeding: {
+          ...base,
+          seedPattern: 'Custom ASCII',
+          customPattern: 'x = 3, y = 3, rule = B3/S23\nbo$2bo$3o!',
+        },
+      });
+      expect(req?.offsets).toEqual(getBuiltinPatternOffsets('Glider'));
+    });
+
+    it('applies seedRotation to builtin and custom patterns', () => {
+      const req90 = resolveSeedRequest({
+        tool: 'Life',
+        seeding: { ...base, seedPattern: 'Glider', seedRotation: 90 },
+      });
+      expect(req90?.offsets).toEqual(rotateOffsets(getBuiltinPatternOffsets('Glider'), 90));
+
+      const req270 = resolveSeedRequest({
+        tool: 'Life',
+        seeding: {
+          ...base,
+          seedPattern: 'Custom ASCII',
+          seedRotation: 270,
+          customPattern: 'bo$2bo$3o!',
+        },
+      });
+      expect(req270?.offsets).toEqual(rotateOffsets(getBuiltinPatternOffsets('Glider'), 270));
     });
 
     it.each(BUILTIN_PATTERN_NAMES)(

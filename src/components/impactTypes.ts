@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+import type { MeteorTool } from '../store/useUIStore';
+import type { MeteorSource } from './meteorTypes';
+
 export type ImpactSpec = {
   id: string;
   point: THREE.Vector3;
@@ -10,6 +13,8 @@ export type ImpactSpec = {
   flashIntensity: number;
   flashRadius: number;
   ringSize: number;
+  source?: MeteorSource;
+  tool?: MeteorTool;
 };
 
 export function computeImpactBasis(normal: THREE.Vector3, planetRadius: number) {

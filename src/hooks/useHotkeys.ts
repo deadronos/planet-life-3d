@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 
+import { normalizeSeedRotation } from '../sim/patterns';
+import { useControlsStore } from '../store/useControlsStore';
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
 
 /** True when the key event originates from a control that consumes typing. */
@@ -34,6 +36,12 @@ export function useHotkeys({ onToggleUI }: { onToggleUI: () => void }) {
         requestSimCommand('randomize');
       } else if (key === 'c') {
         requestSimCommand('clear');
+      } else if (key === 'q') {
+        const { seedRotation, setControls } = useControlsStore.getState();
+        setControls({ seedRotation: normalizeSeedRotation(seedRotation - 90) });
+      } else if (key === 'e') {
+        const { seedRotation, setControls } = useControlsStore.getState();
+        setControls({ seedRotation: normalizeSeedRotation(seedRotation + 90) });
       } else if (/^[1-5]$/.test(e.key)) {
         const tool = METEOR_TOOLS[Number(e.key) - 1];
         if (tool) setActiveTool(tool);

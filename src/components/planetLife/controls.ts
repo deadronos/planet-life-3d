@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 
 import type { EcologyProfileName } from '../../sim/ecology';
+import type { SeedRotation } from '../../sim/patterns';
 import { type ControlValues, useControlsStore } from '../../store/useControlsStore';
 import { useUIStore } from '../../store/useUIStore';
 
@@ -79,6 +80,7 @@ export type ImpactsSlice = {
 export type SeedingSlice = {
   seedMode: 'set' | 'toggle' | 'clear' | 'random';
   seedPattern: string;
+  seedRotation: SeedRotation;
   seedScale: number;
   seedJitter: number;
   seedProbability: number;
@@ -185,6 +187,7 @@ function toSlices(p: FlatControls): PlanetLifeControls {
     seeding: {
       seedMode: p.seedMode,
       seedPattern: p.seedPattern,
+      seedRotation: p.seedRotation,
       seedScale: p.seedScale,
       seedJitter: p.seedJitter,
       seedProbability: p.seedProbability,
