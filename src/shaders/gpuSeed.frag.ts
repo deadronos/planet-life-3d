@@ -11,6 +11,8 @@ export const gpuSeedFragmentShader = /* glsl */ `
   uniform float uSeedProbability;    // For random mode
   uniform bool uColonyMode;          // Whether colony mode is enabled
   uniform float uRandomSeed;         // Random seed for variation
+  uniform bool uDynamicFertility;    // Whether dynamic soil fertility is enabled
+  uniform float uFertilityDelta;     // Quantized soil delta (-128..+110) for Comet/Sterilizer
   
   varying vec2 vUv;
   
@@ -98,6 +100,12 @@ export const gpuSeedFragmentShader = /* glsl */ `
             newCell.g = 0.0;
             newCell.b = 0.0;
           }
+        }
+
+        if (uDynamicFertility && uFertilityDelta != 0.0) {
+          float soilByte = floor(currentCell.a * 255.0 + 0.5);
+          float nextSoilByte = clamp(soilByte + uFertilityDelta, 0.0, 255.0);
+          newCell.a = nextSoilByte / 255.0;
         }
         
         gl_FragColor = newCell;

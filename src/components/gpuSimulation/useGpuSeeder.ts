@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
+import { SOIL_NEUTRAL } from '../../sim/ecology';
 import { createSeededRng } from '../../sim/seededRng';
 import { useUIStore } from '../../store/useUIStore';
 import { PatternTextureCache } from '../patternTextureCache';
@@ -15,6 +16,7 @@ export interface SeedAtUVParams {
   probability?: number;
   originRow: number;
   originCol: number;
+  fertilityDelta?: number;
 }
 
 export interface GpuSeeder {
@@ -46,6 +48,7 @@ export function useGpuSeeder({
   generationRef,
   readStats,
   onTextureUpdate,
+  onResetState,
 }: {
   gl: THREE.WebGLRenderer;
   resolution: Resolution;
@@ -59,6 +62,7 @@ export function useGpuSeeder({
   generationRef: React.MutableRefObject<number>;
   readStats: (current: THREE.Texture, prev: THREE.Texture, force?: boolean) => void;
   onTextureUpdate?: (texture: THREE.Texture) => void;
+  onResetState?: () => void;
 }): GpuSeeder {
   const { targetA, targetB, currentBufferRef, getBuffers, swap } = pingPong;
 
@@ -113,7 +117,7 @@ export function useGpuSeeder({
         data[i] = state; // R: alive/dead or colony state
         data[i + 1] = 0.0; // G: age (starts at 0)
         data[i + 2] = 0.0; // B: neighbor heat (starts at 0)
-        data[i + 3] = 1.0; // A: always 1
+        data[i + 3] = SOIL_NEUTRAL / 255; // A: neutral soil fertility (128/255)
       }
 
       const texture = new THREE.DataTexture(
@@ -146,6 +150,7 @@ export function useGpuSeeder({
 
       currentBufferRef.current = 'A';
       generationRef.current = 0;
+      onResetState?.();
       if (onTextureUpdate) {
         onTextureUpdate(targetA.texture);
       }
@@ -163,6 +168,7 @@ export function useGpuSeeder({
     copyMaterial,
     copyScene,
     gl,
+    onResetState,
     onTextureUpdate,
     readStats,
     resolution.height,
@@ -185,7 +191,16 @@ export function useGpuSeeder({
 
   const seedAtUV = useCallback(
     // eslint-disable-next-line react-hooks/immutability -- Seeding writes shader uniforms imperatively; these are GPU handles, not React state.
-    ({ u, v, pattern, mode, probability = 0.5, originRow, originCol }: SeedAtUVParams) => {
+    ({
+      u,
+      v,
+      pattern,
+      mode,
+      probability = 0.5,
+      originRow,
+      originCol,
+      fertilityDelta = 0,
+    }: SeedAtUVParams) => {
       // Reuse a cached DataTexture for this pattern when possible. Building
       // and uploading a fresh texture on every impact wasted GC and GPU upload
       // time, especially with the meteor shower enabled.
@@ -210,6 +225,9 @@ export function useGpuSeeder({
       seedMaterial.uniforms.uSeedProbability.value = probability;
       seedMaterial.uniforms.uRandomSeed.value = Math.random();
       seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
+      if (seedMaterial.uniforms.uFertilityDelta) {
+        seedMaterial.uniforms.uFertilityDelta.value = fertilityDelta;
+      }
 
       // Render seeding pass into the *opposite* buffer to avoid feedback loops
       // (sample from the current buffer's texture, write into the other one).

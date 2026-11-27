@@ -61,6 +61,15 @@ describe('useGpuSimMaterials', () => {
     expect(nextBiasTex.image.width).toBe(base.resolution.width);
     expect(nextBiasTex.image.height).toBe(base.resolution.height);
     expect(disposeSpy).toHaveBeenCalledTimes(1);
+    expect((sim.uniforms.uEcologyProfileBiases.value as THREE.Vector4).x).toBe(
+      ECOLOGY_PROFILES[profileName].fertilityBias,
+    );
+
+    rerender({ ...base, dynamicFertility: true });
+    expect(result.current.simMaterial).toBe(sim);
+    expect(result.current.seedMaterial).toBe(seed);
+    expect(sim.uniforms.uDynamicFertility.value).toBe(true);
+    expect(seed.uniforms.uDynamicFertility.value).toBe(true);
   });
 
   it('syncs polarWrap uniform in place without recreating materials', () => {

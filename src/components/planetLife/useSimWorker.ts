@@ -10,12 +10,15 @@ export interface WorkerSnapshot {
   grid: Uint8Array;
   age: Uint8Array;
   heat: Uint8Array;
+  soil: Uint8Array;
+  solarPhase: number;
   aliveIndices: Int32Array;
   population: number;
   buffers: {
     grid: ArrayBuffer;
     age: ArrayBuffer;
     heat: ArrayBuffer;
+    soil: ArrayBuffer;
     aliveIndices: ArrayBuffer;
   };
 }
@@ -28,6 +31,8 @@ export interface UseSimWorkerOptions {
   ecologyProfile: import('../../sim/ecology').EcologyProfileName;
   polarWrap: boolean;
   colonyBiomeAffinity?: boolean;
+  solarCycleSpeed?: number;
+  dynamicFertility?: boolean;
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   debugLogs: boolean;
@@ -42,6 +47,8 @@ export function useSimWorker({
   ecologyProfile,
   polarWrap,
   colonyBiomeAffinity = false,
+  solarCycleSpeed = 0,
+  dynamicFertility = false,
   randomDensity,
   gameMode,
   debugLogs,
@@ -72,9 +79,16 @@ export function useSimWorker({
         grid: held.buffers.grid,
         age: held.buffers.age,
         heat: held.buffers.heat,
+        soil: held.buffers.soil,
         aliveIndices: held.buffers.aliveIndices,
       } satisfies LifeGridWorkerInMessage,
-      [held.buffers.grid, held.buffers.age, held.buffers.heat, held.buffers.aliveIndices],
+      [
+        held.buffers.grid,
+        held.buffers.age,
+        held.buffers.heat,
+        held.buffers.soil,
+        held.buffers.aliveIndices,
+      ],
     );
   }, []);
 
@@ -126,12 +140,15 @@ export function useSimWorker({
           grid: new Uint8Array(msg.grid),
           age: new Uint8Array(msg.age),
           heat: new Uint8Array(msg.heat),
+          soil: new Uint8Array(msg.soil),
+          solarPhase: msg.solarPhase,
           aliveIndices: new Int32Array(msg.aliveIndices),
           population: msg.population,
           buffers: {
             grid: msg.grid,
             age: msg.age,
             heat: msg.heat,
+            soil: msg.soil,
             aliveIndices: msg.aliveIndices,
           },
         };
@@ -156,6 +173,8 @@ export function useSimWorker({
       ecologyProfile,
       polarWrap,
       colonyBiomeAffinity,
+      solarCycleSpeed,
+      dynamicFertility,
       randomDensity,
       seed: useUIStore.getState().worldSeed,
     } satisfies LifeGridWorkerInMessage);
@@ -222,6 +241,24 @@ export function useSimWorker({
       } satisfies LifeGridWorkerInMessage);
     }
   }, [colonyBiomeAffinity]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setSolarCycleSpeed',
+        speed: solarCycleSpeed,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [solarCycleSpeed]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setDynamicFertility',
+        enabled: dynamicFertility,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [dynamicFertility]);
 
   // (randomDensity is intentionally NOT pushed to the worker on change —
   // it only applies when the user explicitly clicks "Randomize", which

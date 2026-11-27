@@ -1,3 +1,4 @@
+import { computeEcologySample, soilByteToFertilityModifier } from './ecology';
 import {
   applyCellUpdate,
   type ColonyStats,
@@ -55,12 +56,17 @@ function stepColonyCell(
 ): void {
   const {
     grid,
+    latCells: L,
     lonCells: W,
+    ecologyProfile,
     ecologyBias,
     ecologyAffinity,
     rules,
     generation,
     colonyBiomeAffinity,
+    solarPhase,
+    dynamicFertility,
+    soil,
   } = ctx;
   stats.neighbors = 0;
   stats.countA = 0;
@@ -84,9 +90,26 @@ function stepColonyCell(
   const current = grid[idx];
   const rawNeighbors = stats.neighbors;
 
-  const baseBias = (ecologyBias === null ? 0 : ecologyBias[idx]) as -1 | 0 | 1;
-  const affinity = (colonyBiomeAffinity && ecologyAffinity !== null ? ecologyAffinity[idx] : 0) as
-    -1 | 0 | 1;
+  let baseBias: -1 | 0 | 1;
+  let affinity: -1 | 0 | 1;
+  if (!dynamicFertility && solarPhase === 0) {
+    baseBias = (ecologyBias === null ? 0 : ecologyBias[idx]) as -1 | 0 | 1;
+    affinity = (colonyBiomeAffinity && ecologyAffinity !== null ? ecologyAffinity[idx] : 0) as
+      -1 | 0 | 1;
+  } else {
+    const fertilityModifier = dynamicFertility ? soilByteToFertilityModifier(soil[idx]) : 0;
+    const sample = computeEcologySample({
+      lat: la,
+      lon: lo,
+      latCells: L,
+      lonCells: W,
+      profile: ecologyProfile,
+      solarPhase,
+      fertilityModifier,
+    });
+    baseBias = sample.neighborBias;
+    affinity = colonyBiomeAffinity && ecologyProfile !== 'None' ? sample.colonyAffinity : 0;
+  }
 
   let effectiveNeighbors: number;
   let nextVal = 0;

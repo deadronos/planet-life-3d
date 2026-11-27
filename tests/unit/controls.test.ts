@@ -63,6 +63,8 @@ describe('controls store - defaults', () => {
     expect(s.nightGlowColor).toBe('#ffc46b');
     expect(s.autoReseedOnStagnation).toBe(false);
     expect(s.polarWrap).toBe(false);
+    expect(s.solarCycleSpeed).toBe(0);
+    expect(s.dynamicFertility).toBe(false);
   });
 
   function mockReducedMotion(matches: boolean) {

@@ -1,3 +1,10 @@
+import {
+  type EcologyProfileName,
+  SOIL_DEPLETE_PER_TICK,
+  SOIL_LONG_LIVED_AGE,
+  SOIL_NEUTRAL,
+  SOIL_RECOVER_PER_TICK,
+} from './ecology';
 import type { Rules } from './rules';
 import type { GameMode, SeedMode } from './types';
 
@@ -14,13 +21,18 @@ export interface LifeGridStepContext {
   readonly age: Uint8Array;
   readonly ageNext: Uint8Array;
   readonly neighborHeatNext: Uint8Array;
+  readonly soil: Uint8Array;
+  readonly soilNext: Uint8Array;
   readonly nextAliveIndices: Int32Array;
   readonly rules: Rules;
+  readonly ecologyProfile: EcologyProfileName;
   readonly ecologyBias: Int8Array | null;
   readonly ecologyAffinity: Int8Array | null;
   readonly polarWrap: boolean;
   readonly generation: number;
   readonly colonyBiomeAffinity: boolean;
+  readonly solarPhase: number;
+  readonly dynamicFertility: boolean;
   birthsLastTick: number;
   deathsLastTick: number;
   population: number;
@@ -44,8 +56,8 @@ export function applyEcologyBias(
 }
 
 /**
- * Write the next-tick cell state, age, neighbor heat, and population counters
- * into the active step context.
+ * Write the next-tick cell state, age, neighbor heat, soil fertility, and
+ * population counters into the active step context.
  */
 export function applyCellUpdate(
   ctx: LifeGridStepContext,
@@ -54,12 +66,13 @@ export function applyCellUpdate(
   nextVal: number,
   neighbors: number,
 ): void {
+  const prevAge = ctx.age[idx];
   if (nextVal > 0) {
     if (currentVal === 0) ctx.birthsLastTick++;
     ctx.population++;
     if (nextVal === 1) ctx.colonyAPopulation++;
     else ctx.colonyBPopulation++;
-    const nextAge = ctx.age[idx] + 1;
+    const nextAge = prevAge + 1;
     ctx.ageNext[idx] = nextAge > 255 ? 255 : nextAge;
     ctx.neighborHeatNext[idx] = neighbors;
     ctx.nextAliveIndices[ctx.nextAliveCount++] = idx;
@@ -67,6 +80,22 @@ export function applyCellUpdate(
     if (currentVal > 0) ctx.deathsLastTick++;
     ctx.ageNext[idx] = 0;
     ctx.neighborHeatNext[idx] = 0;
+  }
+  if (ctx.dynamicFertility) {
+    const soilByte = ctx.soil[idx];
+    let nextSoil = soilByte;
+    if (nextVal > 0) {
+      if (prevAge >= SOIL_LONG_LIVED_AGE) {
+        nextSoil = soilByte > SOIL_DEPLETE_PER_TICK ? soilByte - SOIL_DEPLETE_PER_TICK : 0;
+      }
+    } else if (soilByte < SOIL_NEUTRAL) {
+      const recovered = soilByte + SOIL_RECOVER_PER_TICK;
+      nextSoil = recovered > SOIL_NEUTRAL ? SOIL_NEUTRAL : recovered;
+    } else if (soilByte > SOIL_NEUTRAL) {
+      const decayed = soilByte - SOIL_RECOVER_PER_TICK;
+      nextSoil = decayed < SOIL_NEUTRAL ? SOIL_NEUTRAL : decayed;
+    }
+    ctx.soilNext[idx] = nextSoil;
   }
   ctx.next[idx] = nextVal;
 }

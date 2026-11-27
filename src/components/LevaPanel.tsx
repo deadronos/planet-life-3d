@@ -159,6 +159,8 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
           label: 'Decay States (G)',
         },
         ecologyProfile: { label: 'Ecology', options: ECOLOGY_PROFILE_NAMES },
+        solarCycleSpeed: { min: 0, max: 5, step: 0.05, label: 'Solar Cycle Speed' },
+        dynamicFertility: { label: 'Dynamic Fertility' },
         randomDensity: { min: 0, max: 1, step: 0.01 },
         autoReseedOnStagnation: {
           label: 'Auto Reseed',

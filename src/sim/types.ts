@@ -14,5 +14,6 @@ export type SeedAtPointParams = {
   jitter: number;
   probability: number;
   rng?: () => number;
+  fertilityDelta?: number;
   debug?: boolean;
 };

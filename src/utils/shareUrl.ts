@@ -90,6 +90,18 @@ export function decodeWorld(hash: string): SharedWorld {
   if (pw === '1' || pw === 'true') controls.polarWrap = true;
   else if (pw === '0' || pw === 'false') controls.polarWrap = false;
 
+  const sc = params.get('sc');
+  if (sc !== null && /^\d*\.?\d+$/.test(sc)) {
+    controls.solarCycleSpeed = Math.round(clampInt(Number(sc), 0, 5) * 1000) / 1000;
+  }
+
+  const df = params.get('df');
+  if (df === '1' || df === 'true') {
+    controls.dynamicFertility = true;
+  } else if (df === '0' || df === 'false') {
+    controls.dynamicFertility = false;
+  }
+
   out.seed = parseWorldSeed(params.get('seed'));
   return out;
 }
@@ -105,6 +117,12 @@ export function encodeWorld(state: ControlValues, seed: number): string {
   p.set('G', String(normalizeDecayStates(state.decayStates)));
   p.set('t', state.theme);
   p.set('e', state.ecologyProfile);
+  if (state.solarCycleSpeed > 0) {
+    p.set('sc', String(Math.round(clampInt(state.solarCycleSpeed, 0, 5) * 1000) / 1000));
+  }
+  if (state.dynamicFertility) {
+    p.set('df', '1');
+  }
   p.set('sp', state.seedPattern);
   p.set('g', `${state.latCells}x${state.lonCells}`);
   p.set('d', String(Math.round(state.randomDensity * 1000) / 1000));

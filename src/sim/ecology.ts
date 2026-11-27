@@ -67,6 +67,38 @@ export const ECOLOGY_PROFILES: Record<EcologyProfileName, EcologyProfile> = {
 
 export const ECOLOGY_PROFILE_NAMES = Object.keys(ECOLOGY_PROFILES) as EcologyProfileName[];
 
+/** Fraction of a full solar revolution advanced per simulation tick at speed 1.0. */
+export const SOLAR_PHASE_PER_TICK = 0.005;
+
+/** Quantized 8-bit soil fertility constants (shared between CPU, Worker, and GPU). */
+export const SOIL_MIN = 0;
+export const SOIL_NEUTRAL = 128;
+export const SOIL_MAX = 255;
+export const SOIL_DEPLETE_PER_TICK = 2;
+export const SOIL_RECOVER_PER_TICK = 1;
+export const SOIL_LONG_LIVED_AGE = 4;
+export const FERTILITY_MODIFIER_RANGE = 0.45;
+export const COMET_SOIL_BOOST = 110;
+export const STERILIZER_SOIL_SCORCH = -128;
+
+/** Advance solar phase in [0, 1) by one simulation tick. */
+export function advanceSolarPhase(currentPhase: number, solarCycleSpeed: number): number {
+  if (!Number.isFinite(solarCycleSpeed) || solarCycleSpeed <= 0) return currentPhase;
+  const next = currentPhase + solarCycleSpeed * SOLAR_PHASE_PER_TICK;
+  return next - Math.floor(next);
+}
+
+/** Map a quantized [0..255] soil byte to a symmetric fertility modifier in [-0.45, +0.45]. */
+export function soilByteToFertilityModifier(soilByte: number): number {
+  const clamped = Math.max(SOIL_MIN, Math.min(SOIL_MAX, soilByte));
+  if (clamped === SOIL_NEUTRAL) return 0;
+  const norm =
+    clamped > SOIL_NEUTRAL
+      ? (clamped - SOIL_NEUTRAL) / (SOIL_MAX - SOIL_NEUTRAL)
+      : (clamped - SOIL_NEUTRAL) / (SOIL_NEUTRAL - SOIL_MIN);
+  return norm * FERTILITY_MODIFIER_RANGE;
+}
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -253,17 +285,24 @@ export function computeEcologySample(params: {
   latCells: number;
   lonCells: number;
   profile: EcologyProfileName;
+  solarPhase?: number;
+  fertilityModifier?: number;
 }): EcologySample {
   const profile = ECOLOGY_PROFILES[params.profile] ?? ECOLOGY_PROFILES.None;
+  const fertilityModifier = params.fertilityModifier ?? 0;
   if (profile.name === 'None') {
+    const fertility = clamp01(0.5 + fertilityModifier);
+    const moisture = clamp01(0.5 + fertilityModifier * 0.7);
+    const viability = fertility;
+    const neighborBias: -1 | 0 | 1 = viability >= 0.68 ? 1 : viability <= 0.28 ? -1 : 0;
     return {
       temperature: 0.5,
-      moisture: 0.5,
+      moisture,
       altitude: 0,
       sunlight: 0.5,
-      fertility: 0.5,
-      viability: 0.5,
-      neighborBias: 0,
+      fertility,
+      viability,
+      neighborBias,
       colonyAffinity: 0,
       biome: 'Temperate Cells',
     };
@@ -294,14 +333,19 @@ export function computeEcologySample(params: {
       equator * 0.24 -
       Math.max(0, ridge - 0.62) * 0.35 +
       profile.fertilityBias -
-      profile.droughtBias,
+      profile.droughtBias +
+      fertilityModifier * 0.7,
   );
-  const sunlight = clamp01(0.5 + Math.cos((lon01 - 0.18) * Math.PI * 2) * 0.3 + equator * 0.12);
+  const solarPhase = params.solarPhase ?? 0;
+  const sunlight = clamp01(
+    0.5 + Math.cos((lon01 - 0.18 - solarPhase) * Math.PI * 2) * 0.3 + equator * 0.12,
+  );
   const fertility = clamp01(
     moisture * 0.42 +
       (1 - Math.abs(temperature - 0.58) * 1.6) * 0.32 +
       (1 - altitude) * 0.18 +
-      profile.fertilityBias,
+      profile.fertilityBias +
+      fertilityModifier,
   );
   const viability = clamp01(
     fertility +
@@ -335,16 +379,42 @@ export function computeEcologySample(params: {
   };
 }
 
+export function computeTerrainNoise(
+  lat: number,
+  lon: number,
+  latCells: number,
+  lonCells: number,
+): { basin: number; ridge: number } {
+  const latDenom = Math.max(1, latCells - 1);
+  const lonDenom = Math.max(1, lonCells);
+  const lat01 = lat / latDenom;
+  const lon01 = lon / lonDenom;
+  const latRad = (lat01 - 0.5) * Math.PI;
+  const lonRad = (lon01 - 0.5) * Math.PI * 2;
+  const cosLat = Math.cos(latRad);
+  const dirX = cosLat * Math.cos(lonRad);
+  const dirY = Math.sin(latRad);
+  const dirZ = cosLat * Math.sin(lonRad);
+  const px = dirX * 2.5;
+  const py = dirY * 2.5;
+  const pz = dirZ * 2.5;
+  const basin = snoise3D(px * 2.2 + 3.1, py * 2.2 + 0.4, pz * 2.2 + 1.7) * 0.5 + 0.5;
+  const ridge = snoise3D(px * 4.5 + 0.2, py * 4.5 + 2.8, pz * 4.5 + 1.1) * 0.5 + 0.5;
+  return { basin: clamp01(basin), ridge: clamp01(ridge) };
+}
+
 export function buildEcologyTables(
   latCells: number,
   lonCells: number,
   profile: EcologyProfileName,
-): { bias: Int8Array; affinity: Int8Array } {
+): { bias: Int8Array; affinity: Int8Array; basin: Uint8Array; ridge: Uint8Array } {
   const cellCount = latCells * lonCells;
   const bias = new Int8Array(cellCount);
   const affinity = new Int8Array(cellCount);
+  const basin = new Uint8Array(cellCount);
+  const ridge = new Uint8Array(cellCount);
   const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
-  if (resolved === 'None') return { bias, affinity };
+  if (resolved === 'None') return { bias, affinity, basin, ridge };
 
   for (let lat = 0; lat < latCells; lat++) {
     const rowOffset = lat * lonCells;
@@ -356,11 +426,15 @@ export function buildEcologyTables(
         lonCells,
         profile: resolved,
       });
-      bias[rowOffset + lon] = sample.neighborBias;
-      affinity[rowOffset + lon] = sample.colonyAffinity;
+      const noise = computeTerrainNoise(lat, lon, latCells, lonCells);
+      const idx = rowOffset + lon;
+      bias[idx] = sample.neighborBias;
+      affinity[idx] = sample.colonyAffinity;
+      basin[idx] = Math.round(noise.basin * 255);
+      ridge[idx] = Math.round(noise.ridge * 255);
     }
   }
-  return { bias, affinity };
+  return { bias, affinity, basin, ridge };
 }
 
 export function buildEcologyBiasTable(
@@ -378,8 +452,18 @@ export function adjustNeighborsForEcology(
   latCells: number,
   lonCells: number,
   profile: EcologyProfileName,
+  solarPhase = 0,
+  fertilityModifier = 0,
 ): number {
-  if (profile === 'None') return neighbors;
-  const sample = computeEcologySample({ lat, lon, latCells, lonCells, profile });
+  if (profile === 'None' && fertilityModifier === 0) return neighbors;
+  const sample = computeEcologySample({
+    lat,
+    lon,
+    latCells,
+    lonCells,
+    profile,
+    solarPhase,
+    fertilityModifier,
+  });
   return Math.max(0, Math.min(8, neighbors + sample.neighborBias));
 }

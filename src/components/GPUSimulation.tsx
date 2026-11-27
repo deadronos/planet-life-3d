@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useImperativeHandle, useRef } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import type * as THREE from 'three';
 
-import type { EcologyProfileName } from '../sim/ecology';
+import { advanceSolarPhase, type EcologyProfileName, SOIL_NEUTRAL } from '../sim/ecology';
 import type { Rules } from '../sim/rules';
 import { useGpuPingPong } from './gpuSimulation/useGpuPingPong';
 import { type SeedAtUVParams, useGpuSeeder } from './gpuSimulation/useGpuSeeder';
@@ -14,6 +14,8 @@ export interface GPUSimulationHandle {
   randomize: () => void;
   clear: () => void;
   stepOnce: () => void;
+  getSolarPhase?: () => number;
+  sampleSoilAtCell?: (lat: number, lon: number) => number;
 }
 
 export const GPUSimulation = ({
@@ -26,6 +28,8 @@ export const GPUSimulation = ({
   ecologyProfile = 'None',
   polarWrap = false,
   colonyBiomeAffinity = false,
+  solarCycleSpeed = 0,
+  dynamicFertility = false,
   onTextureUpdate,
   onStats,
   simRef,
@@ -39,6 +43,8 @@ export const GPUSimulation = ({
   ecologyProfile?: EcologyProfileName;
   polarWrap?: boolean;
   colonyBiomeAffinity?: boolean;
+  solarCycleSpeed?: number;
+  dynamicFertility?: boolean;
   onTextureUpdate?: (texture: THREE.Texture) => void;
   onStats?: (stats: GpuStats) => void;
   simRef?: React.Ref<GPUSimulationHandle>;
@@ -51,6 +57,15 @@ export const GPUSimulation = ({
   // Generation counter for the HUD. Reset whenever the world is
   // re-initialized (randomize / clear).
   const generationRef = useRef(0);
+  const solarPhaseRef = useRef(0);
+  const solarCycleSpeedRef = useRef(solarCycleSpeed);
+  const dynamicFertilityRef = useRef(dynamicFertility);
+  useEffect(() => {
+    solarCycleSpeedRef.current = solarCycleSpeed;
+  }, [solarCycleSpeed]);
+  useEffect(() => {
+    dynamicFertilityRef.current = dynamicFertility;
+  }, [dynamicFertility]);
 
   const pingPong = useGpuPingPong(resolution);
   const {
@@ -69,6 +84,7 @@ export const GPUSimulation = ({
     ecologyProfile,
     polarWrap,
     colonyBiomeAffinity,
+    dynamicFertility,
   });
   const { readStats } = useGpuStatsReadback({
     gl,
@@ -78,6 +94,9 @@ export const GPUSimulation = ({
     statsScene,
     generationRef,
   });
+  const onResetState = useCallback(() => {
+    solarPhaseRef.current = 0;
+  }, []);
   // Declared after the stats hook on purpose: its init effect issues a forced
   // readback and needs the stats epoch to already describe the new targets.
   const { initializeState, seedAtUV } = useGpuSeeder({
@@ -93,6 +112,7 @@ export const GPUSimulation = ({
     generationRef,
     readStats,
     onTextureUpdate,
+    onResetState,
   });
 
   /** Run one simulation step: read buffer -> write buffer, then swap. */
@@ -105,11 +125,13 @@ export const GPUSimulation = ({
     // eslint-disable-next-line react-hooks/immutability -- Mutating three.js uniforms in the render loop / imperative handle is the point; the values are GPU handles, not React state.
     simMaterial.uniforms.uTexture.value = readTexture;
     simMaterial.uniforms.uGeneration.value = generationRef.current;
+    simMaterial.uniforms.uSolarPhase.value = solarPhaseRef.current;
     gl.render(simScene.scene, simScene.camera);
     gl.setRenderTarget(prevTarget);
 
     pingPong.swap();
     generationRef.current += 1;
+    solarPhaseRef.current = advanceSolarPhase(solarPhaseRef.current, solarCycleSpeedRef.current);
     readStats(writeTexture, readTexture, forceStats);
 
     // Notify parent of texture update
@@ -131,6 +153,20 @@ export const GPUSimulation = ({
       },
       // Explicit single-step from the UI: report the new generation now.
       stepOnce: () => advance(true),
+      getSolarPhase: () => solarPhaseRef.current,
+      sampleSoilAtCell: (lat: number, lon: number) => {
+        if (!dynamicFertilityRef.current) return SOIL_NEUTRAL;
+        const { read } = pingPong.getBuffers();
+        const x = Math.max(0, Math.min(resolution.width - 1, Math.floor(lon)));
+        const y = Math.max(0, Math.min(resolution.height - 1, Math.floor(lat)));
+        const pixel = new Uint8Array([0, 0, 0, SOIL_NEUTRAL]);
+        try {
+          gl.readRenderTargetPixels(read, x, y, 1, 1, pixel);
+        } catch {
+          return SOIL_NEUTRAL;
+        }
+        return pixel[3];
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `advance` is recreated each render; its inputs are covered by these deps.
     [
@@ -140,6 +176,8 @@ export const GPUSimulation = ({
       seedAtUV,
       pingPong,
       gl,
+      resolution.width,
+      resolution.height,
       onTextureUpdate,
       simMaterial,
       simScene,

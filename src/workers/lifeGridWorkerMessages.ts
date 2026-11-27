@@ -12,6 +12,8 @@ export type LifeGridWorkerInit = {
   ecologyProfile?: EcologyProfileName;
   polarWrap?: boolean;
   colonyBiomeAffinity?: boolean;
+  solarCycleSpeed?: number;
+  dynamicFertility?: boolean;
   randomDensity?: number;
   /** uint32 world seed for the initial randomize. */
   seed?: number;
@@ -47,6 +49,16 @@ export type LifeGridWorkerSetColonyBiomeAffinity = {
   enabled: boolean;
 };
 
+export type LifeGridWorkerSetSolarCycleSpeed = {
+  type: 'setSolarCycleSpeed';
+  speed: number;
+};
+
+export type LifeGridWorkerSetDynamicFertility = {
+  type: 'setDynamicFertility';
+  enabled: boolean;
+};
+
 export type LifeGridWorkerClear = { type: 'clear' };
 
 export type LifeGridWorkerRandomize = {
@@ -65,6 +77,7 @@ export type LifeGridWorkerSeedAtCell = {
   scale: number;
   jitter: number;
   probability: number;
+  fertilityDelta?: number;
   debug?: boolean;
 };
 
@@ -73,6 +86,7 @@ export type LifeGridWorkerRecycle = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  soil?: ArrayBuffer;
   aliveIndices: ArrayBuffer;
 };
 
@@ -84,6 +98,8 @@ export type LifeGridWorkerInMessage =
   | LifeGridWorkerSetEcologyProfile
   | LifeGridWorkerSetPolarWrap
   | LifeGridWorkerSetColonyBiomeAffinity
+  | LifeGridWorkerSetSolarCycleSpeed
+  | LifeGridWorkerSetDynamicFertility
   | LifeGridWorkerClear
   | LifeGridWorkerRandomize
   | LifeGridWorkerSeedAtCell
@@ -94,7 +110,9 @@ export type LifeGridWorkerSnapshot = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  soil: ArrayBuffer;
   aliveIndices: ArrayBuffer;
+  solarPhase: number;
   generation: number;
   population: number;
   colonyAPopulation?: number;

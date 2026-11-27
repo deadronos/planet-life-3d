@@ -1,5 +1,13 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import { buildEcologyTables, ECOLOGY_PROFILES, type EcologyProfileName } from './ecology';
+import {
+  advanceSolarPhase,
+  buildEcologyTables,
+  ECOLOGY_PROFILES,
+  type EcologyProfileName,
+  SOIL_MAX,
+  SOIL_MIN,
+  SOIL_NEUTRAL,
+} from './ecology';
 import { calculateNextCellState, type LifeGridStepContext } from './LifeGridHelper';
 import { type Offset, transformOffsets } from './patterns';
 import { normalizeDecayStates, type Rules } from './rules';
@@ -13,6 +21,9 @@ export class LifeGridSimBase {
   protected ecologyBias: Int8Array | null = null;
   protected ecologyAffinity: Int8Array | null = null;
   protected colonyBiomeAffinity = false;
+  protected solarCycleSpeed = 0;
+  protected solarPhase = 0;
+  protected dynamicFertility = false;
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -23,6 +34,8 @@ export class LifeGridSimBase {
   protected ageNext: Uint8Array;
   protected neighborHeat: Uint8Array;
   protected neighborHeatNext: Uint8Array;
+  protected soil: Uint8Array;
+  protected soilNext: Uint8Array;
   protected rules: Rules;
 
   protected aliveIndices: Int32Array;
@@ -59,6 +72,10 @@ export class LifeGridSimBase {
     this.ageNext = new Uint8Array(this.cellCount);
     this.neighborHeat = new Uint8Array(this.cellCount);
     this.neighborHeatNext = new Uint8Array(this.cellCount);
+    this.soil = new Uint8Array(this.cellCount);
+    this.soilNext = new Uint8Array(this.cellCount);
+    this.soil.fill(SOIL_NEUTRAL);
+    this.soilNext.fill(SOIL_NEUTRAL);
 
     this.aliveIndices = new Int32Array(this.cellCount);
     this.nextAliveIndices = new Int32Array(this.cellCount);
@@ -128,6 +145,23 @@ export class LifeGridSimBase {
     this.colonyBiomeAffinity = enabled;
   }
 
+  setSolarCycleSpeed(speed: number) {
+    this.solarCycleSpeed = Number.isFinite(speed) && speed > 0 ? speed : 0;
+  }
+
+  getSolarPhase(): number {
+    return this.solarPhase;
+  }
+
+  setDynamicFertility(enabled: boolean) {
+    const nextEnabled = Boolean(enabled);
+    if (this.dynamicFertility && !nextEnabled) {
+      this.soil.fill(SOIL_NEUTRAL);
+      this.soilNext.fill(SOIL_NEUTRAL);
+    }
+    this.dynamicFertility = nextEnabled;
+  }
+
   protected coordsToIdx(lat: number, lon: number): number {
     let la: number;
     let lo = lon;
@@ -175,6 +209,9 @@ export class LifeGridSimBase {
     this.ageNext.fill(0);
     this.neighborHeat.fill(0);
     this.neighborHeatNext.fill(0);
+    this.soil.fill(SOIL_NEUTRAL);
+    this.soilNext.fill(SOIL_NEUTRAL);
+    this.solarPhase = 0;
     this.aliveCount = 0;
     this.nextAliveCount = 0;
     this.population = 0;
@@ -195,6 +232,9 @@ export class LifeGridSimBase {
       }
       this.setCellState(i, alive);
     }
+    this.soil.fill(SOIL_NEUTRAL);
+    this.soilNext.fill(SOIL_NEUTRAL);
+    this.solarPhase = 0;
     this.rebuildAliveIndices();
     // Treat randomize the same as clear: a fresh population should not show
     // the previous generation count. Previously only clear() reset
@@ -214,12 +254,14 @@ export class LifeGridSimBase {
     jitter: number;
     probability: number;
     rng?: () => number;
+    fertilityDelta?: number;
     debug?: boolean;
   }) {
     const rng = params.rng ?? Math.random;
     const scale = Math.max(1, Math.floor(params.scale));
     const jitter = Math.max(0, Math.floor(params.jitter));
     const p = Math.max(0, Math.min(1, params.probability));
+    const fertilityDelta = params.fertilityDelta ?? 0;
 
     if (params.debug) {
       // eslint-disable-next-line no-console
@@ -235,6 +277,10 @@ export class LifeGridSimBase {
       const currentVal = this.grid[idx];
       const nextVal = calculateNextCellState(currentVal, params.mode, this.gameMode, rng, p);
       this.setCellState(idx, nextVal);
+      if (this.dynamicFertility && fertilityDelta !== 0) {
+        const nextSoil = Math.round(this.soil[idx] + fertilityDelta);
+        this.soil[idx] = nextSoil < SOIL_MIN ? SOIL_MIN : nextSoil > SOIL_MAX ? SOIL_MAX : nextSoil;
+      }
     }
 
     this.rebuildAliveIndices();
@@ -279,6 +325,10 @@ export class LifeGridSimBase {
     return this.neighborHeat;
   }
 
+  getSoilView(): Uint8Array {
+    return this.soil;
+  }
+
   getAliveIndicesView(): Int32Array {
     return this.aliveIndices;
   }
@@ -296,13 +346,18 @@ export class LifeGridSimBase {
       age: this.age,
       ageNext: this.ageNext,
       neighborHeatNext: this.neighborHeatNext,
+      soil: this.soil,
+      soilNext: this.soilNext,
       nextAliveIndices: this.nextAliveIndices,
       rules: this.rules,
+      ecologyProfile: this.ecologyProfile,
       ecologyBias: this.ecologyBias,
       ecologyAffinity: this.ecologyAffinity,
       polarWrap: this.polarWrap,
       generation: this.generation,
       colonyBiomeAffinity: this.colonyBiomeAffinity,
+      solarPhase: this.solarPhase,
+      dynamicFertility: this.dynamicFertility,
       birthsLastTick: 0,
       deathsLastTick: 0,
       population: 0,
@@ -320,6 +375,7 @@ export class LifeGridSimBase {
     this.colonyBPopulation = ctx.colonyBPopulation;
     this.nextAliveCount = ctx.nextAliveCount;
     this.swapBuffers();
+    this.solarPhase = advanceSolarPhase(this.solarPhase, this.solarCycleSpeed);
   }
 
   protected swapBuffers() {
@@ -336,6 +392,12 @@ export class LifeGridSimBase {
     tmp = this.neighborHeat;
     this.neighborHeat = this.neighborHeatNext;
     this.neighborHeatNext = tmp;
+
+    if (this.dynamicFertility) {
+      tmp = this.soil;
+      this.soil = this.soilNext;
+      this.soilNext = tmp;
+    }
 
     const tmpIdx = this.aliveIndices;
     this.aliveIndices = this.nextAliveIndices;

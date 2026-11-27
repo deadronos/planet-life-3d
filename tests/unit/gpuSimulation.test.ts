@@ -107,4 +107,12 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).toContain('else if (uDecayStates > 2)');
     expect(simulationFragmentShader).toContain('n1.r > 0.92 ? 1.0 : 0.0');
   });
+
+  it('supports rotating solar phase and dynamic fertility terraforming in GPU shaders (#222)', () => {
+    expect(simulationFragmentShader).toContain('uniform float uSolarPhase');
+    expect(simulationFragmentShader).toContain('uniform bool uDynamicFertility');
+    expect(simulationFragmentShader).toContain('lon01 - 0.18 - uSolarPhase');
+    expect(gpuSeedFragmentShader).toContain('uniform bool uDynamicFertility');
+    expect(gpuSeedFragmentShader).toContain('uniform float uFertilityDelta');
+  });
 });

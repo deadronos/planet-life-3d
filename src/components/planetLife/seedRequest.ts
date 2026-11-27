@@ -1,3 +1,4 @@
+import { COMET_SOIL_BOOST, STERILIZER_SOIL_SCORCH } from '../../sim/ecology';
 import {
   getBuiltinPatternOffsets,
   type Offset,
@@ -11,6 +12,13 @@ import type { SeedingSlice } from './controls';
 
 /** Active tool as seen by the seeding pipeline (`Life` seeds from the Seeding panel). */
 export type SeedTool = MeteorTool;
+
+/** Soil fertility delta applied by meteor terraforming tools when dynamic fertility is enabled. */
+export function resolveToolFertilityDelta(tool: SeedTool): number {
+  if (tool === 'Comet') return COMET_SOIL_BOOST;
+  if (tool === 'Sterilizer') return STERILIZER_SOIL_SCORCH;
+  return 0;
+}
 
 /**
  * Fully-resolved seed: everything `applySeed` needs, independent of whether the
