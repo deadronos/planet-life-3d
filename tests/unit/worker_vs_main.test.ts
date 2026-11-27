@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { LifeGridSim } from '../../src/sim/LifeGridSim';
 import { parseRuleDigits } from '../../src/sim/rules';
+import { createSeededRng } from '../../src/sim/seededRng';
 import { createLifeGridWorkerHandler } from '../../src/workers/lifeGridWorkerImpl';
 import type { LifeGridWorkerSnapshot } from '../../src/workers/lifeGridWorkerMessages';
 
@@ -362,6 +363,51 @@ describe('Worker vs main simulation equivalence', () => {
       expect(snap.population).toBe(sim.population);
       expect(snap.birthsLastTick).toBe(sim.birthsLastTick);
       expect(snap.deathsLastTick).toBe(sim.deathsLastTick);
+    }
+  });
+
+  it('Colony B36 + ecology + colonyBiomeAffinity parity between worker and main sim', () => {
+    const lat = 24;
+    const lon = 32;
+    const highLifeRules = { birth: parseRuleDigits('36'), survive: parseRuleDigits('23') };
+
+    const sim = new LifeGridSim({ latCells: lat, lonCells: lon, rules: highLifeRules });
+    sim.setGameMode('Colony');
+    sim.setEcologyProfile('Garden World');
+    sim.setColonyBiomeAffinity(true);
+    sim.randomize(0.35, createSeededRng(98765));
+
+    const out: unknown[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+    handler.onMessage({
+      type: 'init',
+      latCells: lat,
+      lonCells: lon,
+      rules: highLifeRules,
+      gameMode: 'Colony',
+      ecologyProfile: 'Garden World',
+      colonyBiomeAffinity: true,
+      randomDensity: 0.35,
+      seed: 98765,
+    });
+
+    for (let i = 0; i < 6; i++) {
+      if (i === 3) {
+        sim.setColonyBiomeAffinity(false);
+        handler.onMessage({ type: 'setColonyBiomeAffinity', enabled: false });
+      }
+      sim.step();
+      out.length = 0;
+      handler.onMessage({ type: 'tick', steps: 1 });
+      const snap = findSnapshot(out)!;
+      expect(snap).toBeTruthy();
+      expect(new Uint8Array(snap.grid)).toEqual(sim.getGridView());
+      expect(new Uint8Array(snap.age)).toEqual(sim.getAgeView());
+      expect(new Uint8Array(snap.heat)).toEqual(sim.getNeighborHeatView());
+      expect(snap.generation).toBe(sim.generation);
+      expect(snap.population).toBe(sim.population);
+      expect(snap.colonyAPopulation).toBe(sim.colonyAPopulation);
+      expect(snap.colonyBPopulation).toBe(sim.colonyBPopulation);
     }
   });
 });

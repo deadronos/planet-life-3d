@@ -34,6 +34,7 @@ export type ControlValues = {
 
   // Simulation
   gameMode: 'Classic' | 'Colony';
+  colonyBiomeAffinity: boolean;
   running: boolean;
   tickMs: number;
   latCells: number;
@@ -125,6 +126,7 @@ export function createControlDefaults(): ControlValues {
     cellRenderMode: 'Texture',
 
     gameMode: 'Classic',
+    colonyBiomeAffinity: false,
     running: true,
     tickMs: 120,
     latCells: SIM_DEFAULTS.latCells,

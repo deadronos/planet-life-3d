@@ -53,32 +53,37 @@ beforeEach(() => {
   globalThis.Worker = FakeWorker;
 });
 
+type HookProps = {
+  workerEnabled: boolean;
+  rules: Rules;
+  gameMode: 'Classic' | 'Colony';
+  ecologyProfile: EcologyProfileName;
+  polarWrap?: boolean;
+  colonyBiomeAffinity?: boolean;
+  randomDensity: number;
+};
+
 function callHook(initial: {
   workerEnabled: boolean;
   rules?: Rules;
   gameMode?: 'Classic' | 'Colony';
   ecologyProfile?: EcologyProfileName;
   polarWrap?: boolean;
+  colonyBiomeAffinity?: boolean;
   randomDensity?: number;
 }) {
-  return renderHook(
-    (props: {
-      workerEnabled: boolean;
-      rules: Rules;
-      gameMode: 'Classic' | 'Colony';
-      ecologyProfile: EcologyProfileName;
-      polarWrap?: boolean;
-      randomDensity: number;
-    }) =>
+  return renderHook<ReturnType<typeof useSimWorker>, HookProps>(
+    (props) =>
       useSimWorker({
         workerEnabled: props.workerEnabled,
         safeLatCells: 10,
         safeLonCells: 16,
-        rules: props.rules ?? GOL_RULES,
-        ecologyProfile: props.ecologyProfile ?? 'None',
+        rules: props.rules,
+        ecologyProfile: props.ecologyProfile,
         polarWrap: props.polarWrap ?? false,
-        randomDensity: props.randomDensity ?? 0.1,
-        gameMode: props.gameMode ?? 'Classic',
+        colonyBiomeAffinity: props.colonyBiomeAffinity ?? false,
+        randomDensity: props.randomDensity,
+        gameMode: props.gameMode,
         debugLogs: false,
         onSnapshot: () => {},
       }),
@@ -89,6 +94,7 @@ function callHook(initial: {
         gameMode: initial.gameMode ?? ('Classic' as const),
         ecologyProfile: initial.ecologyProfile ?? 'None',
         polarWrap: initial.polarWrap ?? false,
+        colonyBiomeAffinity: initial.colonyBiomeAffinity,
         randomDensity: initial.randomDensity ?? 0.1,
       },
     },
@@ -192,6 +198,27 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
     const msgs = w.messages.filter((m) => m.type === 'setPolarWrap');
     expect(msgs).toHaveLength(baselineCount + 1);
     expect((msgs[msgs.length - 1] as unknown as { polarWrap: boolean }).polarWrap).toBe(true);
+  });
+
+  it('does NOT re-create the worker when colonyBiomeAffinity changes', () => {
+    const { rerender } = callHook({ workerEnabled: true });
+    expect(FakeWorker.instances).toHaveLength(1);
+    const w = FakeWorker.instances[0];
+    const baselineCount = w.messages.filter((m) => m.type === 'setColonyBiomeAffinity').length;
+
+    rerender({
+      workerEnabled: true,
+      rules: GOL_RULES,
+      gameMode: 'Colony',
+      ecologyProfile: 'Garden World',
+      colonyBiomeAffinity: true,
+      randomDensity: 0.1,
+    });
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    const newMsgs = w.messages.filter((m) => m.type === 'setColonyBiomeAffinity');
+    expect(newMsgs).toHaveLength(baselineCount + 1);
+    expect((newMsgs[newMsgs.length - 1] as unknown as { enabled: boolean }).enabled).toBe(true);
   });
 
   it('does NOT re-create the worker when randomDensity slider moves (density applies on explicit Randomize)', () => {

@@ -25,6 +25,7 @@ export const GPUSimulation = ({
   gameMode = 'Classic',
   ecologyProfile = 'None',
   polarWrap = false,
+  colonyBiomeAffinity = false,
   onTextureUpdate,
   onStats,
   simRef,
@@ -37,6 +38,7 @@ export const GPUSimulation = ({
   gameMode?: 'Classic' | 'Colony';
   ecologyProfile?: EcologyProfileName;
   polarWrap?: boolean;
+  colonyBiomeAffinity?: boolean;
   onTextureUpdate?: (texture: THREE.Texture) => void;
   onStats?: (stats: GpuStats) => void;
   simRef?: React.Ref<GPUSimulationHandle>;
@@ -60,7 +62,14 @@ export const GPUSimulation = ({
     copyScene,
     statsMaterial,
     statsScene,
-  } = useGpuSimMaterials({ resolution, rules, gameMode, ecologyProfile, polarWrap });
+  } = useGpuSimMaterials({
+    resolution,
+    rules,
+    gameMode,
+    ecologyProfile,
+    polarWrap,
+    colonyBiomeAffinity,
+  });
   const { readStats } = useGpuStatsReadback({
     gl,
     resolution,
@@ -95,6 +104,7 @@ export const GPUSimulation = ({
     gl.setRenderTarget(write);
     // eslint-disable-next-line react-hooks/immutability -- Mutating three.js uniforms in the render loop / imperative handle is the point; the values are GPU handles, not React state.
     simMaterial.uniforms.uTexture.value = readTexture;
+    simMaterial.uniforms.uGeneration.value = generationRef.current;
     gl.render(simScene.scene, simScene.camera);
     gl.setRenderTarget(prevTarget);
 

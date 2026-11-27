@@ -58,6 +58,7 @@ describe('controls store - defaults', () => {
     expect(s.seedPattern).toBe('Glider');
     expect(s.seedRotation).toBe(0);
     expect(s.adaptiveResolution).toBe(true);
+    expect(s.colonyBiomeAffinity).toBe(false);
     expect(s.nightGlowIntensity).toBe(0.6);
     expect(s.nightGlowColor).toBe('#ffc46b');
     expect(s.autoReseedOnStagnation).toBe(false);

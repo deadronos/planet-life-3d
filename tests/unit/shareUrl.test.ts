@@ -57,6 +57,7 @@ describe('share URL', () => {
       lonCells: 160,
       randomDensity: 0.14,
       gameMode: 'Colony' as const,
+      colonyBiomeAffinity: true,
     };
     const hash = encodeWorld(state, 12345);
     const w = decodeWorld(`#${hash}`);
@@ -70,8 +71,11 @@ describe('share URL', () => {
       lonCells: 160,
       randomDensity: 0.14,
       gameMode: 'Colony',
+      colonyBiomeAffinity: true,
       rulePreset: 'Custom',
     });
+    expect(decodeWorld('#ca=0').controls.colonyBiomeAffinity).toBe(false);
+    expect(decodeWorld('#ca=nope').controls.colonyBiomeAffinity).toBeUndefined();
   });
 
   it('drops invalid params and clamps ints', () => {

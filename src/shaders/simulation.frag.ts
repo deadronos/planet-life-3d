@@ -9,19 +9,29 @@ export const simulationFragmentShader = /* glsl */ `
   uniform int uDecayStates;           // Generations state count (2 = classic binary Life, 3..16 = refractory decay)
   uniform bool uColonyMode;           // Whether colony mode is enabled
   uniform bool uPolarWrap;            // Whether latitude wraps across poles to antipodal longitude
+  uniform bool uColonyBiomeAffinity;  // Whether Colony A/B prefer complementary biomes
+  uniform float uGeneration;          // Current simulation generation (parity tie-breaker)
   // Ecology bias lookup texture baked 1:1 from sim/ecology.ts on profile or
-  // resolution change (NearestFilter, R channel: 0 = -1, 128 = 0, 255 = +1).
+  // resolution change (NearestFilter, R = neighborBias, G = colonyAffinity; 0 = -1, 128 = 0, 255 = +1).
   uniform bool uEcologyEnabled;
   uniform sampler2D uEcologyBiasTexture;
   
   varying vec2 vUv;
 
-  // Per-cell neighbor-count bias sampled from the static ecology bias texture.
-  float ecologyBias(vec2 uv) {
-    float encoded = texture2D(uEcologyBiasTexture, uv).r;
+  float decodeBiasChannel(float encoded) {
     if (encoded > 0.75) return 1.0;
     if (encoded < 0.25) return -1.0;
     return 0.0;
+  }
+
+  // Per-cell ecology sample (vec2(neighborBias, colonyAffinity)) from the static texture.
+  vec2 ecologySample(vec2 uv) {
+    vec4 texel = texture2D(uEcologyBiasTexture, uv);
+    return vec2(decodeBiasChannel(texel.r), decodeBiasChannel(texel.g));
+  }
+
+  float ecologyBias(vec2 uv) {
+    return decodeBiasChannel(texture2D(uEcologyBiasTexture, uv).r);
   }
   
   // Sample a neighbor with proper wrapping for sphere topology
@@ -109,50 +119,55 @@ export const simulationFragmentShader = /* glsl */ `
         (n8.r > 0.1 ? 1.0 : 0.0);
     }
 
-    // Apply the ecology neighbor-count bias, matching the CPU/worker path
-    // (adjustNeighborsForEcology). Colony A count stays raw on purpose:
-    // the CPU only adjusts the total neighbor count used for rule lookups.
-    if (uEcologyEnabled) {
-      neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
-    }
-    
-    // Apply customizable rules based on neighbor count
-    int neighborCount = int(neighbors + 0.5);  // Round to nearest int
     float nextState = 0.0;
     float nextAge = 0.0;
     float nextHeat = 0.0;
     
     if (uColonyMode) {
-      // Colony mode logic
+      // Colony mode logic: majority-wins birth typing with parity tie-breaker
+      // and optional species biome affinities, matching LifeGridSimColony.ts.
+      float neighborsColonyB = neighbors - neighborsColonyA;
+      vec2 eco = uEcologyEnabled ? ecologySample(vUv) : vec2(0.0);
+      float baseBias = eco.x;
+      float affinity = uColonyBiomeAffinity ? eco.y : 0.0;
+
       bool isAlive = current > 0.1;
+      float targetState;
       bool shouldLive = false;
-      
+
       if (isAlive) {
-        // Check survive rule
-        if (neighborCount >= 0 && neighborCount <= 8) {
-          shouldLive = uSurviveRules[neighborCount] > 0.5;
-        }
+        // Stay alive with same colony (normalize Classic 1.0 -> Colony A 0.33)
+        targetState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67;
       } else {
-        // Check birth rule
-        if (neighborCount >= 0 && neighborCount <= 8) {
-          shouldLive = uBirthRules[neighborCount] > 0.5;
+        vec2 pixelPos = floor(vUv * uResolution);
+        float parity = mod(pixelPos.x + pixelPos.y + uGeneration, 2.0);
+        if (neighborsColonyA > neighborsColonyB) {
+          targetState = 0.33;
+        } else if (neighborsColonyB > neighborsColonyA) {
+          targetState = 0.67;
+        } else if (affinity > 0.5) {
+          targetState = 0.33;
+        } else if (affinity < -0.5) {
+          targetState = 0.67;
+        } else {
+          targetState = parity < 0.5 ? 0.33 : 0.67;
         }
       }
-      
+
+      float speciesSign = targetState < 0.5 ? 1.0 : -1.0;
+      float speciesBias =
+        affinity == 0.0 ? baseBias : clamp(baseBias + speciesSign * affinity, -1.0, 1.0);
+      neighbors = clamp(neighbors + speciesBias, 0.0, 8.0);
+      int neighborCount = int(neighbors + 0.5);
+
+      if (neighborCount >= 0 && neighborCount <= 8) {
+        shouldLive = isAlive
+          ? uSurviveRules[neighborCount] > 0.5
+          : uBirthRules[neighborCount] > 0.5;
+      }
+
       if (shouldLive) {
-        if (isAlive) {
-          // Stay alive with same colony (normalize Classic 1.0 -> Colony A 0.33)
-          nextState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67;
-        } else {
-          // Birth typing matches the CPU/worker sim (LifeGridSimColony): a
-          // new cell becomes Colony A when at least 2 of its neighbors are
-          // Colony A, otherwise Colony B.
-          if (neighborsColonyA >= 2.0) {
-            nextState = 0.33;  // Colony A
-          } else {
-            nextState = 0.67;  // Colony B
-          }
-        }
+        nextState = targetState;
         nextAge = min(1.0, currentAge + 1.0 / 255.0);  // Increment age (normalized)
         nextHeat = neighbors / 8.0;  // Store neighbor count normalized
       }
@@ -161,6 +176,10 @@ export const simulationFragmentShader = /* glsl */ `
       // - Firing cells (> 0.92) survive to 1.0 or enter refractory state 2
       // - Refractory cells (0.1..0.92) advance s -> s + 1 until s >= uDecayStates (dead 0.0)
       // - Dead cells (< 0.1) are born into firing state 1.0 when matching birth rules
+      if (uEcologyEnabled) {
+        neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
+      }
+      int neighborCount = int(neighbors + 0.5);
       float denom = float(uDecayStates - 1);
       if (current > 0.92) {
         bool survives = false;
@@ -196,6 +215,11 @@ export const simulationFragmentShader = /* glsl */ `
       }
     } else {
       // Classic mode logic: treat any live state (> 0.1, including Colony 0.33/0.67) as alive
+      if (uEcologyEnabled) {
+        neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
+      }
+      int neighborCount = int(neighbors + 0.5);  // Round to nearest int
+
       if (current > 0.1) {
         // Cell is alive - check survive rule
         if (neighborCount >= 0 && neighborCount <= 8) {

@@ -1,5 +1,5 @@
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
-import { buildEcologyBiasTable, ECOLOGY_PROFILES, type EcologyProfileName } from './ecology';
+import { buildEcologyTables, ECOLOGY_PROFILES, type EcologyProfileName } from './ecology';
 import { calculateNextCellState, type LifeGridStepContext } from './LifeGridHelper';
 import { type Offset, transformOffsets } from './patterns';
 import { normalizeDecayStates, type Rules } from './rules';
@@ -11,6 +11,8 @@ export class LifeGridSimBase {
   polarWrap = false;
   protected ecologyProfile: EcologyProfileName = 'None';
   protected ecologyBias: Int8Array | null = null;
+  protected ecologyAffinity: Int8Array | null = null;
+  protected colonyBiomeAffinity = false;
   readonly latCells: number;
   readonly lonCells: number;
   readonly cellCount: number;
@@ -104,8 +106,14 @@ export class LifeGridSimBase {
     const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
     if (this.ecologyProfile === resolved) return;
     this.ecologyProfile = resolved;
-    this.ecologyBias =
-      resolved === 'None' ? null : buildEcologyBiasTable(this.latCells, this.lonCells, resolved);
+    if (resolved === 'None') {
+      this.ecologyBias = null;
+      this.ecologyAffinity = null;
+    } else {
+      const tables = buildEcologyTables(this.latCells, this.lonCells, resolved);
+      this.ecologyBias = tables.bias;
+      this.ecologyAffinity = tables.affinity;
+    }
   }
 
   getEcologyBiasView(): Int8Array | null {
@@ -114,6 +122,10 @@ export class LifeGridSimBase {
 
   setPolarWrap(polarWrap: boolean) {
     this.polarWrap = Boolean(polarWrap);
+  }
+
+  setColonyBiomeAffinity(enabled: boolean) {
+    this.colonyBiomeAffinity = enabled;
   }
 
   protected coordsToIdx(lat: number, lon: number): number {
@@ -287,7 +299,10 @@ export class LifeGridSimBase {
       nextAliveIndices: this.nextAliveIndices,
       rules: this.rules,
       ecologyBias: this.ecologyBias,
+      ecologyAffinity: this.ecologyAffinity,
       polarWrap: this.polarWrap,
+      generation: this.generation,
+      colonyBiomeAffinity: this.colonyBiomeAffinity,
       birthsLastTick: 0,
       deathsLastTick: 0,
       population: 0,

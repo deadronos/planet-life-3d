@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 
-import {
-  buildEcologyBiasTable,
-  ECOLOGY_PROFILES,
-  type EcologyProfileName,
-} from '../../sim/ecology';
+import { buildEcologyTables, ECOLOGY_PROFILES, type EcologyProfileName } from '../../sim/ecology';
 import type { Resolution } from './common';
 
 /**
@@ -33,16 +29,21 @@ export function createEcologyBiasTexture(
   let data: Uint8Array;
 
   if (resolved === 'None') {
-    data = new Uint8Array([128, 0, 0, 255]);
+    data = new Uint8Array([128, 128, 0, 255]);
   } else {
     width = Math.max(1, Math.floor(resolution.width));
     height = Math.max(1, Math.floor(resolution.height));
-    const biasTable = buildEcologyBiasTable(height, width, resolved);
+    const { bias: biasTable, affinity: affinityTable } = buildEcologyTables(
+      height,
+      width,
+      resolved,
+    );
     const cellCount = biasTable.length;
     data = new Uint8Array(cellCount * 4);
     for (let i = 0; i < cellCount; i++) {
       const di = i * 4;
       data[di] = encodeEcologyBiasByte(biasTable[i]);
+      data[di + 1] = encodeEcologyBiasByte(affinityTable[i]);
       data[di + 3] = 255;
     }
   }

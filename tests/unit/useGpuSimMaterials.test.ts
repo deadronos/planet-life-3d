@@ -43,6 +43,7 @@ describe('useGpuSimMaterials', () => {
       rules: { ...rules([3, 6]), decayStates: 4 },
       gameMode: 'Colony',
       ecologyProfile: profileName,
+      colonyBiomeAffinity: true,
     });
 
     const nextBiasTex = sim.uniforms.uEcologyBiasTexture.value as THREE.DataTexture;
@@ -51,6 +52,8 @@ describe('useGpuSimMaterials', () => {
     expect(sim.uniforms.uBirthRules.value[6]).toBe(1);
     expect(sim.uniforms.uDecayStates.value).toBe(4);
     expect(sim.uniforms.uColonyMode.value).toBe(true);
+    expect(sim.uniforms.uColonyBiomeAffinity.value).toBe(true);
+    expect(sim.uniforms.uGeneration.value).toBe(0);
     expect(seed.uniforms.uColonyMode.value).toBe(true);
     expect(sim.uniforms.uEcologyEnabled.value).toBe(profileName !== 'None');
     expect(nextBiasTex).toBeInstanceOf(THREE.DataTexture);

@@ -38,6 +38,10 @@ export function decodeWorld(hash: string): SharedWorld {
   const m = params.get('m');
   if (m === 'Classic' || m === 'Colony') controls.gameMode = m;
 
+  const ca = params.get('ca');
+  if (ca === '1' || ca === 'true') controls.colonyBiomeAffinity = true;
+  else if (ca === '0' || ca === 'false') controls.colonyBiomeAffinity = false;
+
   const b = digits(params.get('b'));
   const s = digits(params.get('s'));
   if (b !== undefined) controls.birthDigits = b;
@@ -95,6 +99,7 @@ export function encodeWorld(state: ControlValues, seed: number): string {
   const p = new URLSearchParams();
   if (state.worldPreset !== 'Custom') p.set('w', state.worldPreset);
   p.set('m', state.gameMode);
+  if (state.colonyBiomeAffinity) p.set('ca', '1');
   p.set('b', state.birthDigits);
   p.set('s', state.surviveDigits);
   p.set('G', String(normalizeDecayStates(state.decayStates)));

@@ -69,6 +69,7 @@ function stepReferenceColony(
   lonCells: number,
   rules: Rules,
   profile: EcologyProfileName,
+  generation: number,
 ): Uint8Array {
   const next = new Uint8Array(latCells * lonCells);
   for (let lat = 0; lat < latCells; lat++) {
@@ -101,7 +102,10 @@ function stepReferenceColony(
       if (current > 0) {
         next[idx] = rules.survive[effective] ? current : 0;
       } else if (rules.birth[effective]) {
-        next[idx] = countA >= 2 ? 1 : 2;
+        const countB = rawNeighbors - countA;
+        if (countA > countB) next[idx] = 1;
+        else if (countB > countA) next[idx] = 2;
+        else next[idx] = ((lat + lon + generation) & 1) === 0 ? 1 : 2;
       }
     }
   }
@@ -203,7 +207,7 @@ describe('Ecology bias caching & CPU/GPU parity (#218)', () => {
 
       for (let tick = 0; tick < 5; tick++) {
         sim.stepColony();
-        refGrid = stepReferenceColony(refGrid, latCells, lonCells, GOL_RULES, profile);
+        refGrid = stepReferenceColony(refGrid, latCells, lonCells, GOL_RULES, profile, tick);
         expect(sim.getGridView()).toEqual(refGrid);
       }
     }

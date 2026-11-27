@@ -65,9 +65,13 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).not.toContain('uEcologyFertilityBias');
   });
 
-  it('should use CPU colony birth typing (Colony A when countA >= 2)', () => {
-    // LifeGridSimColony: new cells become Colony A when countA >= 2, else B.
-    expect(simulationFragmentShader).toContain('neighborsColonyA >= 2.0');
+  it('should use majority-wins colony birth typing with parity tie-breaker and optional biome affinity', () => {
+    expect(simulationFragmentShader).toContain('uniform float uGeneration;');
+    expect(simulationFragmentShader).toContain('uniform bool uColonyBiomeAffinity;');
+    expect(simulationFragmentShader).toContain('neighborsColonyA > neighborsColonyB');
+    expect(simulationFragmentShader).toContain('neighborsColonyB > neighborsColonyA');
+    expect(simulationFragmentShader).toContain('mod(pixelPos.x + pixelPos.y + uGeneration, 2.0)');
+    expect(simulationFragmentShader).toContain('ecologySample(vUv)');
   });
 
   it('should output to gl_FragColor', () => {
@@ -82,7 +86,7 @@ describe('GPU Simulation Shaders', () => {
     // Colony mode normalizes Classic 1.0 (> 0.85) to Colony A (0.33)
     expect(simulationFragmentShader).toContain('n1.r < 0.5 || n1.r > 0.85');
     expect(simulationFragmentShader).toContain(
-      'nextState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67',
+      'targetState = (current < 0.5 || current > 0.85) ? 0.33 : 0.67',
     );
   });
 
