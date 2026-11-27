@@ -43,6 +43,7 @@ export function usePlanetLifeSim({
   colorScratch: THREE.Color;
 }) {
   const { running, tickMs, ecologyProfile, randomDensity, gameMode } = sim;
+  const polarWrap = sim.polarWrap ?? false;
   const { planetRadius } = planet;
   const { cellLift, cellRenderMode } = cells;
   const { workerSim, gpuSim, debugLogs } = debug;
@@ -104,6 +105,7 @@ export function usePlanetLifeSim({
     safeLonCells,
     rules,
     ecologyProfile,
+    polarWrap,
     randomDensity,
     gameMode,
     debugLogs,
@@ -277,6 +279,7 @@ export function usePlanetLifeSim({
       });
       geometrySimRef.current.setGameMode(gameMode);
       geometrySimRef.current.setEcologyProfile(ecologyProfile);
+      geometrySimRef.current.setPolarWrap(polarWrap);
       simRef.current = null;
       updateInstancesRef.current();
       return;
@@ -288,6 +291,7 @@ export function usePlanetLifeSim({
       planetRadius,
       cellLift,
       rules,
+      polarWrap,
     });
     sim.setGameMode(gameMode);
     sim.setEcologyProfile(ecologyProfile);
@@ -334,6 +338,12 @@ export function usePlanetLifeSim({
       simRef.current?.setEcologyProfile(ecologyProfile);
     }
   }, [ecologyProfile, workerEnabled]);
+
+  useEffect(() => {
+    if (!workerEnabled) {
+      simRef.current?.setPolarWrap(polarWrap);
+    }
+  }, [polarWrap, workerEnabled]);
 
   const documentHidden = useDocumentHidden();
 

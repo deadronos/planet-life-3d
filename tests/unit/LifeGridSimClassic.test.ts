@@ -166,5 +166,31 @@ describe('LifeGridSimClassic', () => {
       expect(sim.getCell(0, 5)).toBeDefined();
       expect(sim.getCell(latCells - 1, 5)).toBeDefined();
     });
+
+    it('interacts across north and south poles only when polarWrap is enabled', () => {
+      // Edge column lo=0 at lat=0 sees antipodal lon=(0+5)%10=5 and its neighbors 4,6
+      // when polarWrap is true, and stays dead-bounded when polarWrap is false.
+      const runWith = (polarWrap: boolean) => {
+        const s = new LifeGridSimClassic({ latCells, lonCells, rules: GOL_RULES, polarWrap });
+        // North pole edge column (0, 0): needs 3 neighbors -> (0, 4), (0, 6), (1, 0)
+        s.setCell(0, 4, 1);
+        s.setCell(0, 6, 1);
+        s.setCell(1, 0, 1);
+
+        // South pole interior column (latCells - 1, 4): alive cell survives with 2 antipodal neighbors (9, 8) and (9, 0)
+        s.setCell(latCells - 1, 4, 1);
+        s.setCell(latCells - 1, 8, 1);
+        s.setCell(latCells - 1, 0, 1);
+
+        s.stepClassic();
+        return {
+          northEdgeBirth: s.getCell(0, 0),
+          southPolarSurvive: s.getCell(latCells - 1, 4),
+        };
+      };
+
+      expect(runWith(false)).toEqual({ northEdgeBirth: 0, southPolarSurvive: 0 });
+      expect(runWith(true)).toEqual({ northEdgeBirth: 1, southPolarSurvive: 1 });
+    });
   });
 });

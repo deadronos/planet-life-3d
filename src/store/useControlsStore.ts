@@ -37,6 +37,7 @@ export type ControlValues = {
   tickMs: number;
   latCells: number;
   lonCells: number;
+  polarWrap: boolean;
   rulePreset: string;
   birthDigits: string;
   surviveDigits: string;
@@ -126,6 +127,7 @@ export function createControlDefaults(): ControlValues {
     tickMs: 120,
     latCells: SIM_DEFAULTS.latCells,
     lonCells: SIM_DEFAULTS.lonCells,
+    polarWrap: false,
     rulePreset: 'Conway',
     birthDigits: '3',
     surviveDigits: '23',

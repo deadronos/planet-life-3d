@@ -9,6 +9,7 @@ export const simulationFragmentShader = /* glsl */ `
   uniform float uBirthRules[9];       // Birth rules: array[neighborCount] = 1.0 if birth, 0.0 otherwise
   uniform float uSurviveRules[9];     // Survive rules: array[neighborCount] = 1.0 if survive, 0.0 otherwise
   uniform bool uColonyMode;           // Whether colony mode is enabled
+  uniform bool uPolarWrap;            // Whether latitude wraps across poles to antipodal longitude
   // Ecology profile params (mirror of ECOLOGY_PROFILES in sim/ecology.ts).
   // The GPU path must replicate the CPU's adjustNeighborsForEcology or the
   // two sims silently run different rules.
@@ -72,7 +73,8 @@ export const simulationFragmentShader = /* glsl */ `
   }
   
   // Sample a neighbor with proper wrapping for sphere topology
-  // Longitude (U) wraps around, Latitude (V) treats out-of-range as empty
+  // Longitude (U) wraps around; Latitude (V) either wraps across the poles to
+  // antipodal longitude (uPolarWrap = true) or treats out-of-range as empty.
   // Returns vec4: r=state, g=age, b=heat, a=unused
   vec4 sampleNeighborFull(vec2 uv, vec2 offset) {
     vec2 pixelSize = 1.0 / uResolution;
@@ -81,9 +83,18 @@ export const simulationFragmentShader = /* glsl */ `
     // Wrap U (longitude) - seamless wrapping
     neighborUV.x = fract(neighborUV.x);
     
-    // Latitude does not wrap; out-of-range samples contribute 0
-    if (neighborUV.y < 0.0 || neighborUV.y > 1.0) {
-      return vec4(0.0);
+    if (neighborUV.y < 0.0) {
+      if (!uPolarWrap) {
+        return vec4(0.0);
+      }
+      neighborUV.y = 0.5 * pixelSize.y;
+      neighborUV.x = fract(neighborUV.x + floor(uResolution.x * 0.5) * pixelSize.x);
+    } else if (neighborUV.y > 1.0) {
+      if (!uPolarWrap) {
+        return vec4(0.0);
+      }
+      neighborUV.y = 1.0 - 0.5 * pixelSize.y;
+      neighborUV.x = fract(neighborUV.x + floor(uResolution.x * 0.5) * pixelSize.x);
     }
 
     return texture2D(uTexture, neighborUV);

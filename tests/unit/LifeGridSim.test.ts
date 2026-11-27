@@ -280,4 +280,75 @@ describe('LifeGridSim', () => {
     expect(seamDiff).toBeLessThan(0.25);
     expect(Math.abs(seamDiff - interiorDiff)).toBeLessThan(0.1);
   });
+
+  describe('polarWrap topology (#219)', () => {
+    it('defaults polarWrap to false and preserves clamped coordinates', () => {
+      expect(sim.polarWrap).toBe(false);
+      sim.setCell(-1, 2, 1);
+      expect(sim.getCell(0, 2)).toBe(1);
+      expect(sim.getCell(0, 7)).toBe(0);
+    });
+
+    it('wraps coordinates and seedAtCell offsets across poles to antipodal longitude when enabled', () => {
+      sim.setPolarWrap(true);
+      sim.setCell(-1, 2, 1);
+      expect(sim.getCell(0, 7)).toBe(1);
+      expect(sim.getCell(0, 2)).toBe(0);
+
+      sim.setCell(latCells, 3, 1);
+      expect(sim.getCell(latCells - 1, 8)).toBe(1);
+
+      sim.clear();
+      sim.seedAtCell({
+        lat: 0,
+        lon: 1,
+        offsets: [[-1, 0]],
+        mode: 'set',
+        scale: 1,
+        jitter: 0,
+        probability: 1,
+      });
+      expect(sim.getCell(0, 6)).toBe(1);
+    });
+
+    it('interacts across poles in Classic mode when enabled and stays dead-bounded when disabled', () => {
+      const makeAndRun = (polarWrap: boolean) => {
+        const s = new LifeGridSim({ latCells: 10, lonCells: 11, rules: GOL_RULES, polarWrap });
+        // halfLon = Math.floor(11 / 2) = 5.
+        // Target cell (0, 2): (-1, -1..+1) neighbors wrap to (0, 6), (0, 7), (0, 8)
+        s.setCell(0, 6, 1);
+        s.setCell(0, 8, 1);
+        s.setCell(1, 2, 1);
+        // Also test lat = latCells - 1 (9, 3) with antipodal neighbors at (9, 7), (9, 9) and (8, 3)
+        s.setCell(9, 7, 1);
+        s.setCell(9, 9, 1);
+        s.setCell(8, 3, 1);
+        s.step();
+        return { northBirth: s.getCell(0, 2), southBirth: s.getCell(9, 3) };
+      };
+
+      expect(makeAndRun(false)).toEqual({ northBirth: 0, southBirth: 0 });
+      expect(makeAndRun(true)).toEqual({ northBirth: 1, southBirth: 1 });
+    });
+
+    it('interacts across poles in Colony mode with Colony A/B birth typing', () => {
+      const makeAndRun = (polarWrap: boolean) => {
+        const s = new LifeGridSim({ latCells: 10, lonCells: 10, rules: GOL_RULES, polarWrap });
+        s.setGameMode('Colony');
+        // North pole (0, 2): 2 Colony A antipodal + 1 Colony B south -> Colony A (1)
+        s.setCell(0, 6, 1);
+        s.setCell(0, 8, 1);
+        s.setCell(1, 2, 2);
+        // South pole (9, 2): 1 Colony A antipodal + 1 Colony B antipodal + 1 Colony B north -> Colony B (2)
+        s.setCell(9, 6, 1);
+        s.setCell(9, 8, 2);
+        s.setCell(8, 2, 2);
+        s.step();
+        return { northBirth: s.getCell(0, 2), southBirth: s.getCell(9, 2) };
+      };
+
+      expect(makeAndRun(false)).toEqual({ northBirth: 0, southBirth: 0 });
+      expect(makeAndRun(true)).toEqual({ northBirth: 1, southBirth: 2 });
+    });
+  });
 });

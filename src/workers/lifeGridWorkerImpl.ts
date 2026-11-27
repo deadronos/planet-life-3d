@@ -85,6 +85,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
             latCells: msg.latCells,
             lonCells: msg.lonCells,
             rules: msg.rules,
+            polarWrap: msg.polarWrap,
           });
           if (msg.gameMode) sim.setGameMode(msg.gameMode);
           if (msg.ecologyProfile) sim.setEcologyProfile(msg.ecologyProfile);
@@ -111,6 +112,11 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
         case 'setEcologyProfile': {
           if (!sim) return sendError('Worker not initialized');
           sim.setEcologyProfile(msg.profile);
+          return;
+        }
+        case 'setPolarWrap': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setPolarWrap(msg.polarWrap);
           return;
         }
         case 'clear': {

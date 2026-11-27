@@ -18,6 +18,7 @@ export interface LifeGridStepContext {
   readonly nextAliveIndices: Int32Array;
   readonly rules: Rules;
   readonly ecologyProfile: EcologyProfileName;
+  readonly polarWrap: boolean;
   birthsLastTick: number;
   deathsLastTick: number;
   population: number;
@@ -55,8 +56,18 @@ export function applyCellUpdate(
 }
 
 /**
+ * Shift a longitude index by `shift` (`0 <= shift < lonCells`) with wrap-around.
+ */
+export function shiftLon(lon: number, shift: number, lonCells: number): number {
+  if (shift === 0) return lon;
+  const shifted = lon + shift;
+  return shifted >= lonCells ? shifted - lonCells : shifted;
+}
+
+/**
  * Sum neighbors for Classic mode (values are 0 or 1).
- * Specifically for edge cases where we can't use the sliding window optimization.
+ * Specifically for edge cases (longitude seam and polar-wrap boundary rows)
+ * where we can't use the sliding window optimization.
  */
 export function sumNeighborsEdge(
   grid: Uint8Array,
@@ -68,14 +79,23 @@ export function sumNeighborsEdge(
   left: number,
   lo: number,
   right: number,
+  topShift = 0,
+  botShift = 0,
+  lonCells = 0,
 ): number {
   let neighbors = 0;
   if (hasTop) {
-    neighbors += grid[rTop + left] + grid[rTop + lo] + grid[rTop + right];
+    const tl = shiftLon(left, topShift, lonCells);
+    const tm = shiftLon(lo, topShift, lonCells);
+    const tr = shiftLon(right, topShift, lonCells);
+    neighbors += grid[rTop + tl] + grid[rTop + tm] + grid[rTop + tr];
   }
   neighbors += grid[rMid + left] + grid[rMid + right];
   if (hasBot) {
-    neighbors += grid[rBot + left] + grid[rBot + lo] + grid[rBot + right];
+    const bl = shiftLon(left, botShift, lonCells);
+    const bm = shiftLon(lo, botShift, lonCells);
+    const br = shiftLon(right, botShift, lonCells);
+    neighbors += grid[rBot + bl] + grid[rBot + bm] + grid[rBot + br];
   }
   return neighbors;
 }
@@ -95,14 +115,20 @@ export function countNeighborsColony(
   lo: number,
   right: number,
   stats: ColonyStats,
+  topShift = 0,
+  botShift = 0,
+  lonCells = 0,
 ): void {
   let neighbors = 0;
   let countA = 0;
 
   if (hasTop) {
-    const t0 = grid[rTop + left];
-    const t1 = grid[rTop + lo];
-    const t2 = grid[rTop + right];
+    const tl = shiftLon(left, topShift, lonCells);
+    const tm = shiftLon(lo, topShift, lonCells);
+    const tr = shiftLon(right, topShift, lonCells);
+    const t0 = grid[rTop + tl];
+    const t1 = grid[rTop + tm];
+    const t2 = grid[rTop + tr];
     neighbors += (t0 > 0 ? 1 : 0) + (t1 > 0 ? 1 : 0) + (t2 > 0 ? 1 : 0);
     countA += (t0 === 1 ? 1 : 0) + (t1 === 1 ? 1 : 0) + (t2 === 1 ? 1 : 0);
   }
@@ -113,9 +139,12 @@ export function countNeighborsColony(
   countA += (m0 === 1 ? 1 : 0) + (m2 === 1 ? 1 : 0);
 
   if (hasBot) {
-    const b0 = grid[rBot + left];
-    const b1 = grid[rBot + lo];
-    const b2 = grid[rBot + right];
+    const bl = shiftLon(left, botShift, lonCells);
+    const bm = shiftLon(lo, botShift, lonCells);
+    const br = shiftLon(right, botShift, lonCells);
+    const b0 = grid[rBot + bl];
+    const b1 = grid[rBot + bm];
+    const b2 = grid[rBot + br];
     neighbors += (b0 > 0 ? 1 : 0) + (b1 > 0 ? 1 : 0) + (b2 > 0 ? 1 : 0);
     countA += (b0 === 1 ? 1 : 0) + (b1 === 1 ? 1 : 0) + (b2 === 1 ? 1 : 0);
   }

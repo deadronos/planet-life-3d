@@ -11,6 +11,7 @@ export type SimSlice = {
   tickMs: number;
   latCells: number;
   lonCells: number;
+  polarWrap: boolean;
   worldPreset: string;
   birthDigits: string;
   surviveDigits: string;
@@ -127,6 +128,7 @@ function toSlices(p: FlatControls): PlanetLifeControls {
       tickMs: p.tickMs,
       latCells: p.latCells,
       lonCells: p.lonCells,
+      polarWrap: p.polarWrap,
       worldPreset: p.worldPreset,
       birthDigits: p.birthDigits,
       surviveDigits: p.surviveDigits,

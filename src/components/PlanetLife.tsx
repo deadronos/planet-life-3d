@@ -43,7 +43,7 @@ export function PlanetLife({
   } = usePlanetLifeControls();
 
   const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits } = sim;
-  const { ecologyProfile, gameMode, randomDensity, autoReseedOnStagnation } = sim;
+  const { ecologyProfile, gameMode, randomDensity, polarWrap, autoReseedOnStagnation } = sim;
   const {
     planetRadius,
     planetWireframe,
@@ -404,6 +404,7 @@ export function PlanetLife({
           randomDensity={randomDensity}
           gameMode={gameMode}
           ecologyProfile={ecologyProfile}
+          polarWrap={polarWrap}
           onTextureUpdate={onGpuTexture}
           onStats={publishStats}
           simRef={gpuSimRef}

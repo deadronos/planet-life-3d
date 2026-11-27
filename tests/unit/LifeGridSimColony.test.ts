@@ -248,4 +248,31 @@ describe('LifeGridSimColony', () => {
       expect(simB2.getCell(5, 5)).toBe(1); // countA=2 -> Colony A
     });
   });
+
+  describe('polarWrap topology', () => {
+    it('births and sustains polar cells via antipodal neighbors when polarWrap is enabled', () => {
+      const runWith = (polarWrap: boolean) => {
+        const s = new LifeGridSimColony({ latCells, lonCells, rules: COLONY_RULES, polarWrap });
+        s.setGameMode('Colony');
+        // lat=0, lon=1: 2 Colony A antipodal neighbors at (0, 5), (0, 7) + 1 Colony B at (1, 1) -> Colony A birth
+        s.setCell(0, 5, 1);
+        s.setCell(0, 7, 1);
+        s.setCell(1, 1, 2);
+
+        // lat=latCells-1, lon=2: Colony B cell survives with 2 antipodal neighbors (9, 6), (9, 8)
+        s.setCell(latCells - 1, 2, 2);
+        s.setCell(latCells - 1, 6, 1);
+        s.setCell(latCells - 1, 8, 2);
+
+        s.stepColony();
+        return {
+          northBirth: s.getCell(0, 1),
+          southSurvive: s.getCell(latCells - 1, 2),
+        };
+      };
+
+      expect(runWith(false)).toEqual({ northBirth: 0, southSurvive: 0 });
+      expect(runWith(true)).toEqual({ northBirth: 1, southSurvive: 2 });
+    });
+  });
 });

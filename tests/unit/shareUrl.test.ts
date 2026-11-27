@@ -116,4 +116,22 @@ describe('share URL', () => {
     expect(decodeWorld(`#${enabledHash}`).controls.autoReseedOnStagnation).toBe(true);
     expect(decodeWorld('#ar=0').controls.autoReseedOnStagnation).toBe(false);
   });
+
+  it('round-trips polarWrap in share URLs and drops invalid values', () => {
+    const state = {
+      ...createControlDefaults(),
+      polarWrap: true,
+    };
+    const hash = encodeWorld(state, 42);
+    expect(hash).toContain('pw=1');
+    expect(decodeWorld(`#${hash}`).controls.polarWrap).toBe(true);
+
+    const offHash = encodeWorld(createControlDefaults(), 42);
+    expect(offHash).not.toContain('pw=');
+
+    expect(decodeWorld('#pw=0').controls.polarWrap).toBe(false);
+    expect(decodeWorld('#pw=true').controls.polarWrap).toBe(true);
+    expect(decodeWorld('#pw=false').controls.polarWrap).toBe(false);
+    expect(decodeWorld('#pw=maybe').controls.polarWrap).toBeUndefined();
+  });
 });

@@ -8,6 +8,7 @@ import { clampInt, safeInt } from './utils';
 
 export class LifeGridSimBase {
   gameMode: GameMode = 'Classic';
+  polarWrap = false;
   protected ecologyProfile: EcologyProfileName = 'None';
   readonly latCells: number;
   readonly lonCells: number;
@@ -33,7 +34,8 @@ export class LifeGridSimBase {
   birthsLastTick = 0;
   deathsLastTick = 0;
 
-  constructor(opts: { latCells: number; lonCells: number; rules: Rules }) {
+  constructor(opts: { latCells: number; lonCells: number; rules: Rules; polarWrap?: boolean }) {
+    this.polarWrap = Boolean(opts.polarWrap);
     this.latCells = safeInt(
       opts.latCells,
       SIM_DEFAULTS.latCells,
@@ -80,9 +82,27 @@ export class LifeGridSimBase {
     this.ecologyProfile = profile;
   }
 
+  setPolarWrap(polarWrap: boolean) {
+    this.polarWrap = Boolean(polarWrap);
+  }
+
   protected coordsToIdx(lat: number, lon: number): number {
-    const la = clampInt(lat, 0, this.latCells - 1);
-    const lo = ((lon % this.lonCells) + this.lonCells) % this.lonCells;
+    let la: number;
+    let lo = lon;
+    if (this.polarWrap) {
+      const safeLat = Number.isFinite(lat) ? Math.trunc(lat) : 0;
+      const period = this.latCells * 2;
+      const wrapped = ((safeLat % period) + period) % period;
+      if (wrapped >= this.latCells) {
+        la = period - 1 - wrapped;
+        lo += Math.floor(this.lonCells / 2);
+      } else {
+        la = wrapped;
+      }
+    } else {
+      la = clampInt(lat, 0, this.latCells - 1);
+    }
+    lo = ((lo % this.lonCells) + this.lonCells) % this.lonCells;
     return la * this.lonCells + lo;
   }
 
@@ -237,6 +257,7 @@ export class LifeGridSimBase {
       nextAliveIndices: this.nextAliveIndices,
       rules: this.rules,
       ecologyProfile: this.ecologyProfile,
+      polarWrap: this.polarWrap,
       birthsLastTick: 0,
       deathsLastTick: 0,
       population: 0,
