@@ -104,4 +104,16 @@ describe('share URL', () => {
     expect(decodeWorld('#sp=Random+Disk').controls.seedPattern).toBe('Random Disk');
     expect(decodeWorld('#sp=Custom+ASCII').controls.seedPattern).toBe('Custom ASCII');
   });
+
+  it('encodes and decodes autoReseedOnStagnation when enabled', () => {
+    const defaultHash = encodeWorld(createControlDefaults(), 42);
+    expect(defaultHash).not.toContain('ar=');
+
+    const enabledHash = encodeWorld(
+      { ...createControlDefaults(), autoReseedOnStagnation: true },
+      42,
+    );
+    expect(decodeWorld(`#${enabledHash}`).controls.autoReseedOnStagnation).toBe(true);
+    expect(decodeWorld('#ar=0').controls.autoReseedOnStagnation).toBe(false);
+  });
 });

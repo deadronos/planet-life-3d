@@ -13,6 +13,7 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'ecologyProfile',
     'randomDensity',
     'gameMode',
+    'autoReseedOnStagnation',
   ],
   planet: [
     'planetRadius',

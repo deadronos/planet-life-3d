@@ -59,6 +59,7 @@ describe('controls store - defaults', () => {
     expect(s.adaptiveResolution).toBe(true);
     expect(s.nightGlowIntensity).toBe(0.6);
     expect(s.nightGlowColor).toBe('#ffc46b');
+    expect(s.autoReseedOnStagnation).toBe(false);
   });
 
   function mockReducedMotion(matches: boolean) {
@@ -194,6 +195,7 @@ describe('LevaPanel', () => {
     ]);
     expect(Object.keys(s.Basics)).toEqual(['worldPreset', 'theme', 'cellRenderMode']);
     expect(s.Simulation.tickMs.value).toBe(222);
+    expect(s.Simulation.autoReseedOnStagnation.value).toBe(false);
     expect(s.Basics.worldPreset.transient).toBe(false);
   });
 

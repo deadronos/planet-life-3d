@@ -42,6 +42,7 @@ export type ControlValues = {
   surviveDigits: string;
   ecologyProfile: EcologyProfileName;
   randomDensity: number;
+  autoReseedOnStagnation: boolean;
 
   // Rendering
   planetRadius: number;
@@ -130,6 +131,7 @@ export function createControlDefaults(): ControlValues {
     surviveDigits: '23',
     ecologyProfile: 'Garden World',
     randomDensity: 0.14,
+    autoReseedOnStagnation: false,
 
     planetRadius: SIM_DEFAULTS.planetRadius,
     planetWireframe: false,

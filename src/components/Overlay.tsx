@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useControlsStore } from '../store/useControlsStore';
 import { METEOR_TOOLS, useUIStore } from '../store/useUIStore';
 import { describePopulationTrend, sparklinePoints } from '../utils/populationHistory';
+import { detectSimStatus } from '../utils/simStatus';
 import { GraphicsNotice } from './GraphicsNotice';
 import { TransportBar } from './TransportBar';
 
@@ -27,6 +28,7 @@ export function Overlay() {
   const probe = useUIStore((state) => state.probe);
   const setProbe = useUIStore((state) => state.setProbe);
   const populationHistory = useUIStore((state) => state.populationHistory);
+  const simStatus = useUIStore((state) => detectSimStatus(state.statsHistory));
 
   const worldPreset = useControlsStore((state) => state.worldPreset);
   const gpuSim = useControlsStore((state) => state.gpuSim);
@@ -110,6 +112,16 @@ export function Overlay() {
               {hudCollapsed ? '▸' : '▾'}
             </button>
           </div>
+          {simStatus !== 'active' && (
+            <div
+              className={`hud-status-badge hud-status-${simStatus}`}
+              role="status"
+              aria-label={`Simulation status: ${simStatus === 'extinct' ? 'Extinct' : 'Equilibrium'}`}
+            >
+              <span className="hud-status-dot" aria-hidden="true" />
+              <span>{simStatus === 'extinct' ? 'Extinct' : 'Equilibrium'}</span>
+            </div>
+          )}
           <div className="hud-row">
             <span className="hud-label">Gen</span>
             <span className="hud-value">{stats.generation}</span>

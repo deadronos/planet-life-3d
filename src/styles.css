@@ -75,6 +75,47 @@ body,
   margin-bottom: 0.65rem;
 }
 
+.hud-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.hud-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.hud-status-equilibrium {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fde68a;
+}
+
+.hud-status-equilibrium .hud-status-dot {
+  background-color: #fbbf24;
+}
+
+.hud-status-extinct {
+  background: rgba(244, 63, 94, 0.14);
+  border: 1px solid rgba(251, 113, 133, 0.42);
+  color: #fecdd3;
+}
+
+.hud-status-extinct .hud-status-dot {
+  background-color: #fb7185;
+}
+
 .hud-toggle-btn {
   flex: none;
   min-width: 28px;
@@ -711,6 +752,12 @@ body,
 
   .hud-stats .hud-header {
     grid-column: 1 / -1;
+  }
+
+  .hud-stats .hud-status-badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-bottom: 0.35rem;
   }
 
   .hud-stats .hud-kicker {

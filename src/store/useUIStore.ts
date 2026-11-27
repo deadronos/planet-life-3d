@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { EcologySample } from '../sim/ecology';
 import { newWorldSeed } from '../sim/seededRng';
 import { appendSample, replaceLastSample } from '../utils/populationHistory';
+import { appendStatsSample, replaceLastStatsSample, type SimStatsSample } from '../utils/simStatus';
 
 export interface GameStats {
   generation: number;
@@ -41,6 +42,8 @@ interface UIState {
   stats: GameStats;
   /** Last ~200 population samples; reset when the generation counter goes backwards. */
   populationHistory: number[];
+  /** Recent stats samples for equilibrium/extinction detection; reset when generation goes backwards. */
+  statsHistory: SimStatsSample[];
   activeTool: MeteorTool;
   probe: ProbeStatus | undefined;
   /** Wrapped in an object so repeated requests for the same command still notify. */
@@ -65,6 +68,7 @@ export const useUIStore = create<UIState>((set) => ({
     deathsLastTick: 0,
   },
   populationHistory: [],
+  statsHistory: [],
   graphicsStatus: 'ok',
   graphicsEpoch: 0,
   setGraphicsStatus: (graphicsStatus) => set({ graphicsStatus }),
@@ -95,7 +99,24 @@ export const useUIStore = create<UIState>((set) => ({
       } else {
         populationHistory = appendSample(history, stats.population);
       }
-      return { stats, populationHistory };
+
+      const prevStatsHistory = state.statsHistory;
+      const sample: SimStatsSample = {
+        generation: stats.generation,
+        population: stats.population,
+        birthsLastTick: stats.birthsLastTick,
+        deathsLastTick: stats.deathsLastTick,
+      };
+      let statsHistory: SimStatsSample[];
+      if (prevStatsHistory.length === 0 || stats.generation < prevGen) {
+        statsHistory = [sample];
+      } else if (stats.generation === prevGen) {
+        statsHistory = replaceLastStatsSample(prevStatsHistory, sample);
+      } else {
+        statsHistory = appendStatsSample(prevStatsHistory, sample);
+      }
+
+      return { stats, populationHistory, statsHistory };
     }),
   setActiveTool: (activeTool) => set({ activeTool }),
   setProbe: (probe) => set({ probe }),
