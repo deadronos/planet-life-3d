@@ -11,7 +11,10 @@ import { formatVector3, uid } from './utils';
 type MeteorSystemParams = {
   meteors: MeteorsSlice;
   impacts: ImpactsSlice;
-  seedAtPoint: (point: THREE.Vector3, options: { updateProbe: boolean }) => void;
+  seedAtPoint: (
+    point: THREE.Vector3,
+    options: { updateProbe: boolean; forceLifeSeed?: boolean },
+  ) => void;
   activeTool?: MeteorTool;
   isProbeActive?: boolean;
   debugLogs: boolean;
@@ -47,31 +50,38 @@ export function useMeteorSystem({
   const [meteors, setMeteors] = useState<MeteorSpec[]>([]);
   const [impacts, setImpacts] = useState<ImpactSpec[]>([]);
 
-  const addMeteor = useCallback(
-    (origin: THREE.Vector3, direction: THREE.Vector3, source: MeteorSource, tool?: MeteorTool) => {
-      const meteor: MeteorSpec = {
-        id: uid('meteor'),
-        source,
-        ...(source === 'user' && tool ? { tool } : {}),
-        origin,
-        direction,
-        speed: meteorSpeed,
-        radius: meteorRadius,
-        trailLength: meteorTrailLength,
-        trailWidth: meteorTrailWidth,
-        emissiveIntensity: meteorEmissive,
-      };
-      meteorsRef.current = [...meteorsRef.current, meteor];
-      setMeteors((list) => [...list, meteor]);
-    },
+  const makeMeteorSpec = useCallback(
+    (
+      origin: THREE.Vector3,
+      direction: THREE.Vector3,
+      source: MeteorSource,
+      tool?: MeteorTool,
+    ): MeteorSpec => ({
+      id: uid('meteor'),
+      source,
+      ...(source === 'user' && tool ? { tool } : {}),
+      origin,
+      direction,
+      speed: meteorSpeed,
+      radius: meteorRadius,
+      trailLength: meteorTrailLength,
+      trailWidth: meteorTrailWidth,
+      emissiveIntensity: meteorEmissive,
+    }),
     [meteorSpeed, meteorRadius, meteorTrailLength, meteorTrailWidth, meteorEmissive],
   );
 
-  // Meteor shower logic
-  useEffect(() => {
-    if (!showerEnabled) return;
+  const addMeteor = useCallback(
+    (origin: THREE.Vector3, direction: THREE.Vector3, source: MeteorSource, tool?: MeteorTool) => {
+      const meteor = makeMeteorSpec(origin, direction, source, tool);
+      meteorsRef.current = [...meteorsRef.current, meteor];
+      setMeteors((list) => [...list, meteor]);
+    },
+    [makeMeteorSpec],
+  );
 
-    const spawnMeteor = () => {
+  const createRandomMeteor = useCallback(
+    (source: MeteorSource): MeteorSpec => {
       // Pick a random target on the unit sphere
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
@@ -93,12 +103,29 @@ export function useMeteorSystem({
       const origin = originDir.multiplyScalar(12);
       const direction = target.sub(origin).normalize();
 
-      addMeteor(origin, direction, 'shower');
-    };
+      return makeMeteorSpec(origin, direction, source);
+    },
+    [makeMeteorSpec],
+  );
 
-    const id = window.setInterval(spawnMeteor, showerInterval);
+  const spawnMeteorBurst = useCallback(
+    (count = 4, source: MeteorSource = 'reseed') => {
+      const safeCount = Math.max(1, Math.floor(count));
+      const burst = Array.from({ length: safeCount }, () => createRandomMeteor(source));
+      setMeteors((list) => [...list, ...burst]);
+    },
+    [createRandomMeteor],
+  );
+
+  // Meteor shower logic
+  useEffect(() => {
+    if (!showerEnabled) return;
+
+    const id = window.setInterval(() => {
+      setMeteors((list) => [...list, createRandomMeteor('shower')]);
+    }, showerInterval);
     return () => window.clearInterval(id);
-  }, [showerEnabled, showerInterval, addMeteor]);
+  }, [showerEnabled, showerInterval, createRandomMeteor]);
 
   const onPlanetPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -143,8 +170,13 @@ export function useMeteorSystem({
           : undefined;
       const visualStyle = getMeteorVisualStyle(source, resolvedTool, impactRingColor);
 
-      // Shower impacts still seed, but must not move the probe card.
-      seedAtPoint(impactPoint, { updateProbe: source === 'user' });
+      // Shower/reseed impacts still seed, but must not move the probe card.
+      seedAtPoint(
+        impactPoint,
+        source === 'reseed'
+          ? { updateProbe: false, forceLifeSeed: true }
+          : { updateProbe: source === 'user' },
+      );
       meteorsRef.current = meteorsRef.current.filter((m) => m.id !== id);
       setMeteors((list) => list.filter((m) => m.id !== id));
 
@@ -205,5 +237,6 @@ export function useMeteorSystem({
     impacts,
     onPlanetPointerDown,
     onMeteorImpact,
+    spawnMeteorBurst,
   };
 }

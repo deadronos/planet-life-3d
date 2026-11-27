@@ -2,8 +2,11 @@ import * as THREE from 'three';
 
 import type { MeteorTool } from '../store/useUIStore';
 
-/** `user` = fired by a planet click; `shower` = spawned by the ambient meteor shower. */
-export type MeteorSource = 'user' | 'shower';
+/**
+ * `user` = fired by a planet click; `shower` = spawned by the ambient meteor shower;
+ * `reseed` = triggered by auto-reseed on stagnation/extinction.
+ */
+export type MeteorSource = 'user' | 'shower' | 'reseed';
 
 export type MeteorVisualStyle = {
   coreColor: string;

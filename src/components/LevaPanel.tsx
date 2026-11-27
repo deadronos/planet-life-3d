@@ -145,6 +145,10 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
         surviveDigits: {},
         ecologyProfile: { label: 'Ecology', options: ECOLOGY_PROFILE_NAMES },
         randomDensity: { min: 0, max: 1, step: 0.01 },
+        autoReseedOnStagnation: {
+          label: 'Auto Reseed',
+          hint: 'Automatically fires a meteor burst when the world goes extinct or reaches equilibrium.',
+        },
       }),
       { collapsed: true },
     ),

@@ -376,4 +376,27 @@ describe('useMeteorSystem', () => {
     unmount();
     vi.useRealTimers();
   });
+
+  it('spawnMeteorBurst spawns reseed meteors that force life seeding on impact', () => {
+    mockSeedAtPoint.mockClear();
+    const { result, unmount } = renderHook(() => useMeteorSystem(sliced(defaultParams)));
+    act(() => {
+      result.current.spawnMeteorBurst(3, 'reseed');
+    });
+    expect(result.current.meteors).toHaveLength(3);
+    expect(result.current.meteors.every((m) => m.source === 'reseed')).toBe(true);
+
+    act(() => {
+      result.current.onMeteorImpact(
+        result.current.meteors[0].id,
+        new THREE.Vector3(0, 0, 5),
+        'reseed',
+      );
+    });
+    expect(mockSeedAtPoint).toHaveBeenCalledWith(expect.any(THREE.Vector3), {
+      updateProbe: false,
+      forceLifeSeed: true,
+    });
+    unmount();
+  });
 });

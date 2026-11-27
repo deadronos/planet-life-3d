@@ -66,6 +66,13 @@ export function decodeWorld(hash: string): SharedWorld {
     controls.randomDensity = Math.round(clampInt(Number(d), 0, 1) * 1000) / 1000;
   }
 
+  const ar = params.get('ar');
+  if (ar === '1' || ar === 'true') {
+    controls.autoReseedOnStagnation = true;
+  } else if (ar === '0' || ar === 'false') {
+    controls.autoReseedOnStagnation = false;
+  }
+
   out.seed = parseWorldSeed(params.get('seed'));
   return out;
 }
@@ -82,6 +89,7 @@ export function encodeWorld(state: ControlValues, seed: number): string {
   p.set('sp', state.seedPattern);
   p.set('g', `${state.latCells}x${state.lonCells}`);
   p.set('d', String(Math.round(state.randomDensity * 1000) / 1000));
+  if (state.autoReseedOnStagnation) p.set('ar', '1');
   p.set('seed', String(seed >>> 0));
   return p.toString();
 }

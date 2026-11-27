@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+import { useDocumentHidden } from '../hooks/useDocumentHidden';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { computeEcologySample } from '../sim/ecology';
 import { parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
 import { useUIStore } from '../store/useUIStore';
+import { detectSimStatus } from '../utils/simStatus';
 import { GPUSimulation, type GPUSimulationHandle } from './GPUSimulation';
 import { applySeed } from './planetLife/applySeed';
 import { Atmosphere } from './planetLife/Atmosphere';
@@ -19,6 +21,7 @@ import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { PlanetMesh } from './planetLife/PlanetMesh';
 import { usePlanetNoiseTexture } from './planetLife/planetNoiseTexture';
 import { resolveSeedRequest } from './planetLife/seedRequest';
+import { useAutoReseed } from './planetLife/useAutoReseed';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
 import { safeInt } from './planetLife/utils';
@@ -40,7 +43,7 @@ export function PlanetLife({
   } = usePlanetLifeControls();
 
   const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits } = sim;
-  const { ecologyProfile, gameMode, randomDensity } = sim;
+  const { ecologyProfile, gameMode, randomDensity, autoReseedOnStagnation } = sim;
   const {
     planetRadius,
     planetWireframe,
@@ -75,6 +78,8 @@ export function PlanetLife({
   const setProbe = useUIStore((state) => state.setProbe);
   const graphicsEpoch = useUIStore((state) => state.graphicsEpoch);
   const graphicsOk = useUIStore((state) => state.graphicsStatus === 'ok');
+  const simStatus = useUIStore((state) => detectSimStatus(state.statsHistory));
+  const documentHidden = useDocumentHidden();
 
   const rules = useMemo(() => {
     return {
@@ -243,7 +248,10 @@ export function PlanetLife({
   );
 
   const seedAtPoint = useCallback(
-    (point: THREE.Vector3, { updateProbe }: { updateProbe: boolean }) => {
+    (
+      point: THREE.Vector3,
+      { updateProbe, forceLifeSeed }: { updateProbe: boolean; forceLifeSeed?: boolean },
+    ) => {
       const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
       if (updateProbe) {
         const sample = computeEcologySample({
@@ -256,7 +264,12 @@ export function PlanetLife({
         setProbe({ lat, lon, sample });
       }
 
-      const request = resolveSeedRequest({ tool: activeTool, seeding });
+      const request = forceLifeSeed
+        ? resolveSeedRequest({
+            tool: 'Comet',
+            seeding: { ...seeding, seedScale: Math.max(2, seeding.seedScale) },
+          })
+        : resolveSeedRequest({ tool: activeTool, seeding });
       if (!request) return;
 
       applySeed(request, {
@@ -268,8 +281,8 @@ export function PlanetLife({
         gpu: gpuSim ? gpuSimRef.current : null,
         cpu: (params) => {
           seedAtPointImpl({ ...params, debug: debugLogs });
-          // Life refreshes the instanced mesh after a CPU seed; meteor tools do not.
-          if (activeTool === 'Life') updateInstances();
+          // Life (or forced life reseed) refreshes the instanced mesh after a CPU seed.
+          if (forceLifeSeed || activeTool === 'Life') updateInstances();
         },
       });
     },
@@ -287,14 +300,15 @@ export function PlanetLife({
     ],
   );
 
-  const { meteors, impacts, onPlanetPointerDown, onMeteorImpact } = useMeteorSystem({
-    meteors: meteorControls,
-    impacts: impactControls,
-    seedAtPoint,
-    activeTool,
-    isProbeActive: activeTool === 'Probe',
-    debugLogs,
-  });
+  const { meteors, impacts, onPlanetPointerDown, onMeteorImpact, spawnMeteorBurst } =
+    useMeteorSystem({
+      meteors: meteorControls,
+      impacts: impactControls,
+      seedAtPoint,
+      activeTool,
+      isProbeActive: activeTool === 'Probe',
+      debugLogs,
+    });
 
   const activeEffectCount = meteors.length + impacts.length;
   useEffect(() => {
@@ -324,6 +338,21 @@ export function PlanetLife({
       stepOnce();
     }
   }, [gpuSim, stepOnce]);
+
+  const triggerAutoReseed = useCallback(() => {
+    if (spawnMeteorBurst) {
+      spawnMeteorBurst(4, 'reseed');
+    } else {
+      runRandomize();
+    }
+  }, [spawnMeteorBurst, runRandomize]);
+
+  useAutoReseed({
+    enabled: autoReseedOnStagnation,
+    running: running && graphicsOk && !documentHidden,
+    status: simStatus,
+    onReseed: triggerAutoReseed,
+  });
 
   // Hotkey and Leva Actions commands (see useHotkeys, LevaPanel). togglePlay is
   // handled in controls.ts, which owns the `running` value.

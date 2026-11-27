@@ -28,6 +28,12 @@ describe('Overlay component', () => {
     localStorageMock.clear();
     vi.clearAllMocks();
     useControlsStore.getState().resetControls();
+    useUIStore.setState({
+      stats: { generation: 0, population: 0, birthsLastTick: 0, deathsLastTick: 0 },
+      populationHistory: [],
+      statsHistory: [],
+      probe: undefined,
+    });
   });
 
   afterEach(() => {
@@ -164,5 +170,48 @@ describe('Overlay component', () => {
     const hud = screen.getByRole('region', { name: 'Planet status' });
     expect(hud).toHaveTextContent('A 9');
     expect(hud).toHaveTextContent('B 6');
+  });
+
+  it('shows Extinct and Equilibrium status badges when detected and hides them when active', () => {
+    const { rerender } = render(<Overlay />);
+    expect(screen.queryByRole('status', { name: /Simulation status:/i })).toBeNull();
+
+    act(() => {
+      useUIStore.getState().setStats({
+        generation: 12,
+        population: 0,
+        birthsLastTick: 0,
+        deathsLastTick: 4,
+      });
+    });
+
+    const extinctBadge = screen.getByRole('status', { name: 'Simulation status: Extinct' });
+    expect(extinctBadge).toHaveTextContent('Extinct');
+
+    act(() => {
+      useUIStore.setState({ statsHistory: [] });
+      for (let g = 1; g <= 6; g++) {
+        useUIStore.getState().setStats({
+          generation: g,
+          population: 18,
+          birthsLastTick: 0,
+          deathsLastTick: 0,
+        });
+      }
+    });
+    rerender(<Overlay />);
+
+    const equilibriumBadge = screen.getByRole('status', { name: 'Simulation status: Equilibrium' });
+    expect(equilibriumBadge).toHaveTextContent('Equilibrium');
+
+    act(() => {
+      useUIStore.getState().setStats({
+        generation: 7,
+        population: 24,
+        birthsLastTick: 8,
+        deathsLastTick: 2,
+      });
+    });
+    expect(screen.queryByRole('status', { name: /Simulation status:/i })).toBeNull();
   });
 });
