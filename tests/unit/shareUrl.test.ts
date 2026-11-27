@@ -147,4 +147,28 @@ describe('share URL', () => {
     expect(decodeWorld('#G=4').controls).toMatchObject({ decayStates: 4, rulePreset: 'Custom' });
     expect(decodeWorld('#G=abc').controls.decayStates).toBeUndefined();
   });
+
+  it('round-trips solarCycleSpeed and dynamicFertility and ignores invalid values', () => {
+    const state = {
+      ...createControlDefaults(),
+      solarCycleSpeed: 1.75,
+      dynamicFertility: true,
+    };
+    const hash = encodeWorld(state, 99);
+    const decoded = decodeWorld(`#${hash}`);
+    expect(decoded.controls.solarCycleSpeed).toBe(1.75);
+    expect(decoded.controls.dynamicFertility).toBe(true);
+
+    // Defaults omit sc/df to keep URLs concise
+    const defaultHash = encodeWorld(createControlDefaults(), 99);
+    expect(defaultHash).not.toContain('sc=');
+    expect(defaultHash).not.toContain('df=');
+
+    // Explicit 0/false decodes cleanly and invalid values are dropped
+    expect(decodeWorld('#sc=0&df=0').controls).toEqual({
+      solarCycleSpeed: 0,
+      dynamicFertility: false,
+    });
+    expect(decodeWorld('#sc=nope&df=maybe').controls).toEqual({});
+  });
 });

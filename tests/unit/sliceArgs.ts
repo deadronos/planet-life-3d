@@ -13,6 +13,8 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'surviveDigits',
     'decayStates',
     'ecologyProfile',
+    'solarCycleSpeed',
+    'dynamicFertility',
     'randomDensity',
     'gameMode',
     'autoReseedOnStagnation',

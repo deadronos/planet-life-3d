@@ -45,6 +45,8 @@ export type ControlValues = {
   surviveDigits: string;
   decayStates: number;
   ecologyProfile: EcologyProfileName;
+  solarCycleSpeed: number;
+  dynamicFertility: boolean;
   randomDensity: number;
   autoReseedOnStagnation: boolean;
 
@@ -137,6 +139,8 @@ export function createControlDefaults(): ControlValues {
     surviveDigits: '23',
     decayStates: DEFAULT_DECAY_STATES,
     ecologyProfile: 'Garden World',
+    solarCycleSpeed: 0,
+    dynamicFertility: false,
     randomDensity: 0.14,
     autoReseedOnStagnation: false,
 

@@ -12,9 +12,14 @@ export const simulationFragmentShader = /* glsl */ `
   uniform bool uColonyBiomeAffinity;  // Whether Colony A/B prefer complementary biomes
   uniform float uGeneration;          // Current simulation generation (parity tie-breaker)
   // Ecology bias lookup texture baked 1:1 from sim/ecology.ts on profile or
-  // resolution change (NearestFilter, R = neighborBias, G = colonyAffinity; 0 = -1, 128 = 0, 255 = +1).
+  // resolution change (NearestFilter: R = neighborBias, G = colonyAffinity, B = basin, A = ridge).
   uniform bool uEcologyEnabled;
   uniform sampler2D uEcologyBiasTexture;
+  // Packed profile scalars (fertilityBias, droughtBias, mountainBias, sunlightBias)
+  // used when dynamic solar phase or fertility is active without re-evaluating 3D noise.
+  uniform vec4 uEcologyProfileBiases;
+  uniform float uSolarPhase;
+  uniform bool uDynamicFertility;
   
   varying vec2 vUv;
 
@@ -24,14 +29,77 @@ export const simulationFragmentShader = /* glsl */ `
     return 0.0;
   }
 
-  // Per-cell ecology sample (vec2(neighborBias, colonyAffinity)) from the static texture.
+  // Per-cell ecology sample (vec2(neighborBias, colonyAffinity)) from the static
+  // baked texture, with dynamic solar-phase and soil-fertility adjustments when enabled.
   vec2 ecologySample(vec2 uv) {
+    float fertilityModifier = 0.0;
+    if (uDynamicFertility) {
+      float soilByte = floor(texture2D(uTexture, uv).a * 255.0 + 0.5);
+      float soilNorm = soilByte >= 128.0
+        ? (soilByte - 128.0) / 127.0
+        : (soilByte - 128.0) / 128.0;
+      fertilityModifier = soilNorm * 0.45;
+    }
+
+    if (!uEcologyEnabled) {
+      float viability = clamp(0.5 + fertilityModifier, 0.0, 1.0);
+      float bias = viability >= 0.68 ? 1.0 : (viability <= 0.28 ? -1.0 : 0.0);
+      return vec2(bias, 0.0);
+    }
+
     vec4 texel = texture2D(uEcologyBiasTexture, uv);
-    return vec2(decodeBiasChannel(texel.r), decodeBiasChannel(texel.g));
+    if (!uDynamicFertility && uSolarPhase == 0.0) {
+      return vec2(decodeBiasChannel(texel.r), decodeBiasChannel(texel.g));
+    }
+
+    vec2 pixelPos = floor(uv * uResolution);
+    float lat01 = pixelPos.y / max(1.0, uResolution.y - 1.0);
+    float lon01 = pixelPos.x / uResolution.x;
+    float latRad = (lat01 - 0.5) * 3.141592653589793;
+    float equator = 1.0 - abs(sin(latRad));
+
+    float basin = texel.b;
+    float ridge = texel.a;
+    float altitude = clamp(ridge, 0.0, 1.0);
+    float temperature = clamp(equator * 0.78 + basin * 0.22, 0.0, 1.0);
+    float moisture = clamp(
+      basin * 0.62 +
+        equator * 0.24 -
+        max(0.0, ridge - 0.62) * 0.35 +
+        uEcologyProfileBiases.x -
+        uEcologyProfileBiases.y +
+        fertilityModifier * 0.7,
+      0.0,
+      1.0);
+    float sunlight = clamp(
+      0.5 + cos((lon01 - 0.18 - uSolarPhase) * 6.283185307179586) * 0.3 + equator * 0.12, 0.0, 1.0);
+    float fertility = clamp(
+      moisture * 0.42 +
+        (1.0 - abs(temperature - 0.58) * 1.6) * 0.32 +
+        (1.0 - altitude) * 0.18 +
+        uEcologyProfileBiases.x +
+        fertilityModifier,
+      0.0,
+      1.0);
+    float viability = clamp(
+      fertility +
+        sunlight * uEcologyProfileBiases.w -
+        max(0.0, 0.28 - moisture) * (0.9 + uEcologyProfileBiases.y) -
+        max(0.0, altitude - 0.7) * (0.72 + uEcologyProfileBiases.z),
+      0.0,
+      1.0);
+
+    float bias = viability >= 0.68 ? 1.0 : (viability <= 0.28 ? -1.0 : 0.0);
+    float affinityScore =
+      (temperature - 0.4) * 0.45 +
+      (moisture - 0.5) * 0.20 +
+      (0.5 - altitude) * 0.35;
+    float affinity = affinityScore >= 0.08 ? 1.0 : (affinityScore <= -0.08 ? -1.0 : 0.0);
+    return vec2(bias, affinity);
   }
 
   float ecologyBias(vec2 uv) {
-    return decodeBiasChannel(texture2D(uEcologyBiasTexture, uv).r);
+    return ecologySample(uv).x;
   }
   
   // Sample a neighbor with proper wrapping for sphere topology
@@ -127,7 +195,7 @@ export const simulationFragmentShader = /* glsl */ `
       // Colony mode logic: majority-wins birth typing with parity tie-breaker
       // and optional species biome affinities, matching LifeGridSimColony.ts.
       float neighborsColonyB = neighbors - neighborsColonyA;
-      vec2 eco = uEcologyEnabled ? ecologySample(vUv) : vec2(0.0);
+      vec2 eco = (uEcologyEnabled || uDynamicFertility) ? ecologySample(vUv) : vec2(0.0);
       float baseBias = eco.x;
       float affinity = uColonyBiomeAffinity ? eco.y : 0.0;
 
@@ -176,7 +244,7 @@ export const simulationFragmentShader = /* glsl */ `
       // - Firing cells (> 0.92) survive to 1.0 or enter refractory state 2
       // - Refractory cells (0.1..0.92) advance s -> s + 1 until s >= uDecayStates (dead 0.0)
       // - Dead cells (< 0.1) are born into firing state 1.0 when matching birth rules
-      if (uEcologyEnabled) {
+      if (uEcologyEnabled || uDynamicFertility) {
         neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
       }
       int neighborCount = int(neighbors + 0.5);
@@ -215,7 +283,7 @@ export const simulationFragmentShader = /* glsl */ `
       }
     } else {
       // Classic mode logic: treat any live state (> 0.1, including Colony 0.33/0.67) as alive
-      if (uEcologyEnabled) {
+      if (uEcologyEnabled || uDynamicFertility) {
         neighbors = clamp(neighbors + ecologyBias(vUv), 0.0, 8.0);
       }
       int neighborCount = int(neighbors + 0.5);  // Round to nearest int
@@ -239,7 +307,26 @@ export const simulationFragmentShader = /* glsl */ `
       }
     }
     
-    // Output: R = alive/dead state, G = age (0-1), B = neighbor heat (0-1)
-    gl_FragColor = vec4(nextState, nextAge, nextHeat, 1.0);
+    // Dynamic fertility depletion (long-lived cells) & recovery (empty cells),
+    // quantized to [0..255] with 128 as neutral to match CPU/Worker Uint8Array.
+    float nextSoil = 128.0 / 255.0;
+    if (uDynamicFertility) {
+      float soilByte = floor(currentCell.a * 255.0 + 0.5);
+      float ageByte = floor(currentAge * 255.0 + 0.5);
+      float nextSoilByte = soilByte;
+      if (nextState > 0.1) {
+        if (ageByte >= 4.0) {
+          nextSoilByte = max(0.0, soilByte - 2.0);
+        }
+      } else if (soilByte < 128.0) {
+        nextSoilByte = min(128.0, soilByte + 1.0);
+      } else if (soilByte > 128.0) {
+        nextSoilByte = max(128.0, soilByte - 1.0);
+      }
+      nextSoil = nextSoilByte / 255.0;
+    }
+
+    // Output: R = alive/dead state, G = age (0-1), B = neighbor heat (0-1), A = soil fertility (0-1)
+    gl_FragColor = vec4(nextState, nextAge, nextHeat, nextSoil);
   }
 `;

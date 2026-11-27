@@ -13,6 +13,7 @@ type BufferQuad = {
   grid: ArrayBuffer;
   age: ArrayBuffer;
   heat: ArrayBuffer;
+  soil: ArrayBuffer;
   aliveIndices: ArrayBuffer;
 };
 
@@ -32,6 +33,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       candidate.grid.byteLength === cellCount &&
       candidate.age.byteLength === cellCount &&
       candidate.heat.byteLength === cellCount &&
+      candidate.soil.byteLength === cellCount &&
       candidate.aliveIndices.byteLength === cellCount * 4
     ) {
       return candidate;
@@ -41,6 +43,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       grid: new ArrayBuffer(cellCount),
       age: new ArrayBuffer(cellCount),
       heat: new ArrayBuffer(cellCount),
+      soil: new ArrayBuffer(cellCount),
       aliveIndices: new ArrayBuffer(cellCount * 4), // Int32Array
     };
   };
@@ -54,6 +57,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
     new Uint8Array(buffers.grid).set(sim.getGridView());
     new Uint8Array(buffers.age).set(sim.getAgeView());
     new Uint8Array(buffers.heat).set(sim.getNeighborHeatView());
+    new Uint8Array(buffers.soil).set(sim.getSoilView());
 
     // Copy only the active portion of the alive indices or the whole buffer?
     // For simplicity and to maintain fixed size buffers for the pool, we copy the whole thing.
@@ -65,7 +69,9 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       grid: buffers.grid,
       age: buffers.age,
       heat: buffers.heat,
+      soil: buffers.soil,
       aliveIndices: buffers.aliveIndices,
+      solarPhase: sim.getSolarPhase(),
       generation: sim.generation,
       population: sim.population,
       colonyAPopulation: sim.colonyAPopulation,
@@ -74,7 +80,13 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
       deathsLastTick: sim.deathsLastTick,
     };
 
-    postMessage(payload, [buffers.grid, buffers.age, buffers.heat, buffers.aliveIndices]);
+    postMessage(payload, [
+      buffers.grid,
+      buffers.age,
+      buffers.heat,
+      buffers.soil,
+      buffers.aliveIndices,
+    ]);
   };
 
   const onMessage = (msg: LifeGridWorkerInMessage) => {
@@ -92,6 +104,9 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           if (typeof msg.colonyBiomeAffinity === 'boolean') {
             sim.setColonyBiomeAffinity(msg.colonyBiomeAffinity);
           }
+          if (typeof msg.solarCycleSpeed === 'number') sim.setSolarCycleSpeed(msg.solarCycleSpeed);
+          if (typeof msg.dynamicFertility === 'boolean')
+            sim.setDynamicFertility(msg.dynamicFertility);
           pool = [];
           if (typeof msg.randomDensity === 'number')
             sim.randomize(
@@ -127,6 +142,16 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           sim.setColonyBiomeAffinity(msg.enabled);
           return;
         }
+        case 'setSolarCycleSpeed': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setSolarCycleSpeed(msg.speed);
+          return;
+        }
+        case 'setDynamicFertility': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setDynamicFertility(msg.enabled);
+          return;
+        }
         case 'clear': {
           if (!sim) return sendError('Worker not initialized');
           sim.clear();
@@ -152,6 +177,7 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
             scale: msg.scale,
             jitter: msg.jitter,
             probability: msg.probability,
+            fertilityDelta: msg.fertilityDelta,
             debug: msg.debug,
           });
           sendSnapshot();
@@ -176,6 +202,10 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
               grid: msg.grid,
               age: msg.age,
               heat: msg.heat,
+              soil:
+                msg.soil && msg.soil.byteLength === sim.cellCount
+                  ? msg.soil
+                  : new ArrayBuffer(sim.cellCount),
               aliveIndices: msg.aliveIndices,
             });
           }

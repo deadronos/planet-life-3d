@@ -68,4 +68,32 @@ describe('applySeed', () => {
     const { matrix } = offsetsToMatrix(transformOffsets(disk.offsets, 1, 0));
     expect(seedAtUV.mock.calls[0][0].pattern).toEqual(matrix);
   });
+
+  it('forwards non-zero fertilityDelta to both CPU and GPU seeders', () => {
+    const cpu = vi.fn();
+    applySeed(request, {
+      point,
+      lat: 1,
+      lon: 2,
+      latCells: 8,
+      lonCells: 16,
+      fertilityDelta: 110,
+      gpu: null,
+      cpu,
+    });
+    expect(cpu).toHaveBeenCalledWith({ ...request, point, fertilityDelta: 110 });
+
+    const { handle, seedAtUV } = makeGpu();
+    applySeed(request, {
+      point,
+      lat: 1,
+      lon: 2,
+      latCells: 8,
+      lonCells: 16,
+      fertilityDelta: -128,
+      gpu: handle,
+      cpu: vi.fn(),
+    });
+    expect(seedAtUV.mock.calls[0][0].fertilityDelta).toBe(-128);
+  });
 });

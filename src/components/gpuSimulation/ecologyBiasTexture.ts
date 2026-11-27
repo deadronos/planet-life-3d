@@ -29,22 +29,24 @@ export function createEcologyBiasTexture(
   let data: Uint8Array;
 
   if (resolved === 'None') {
-    data = new Uint8Array([128, 128, 0, 255]);
+    data = new Uint8Array([128, 128, 128, 128]);
   } else {
     width = Math.max(1, Math.floor(resolution.width));
     height = Math.max(1, Math.floor(resolution.height));
-    const { bias: biasTable, affinity: affinityTable } = buildEcologyTables(
-      height,
-      width,
-      resolved,
-    );
+    const {
+      bias: biasTable,
+      affinity: affinityTable,
+      basin: basinTable,
+      ridge: ridgeTable,
+    } = buildEcologyTables(height, width, resolved);
     const cellCount = biasTable.length;
     data = new Uint8Array(cellCount * 4);
     for (let i = 0; i < cellCount; i++) {
       const di = i * 4;
       data[di] = encodeEcologyBiasByte(biasTable[i]);
       data[di + 1] = encodeEcologyBiasByte(affinityTable[i]);
-      data[di + 3] = 255;
+      data[di + 2] = basinTable[i];
+      data[di + 3] = ridgeTable[i];
     }
   }
 

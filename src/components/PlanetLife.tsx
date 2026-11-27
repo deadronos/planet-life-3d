@@ -3,7 +3,7 @@ import * as THREE from 'three';
 
 import { useDocumentHidden } from '../hooks/useDocumentHidden';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
-import { computeEcologySample } from '../sim/ecology';
+import { computeEcologySample, SOIL_NEUTRAL, soilByteToFertilityModifier } from '../sim/ecology';
 import { normalizeDecayStates, parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
 import { useUIStore } from '../store/useUIStore';
@@ -20,7 +20,7 @@ import { MeteorEffects } from './planetLife/MeteorEffects';
 import { usePlanetMaterial } from './planetLife/planetMaterial';
 import { PlanetMesh } from './planetLife/PlanetMesh';
 import { usePlanetNoiseTexture } from './planetLife/planetNoiseTexture';
-import { resolveSeedRequest } from './planetLife/seedRequest';
+import { resolveSeedRequest, resolveToolFertilityDelta } from './planetLife/seedRequest';
 import { useAutoReseed } from './planetLife/useAutoReseed';
 import { useMeteorSystem } from './planetLife/useMeteorSystem';
 import { usePlanetLifeSim } from './planetLife/usePlanetLifeSim';
@@ -43,7 +43,15 @@ export function PlanetLife({
   } = usePlanetLifeControls();
 
   const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits, decayStates } = sim;
-  const { ecologyProfile, gameMode, randomDensity, polarWrap, autoReseedOnStagnation } = sim;
+  const {
+    ecologyProfile,
+    solarCycleSpeed = 0,
+    dynamicFertility = false,
+    gameMode,
+    randomDensity,
+    polarWrap,
+    autoReseedOnStagnation,
+  } = sim;
   const colonyBiomeAffinity = sim.colonyBiomeAffinity ?? false;
   const {
     planetRadius,
@@ -227,6 +235,7 @@ export function PlanetLife({
     randomize,
     stepOnce,
     seedAtPoint: seedAtPointImpl,
+    getEcologyCellState,
   } = usePlanetLifeSim({
     sim,
     planet,
@@ -261,43 +270,58 @@ export function PlanetLife({
       { updateProbe, forceLifeSeed }: { updateProbe: boolean; forceLifeSeed?: boolean },
     ) => {
       const { lat, lon } = spherePointToCell(point, safeLatCells, safeLonCells);
-      if (updateProbe) {
-        const sample = computeEcologySample({
-          lat,
-          lon,
-          latCells: safeLatCells,
-          lonCells: safeLonCells,
-          profile: ecologyProfile,
-        });
-        setProbe({ lat, lon, sample });
-      }
-
+      const effectiveTool = forceLifeSeed ? 'Comet' : activeTool;
       const request = forceLifeSeed
         ? resolveSeedRequest({
             tool: 'Comet',
             seeding: { ...seeding, seedScale: Math.max(2, seeding.seedScale) },
           })
         : resolveSeedRequest({ tool: activeTool, seeding });
-      if (!request) return;
 
-      applySeed(request, {
-        point,
-        lat,
-        lon,
-        latCells: safeLatCells,
-        lonCells: safeLonCells,
-        gpu: gpuSim ? gpuSimRef.current : null,
-        cpu: (params) => {
-          seedAtPointImpl({ ...params, debug: debugLogs });
-          // Life (or forced life reseed) refreshes the instanced mesh after a CPU seed.
-          if (forceLifeSeed || activeTool === 'Life') updateInstances();
-        },
-      });
+      if (request) {
+        const fertilityDelta = dynamicFertility ? resolveToolFertilityDelta(effectiveTool) : 0;
+        applySeed(request, {
+          point,
+          lat,
+          lon,
+          latCells: safeLatCells,
+          lonCells: safeLonCells,
+          fertilityDelta,
+          gpu: gpuSim ? gpuSimRef.current : null,
+          cpu: (params) => {
+            seedAtPointImpl({ ...params, debug: debugLogs });
+            // Life (or forced life reseed) refreshes the instanced mesh after a CPU seed.
+            if (forceLifeSeed || activeTool === 'Life') updateInstances();
+          },
+        });
+      }
+
+      if (updateProbe) {
+        const { solarPhase, soilByte } = gpuSim
+          ? {
+              solarPhase: gpuSimRef.current?.getSolarPhase?.() ?? 0,
+              soilByte: gpuSimRef.current?.sampleSoilAtCell?.(lat, lon) ?? SOIL_NEUTRAL,
+            }
+          : getEcologyCellState(lat, lon);
+        const fertilityModifier = dynamicFertility ? soilByteToFertilityModifier(soilByte) : 0;
+        const sample = computeEcologySample({
+          lat,
+          lon,
+          latCells: safeLatCells,
+          lonCells: safeLonCells,
+          profile: ecologyProfile,
+          solarPhase,
+          fertilityModifier,
+        });
+        setProbe({ lat, lon, sample });
+      }
     },
     [
       activeTool,
       debugLogs,
+      dynamicFertility,
       ecologyProfile,
+      getEcologyCellState,
       gpuSim,
       safeLatCells,
       safeLonCells,
@@ -414,6 +438,8 @@ export function PlanetLife({
           ecologyProfile={ecologyProfile}
           polarWrap={polarWrap}
           colonyBiomeAffinity={colonyBiomeAffinity}
+          solarCycleSpeed={solarCycleSpeed}
+          dynamicFertility={dynamicFertility}
           onTextureUpdate={onGpuTexture}
           onStats={publishStats}
           simRef={gpuSimRef}

@@ -5,7 +5,7 @@ import { gpuSeedFragmentShader } from '../../shaders/gpuSeed.frag';
 import { gpuStatsFragmentShader } from '../../shaders/gpuStats.frag';
 import { simulationFragmentShader } from '../../shaders/simulation.frag';
 import { simulationVertexShader } from '../../shaders/simulation.vert';
-import type { EcologyProfileName } from '../../sim/ecology';
+import { ECOLOGY_PROFILES, type EcologyProfileName } from '../../sim/ecology';
 import { normalizeDecayStates, type Rules } from '../../sim/rules';
 import {
   createFullscreenPass,
@@ -48,6 +48,7 @@ export function useGpuSimMaterials({
   ecologyProfile,
   polarWrap = false,
   colonyBiomeAffinity = false,
+  dynamicFertility = false,
 }: {
   resolution: Resolution;
   rules: Rules;
@@ -55,6 +56,7 @@ export function useGpuSimMaterials({
   ecologyProfile: EcologyProfileName;
   polarWrap?: boolean;
   colonyBiomeAffinity?: boolean;
+  dynamicFertility?: boolean;
 }): GpuSimMaterials {
   const { width, height } = resolution;
   const ecologyBiasTexture = useMemo(
@@ -81,6 +83,19 @@ export function useGpuSimMaterials({
         uGeneration: { value: 0 },
         uEcologyEnabled: { value: ecologyProfile !== 'None' },
         uEcologyBiasTexture: { value: null },
+        uEcologyProfileBiases: {
+          value: (() => {
+            const p = ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None;
+            return new THREE.Vector4(
+              p.fertilityBias,
+              p.droughtBias,
+              p.mountainBias,
+              p.sunlightBias,
+            );
+          })(),
+        },
+        uSolarPhase: { value: 0 },
+        uDynamicFertility: { value: dynamicFertility },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: simulationFragmentShader,
@@ -140,6 +155,8 @@ export function useGpuSimMaterials({
         uSeedProbability: { value: 0.5 },
         uColonyMode: { value: gameMode === 'Colony' },
         uRandomSeed: { value: 0 },
+        uDynamicFertility: { value: dynamicFertility },
+        uFertilityDelta: { value: 0 },
       },
       vertexShader: simulationVertexShader,
       fragmentShader: gpuSeedFragmentShader,
@@ -194,9 +211,16 @@ export function useGpuSimMaterials({
   // resolution changes (same rationale as the rules effect: recreate
   // simMaterial and the sim is wiped).
   useEffect(() => {
+    const p = ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None;
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so changing the ecology profile does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uEcologyEnabled.value = ecologyProfile !== 'None';
     simMaterial.uniforms.uEcologyBiasTexture.value = ecologyBiasTexture;
+    (simMaterial.uniforms.uEcologyProfileBiases.value as THREE.Vector4).set(
+      p.fertilityBias,
+      p.droughtBias,
+      p.mountainBias,
+      p.sunlightBias,
+    );
     simMaterial.uniforms.uColonyBiomeAffinity.value = colonyBiomeAffinity;
   }, [ecologyProfile, ecologyBiasTexture, colonyBiomeAffinity, simMaterial]);
 
@@ -211,6 +235,13 @@ export function useGpuSimMaterials({
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling polarWrap does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uPolarWrap.value = polarWrap;
   }, [polarWrap, simMaterial]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling dynamicFertility does not recreate materials.
+    simMaterial.uniforms.uDynamicFertility.value = dynamicFertility;
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling dynamicFertility does not recreate seedMaterial.
+    seedMaterial.uniforms.uDynamicFertility.value = dynamicFertility;
+  }, [dynamicFertility, simMaterial, seedMaterial]);
 
   // Dispose each material / quad geometry when it is replaced and on unmount.
   // Per-pass effects so the long-lived stats pass is not torn down by a

@@ -2,6 +2,7 @@ import { type RefObject, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 import { useDocumentHidden } from '../../hooks/useDocumentHidden';
+import { SOIL_NEUTRAL } from '../../sim/ecology';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
 import { normalizeDecayStates, type Rules } from '../../sim/rules';
@@ -42,7 +43,15 @@ export function usePlanetLifeSim({
   resolveCellColor: ResolveCellColor;
   colorScratch: THREE.Color;
 }) {
-  const { running, tickMs, ecologyProfile, randomDensity, gameMode } = sim;
+  const {
+    running,
+    tickMs,
+    ecologyProfile,
+    solarCycleSpeed = 0,
+    dynamicFertility = false,
+    randomDensity,
+    gameMode,
+  } = sim;
   const polarWrap = sim.polarWrap ?? false;
   const colonyBiomeAffinity = sim.colonyBiomeAffinity ?? false;
   const { planetRadius } = planet;
@@ -108,6 +117,8 @@ export function usePlanetLifeSim({
     ecologyProfile,
     polarWrap,
     colonyBiomeAffinity,
+    solarCycleSpeed,
+    dynamicFertility,
     randomDensity,
     gameMode,
     debugLogs,
@@ -200,6 +211,7 @@ export function usePlanetLifeSim({
       scale: number;
       jitter: number;
       probability: number;
+      fertilityDelta?: number;
       debug?: boolean;
     }) => {
       if (workerEnabled && workerRef.current) {
@@ -213,6 +225,7 @@ export function usePlanetLifeSim({
           scale: params.scale,
           jitter: params.jitter,
           probability: params.probability,
+          fertilityDelta: params.fertilityDelta,
           debug: params.debug,
         } satisfies LifeGridWorkerInMessage);
         return;
@@ -226,6 +239,7 @@ export function usePlanetLifeSim({
         scale: params.scale,
         jitter: params.jitter,
         probability: params.probability,
+        fertilityDelta: params.fertilityDelta,
         debug: params.debug,
       });
       // Keep the HUD population current after a manual seed. The worker
@@ -300,6 +314,8 @@ export function usePlanetLifeSim({
     sim.setGameMode(gameMode);
     sim.setEcologyProfile(ecologyProfile);
     sim.setColonyBiomeAffinity(colonyBiomeAffinity);
+    sim.setSolarCycleSpeed(solarCycleSpeed);
+    sim.setDynamicFertility(dynamicFertility);
 
     simRef.current = sim;
     geometrySimRef.current = sim;
@@ -356,6 +372,39 @@ export function usePlanetLifeSim({
     }
   }, [colonyBiomeAffinity, workerEnabled]);
 
+  useEffect(() => {
+    if (!workerEnabled) {
+      simRef.current?.setSolarCycleSpeed(solarCycleSpeed);
+    }
+  }, [solarCycleSpeed, workerEnabled]);
+
+  useEffect(() => {
+    if (!workerEnabled) {
+      simRef.current?.setDynamicFertility(dynamicFertility);
+    }
+  }, [dynamicFertility, workerEnabled]);
+
+  const getEcologyCellState = useCallback(
+    (lat: number, lon: number): { solarPhase: number; soilByte: number } => {
+      const idx =
+        Math.max(0, Math.min(safeLatCells - 1, lat)) * safeLonCells +
+        (((lon % safeLonCells) + safeLonCells) % safeLonCells);
+      if (workerEnabled) {
+        const snap = workerSnapshotRef.current;
+        return {
+          solarPhase: snap?.solarPhase ?? 0,
+          soilByte: snap?.soil[idx] ?? SOIL_NEUTRAL,
+        };
+      }
+      const sim = simRef.current;
+      return {
+        solarPhase: sim?.getSolarPhase() ?? 0,
+        soilByte: sim?.getSoilView()[idx] ?? SOIL_NEUTRAL,
+      };
+    },
+    [safeLatCells, safeLonCells, workerEnabled, workerSnapshotRef],
+  );
+
   const documentHidden = useDocumentHidden();
 
   useSimTickLoop({
@@ -379,5 +428,6 @@ export function usePlanetLifeSim({
     randomize,
     stepOnce,
     seedAtPoint,
+    getEcologyCellState,
   };
 }

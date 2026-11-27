@@ -91,6 +91,26 @@ describe('GPUSimulation initialization invariants', () => {
     expect(glMock.clear).toHaveBeenCalledTimes(2);
   });
 
+  it('does NOT re-initialize when ecologyProfile, solarCycleSpeed, or dynamicFertility changes', () => {
+    const { rerender } = render(
+      <GPUSimulation
+        rules={RULES_A}
+        ecologyProfile="None"
+        solarCycleSpeed={0}
+        dynamicFertility={false}
+      />,
+    );
+    rerender(
+      <GPUSimulation
+        rules={RULES_A}
+        ecologyProfile="Garden World"
+        solarCycleSpeed={1.5}
+        dynamicFertility={true}
+      />,
+    );
+    expect(glMock.clear).toHaveBeenCalledTimes(2);
+  });
+
   it('DOES re-initialize when the resolution changes', () => {
     // The flip side of the invariant: new render targets mean the world must
     // be seeded, so a resolution change is the one case that should reset.

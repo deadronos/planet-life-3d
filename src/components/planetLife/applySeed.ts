@@ -10,10 +10,11 @@ export type SeedTarget = {
   lon: number;
   latCells: number;
   lonCells: number;
+  fertilityDelta?: number;
   /** GPU handle when the GPU sim is active and mounted; otherwise null. */
   gpu: GPUSimulationHandle | null;
   /** CPU/worker seeder, used when `gpu` is null. */
-  cpu: (params: SeedRequest & { point: THREE.Vector3 }) => void;
+  cpu: (params: SeedRequest & { point: THREE.Vector3; fertilityDelta?: number }) => void;
 };
 
 /**
@@ -22,8 +23,15 @@ export type SeedTarget = {
  * path forwards the request unchanged (it applies scale/jitter itself).
  */
 export function applySeed(request: SeedRequest, target: SeedTarget): void {
+  const hasFertilityDelta =
+    typeof target.fertilityDelta === 'number' && target.fertilityDelta !== 0;
+
   if (!target.gpu) {
-    target.cpu({ ...request, point: target.point });
+    target.cpu(
+      hasFertilityDelta
+        ? { ...request, point: target.point, fertilityDelta: target.fertilityDelta }
+        : { ...request, point: target.point },
+    );
     return;
   }
 
@@ -43,5 +51,6 @@ export function applySeed(request: SeedRequest, target: SeedTarget): void {
     probability: request.probability,
     originRow,
     originCol,
+    ...(hasFertilityDelta ? { fertilityDelta: target.fertilityDelta } : {}),
   });
 }
