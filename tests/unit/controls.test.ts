@@ -53,6 +53,7 @@ describe('controls store - defaults', () => {
     expect(s.rulePreset).toBe('Conway');
     expect(s.birthDigits).toBe('3');
     expect(s.surviveDigits).toBe('23');
+    expect(s.decayStates).toBe(2);
     expect(s.cellRenderMode).toBe('Texture');
     expect(s.seedPattern).toBe('Glider');
     expect(s.seedRotation).toBe(0);
@@ -92,6 +93,27 @@ describe('controls store - preset side effects', () => {
     store().setControls({ rulePreset: name });
     expect(store().birthDigits).toBe(RULE_PRESETS[name].birth);
     expect(store().surviveDigits).toBe(RULE_PRESETS[name].survive);
+    expect(store().decayStates).toBe(RULE_PRESETS[name].decayStates ?? 2);
+  });
+
+  it('applies Generations presets and resets decayStates to 2 when selecting a classic preset', () => {
+    store().setControls({ rulePreset: 'Star Wars' });
+    expect(store().birthDigits).toBe('2');
+    expect(store().surviveDigits).toBe('345');
+    expect(store().decayStates).toBe(4);
+
+    store().setControls({ rulePreset: 'Conway' });
+    expect(store().birthDigits).toBe('3');
+    expect(store().surviveDigits).toBe('23');
+    expect(store().decayStates).toBe(2);
+  });
+
+  it('switches rulePreset to Custom when decayStates is edited directly', () => {
+    store().setControls({ rulePreset: "Brian's Brain" });
+    expect(store().decayStates).toBe(3);
+    store().setControls({ decayStates: 6 });
+    expect(store().rulePreset).toBe('Custom');
+    expect(store().decayStates).toBe(6);
   });
 
   it('leaves values alone for the Custom rule preset', () => {

@@ -30,6 +30,7 @@ export interface UseSimInstancesOptions {
   colorScratch: THREE.Color;
   resolveCellColor: ResolveCellColor;
   gameMode: 'Classic' | 'Colony';
+  decayStates?: number;
   debugLogs: boolean;
 }
 
@@ -44,6 +45,7 @@ export function useSimInstances({
   colorScratch,
   resolveCellColor,
   gameMode,
+  decayStates,
   debugLogs,
 }: UseSimInstancesOptions) {
   const instancingConfiguredRef = useRef(false);
@@ -62,9 +64,10 @@ export function useSimInstances({
       heat,
       lifeTex,
       gameMode,
+      decayStates,
       debugLogs,
     });
-  }, [lifeTex, gameMode, debugLogs, workerEnabled, workerSnapshotRef, simRef]);
+  }, [lifeTex, gameMode, decayStates, debugLogs, workerEnabled, workerSnapshotRef, simRef]);
 
   const updateInstances = useCallback(() => {
     const sim = workerEnabled ? geometrySimRef.current : simRef.current;

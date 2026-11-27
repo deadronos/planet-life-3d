@@ -9,6 +9,7 @@ import type { EcologyProfileName } from '../sim/ecology';
 import { isGpuSimulationSupported } from '../sim/gpuSupport';
 import { normalizeSeedRotation, type SeedRotation } from '../sim/patterns';
 import { COLOR_THEMES, RULE_PRESETS, WORLD_PRESETS } from '../sim/presets';
+import { DEFAULT_DECAY_STATES } from '../sim/rules';
 import { prefersReducedMotion } from '../utils/reducedMotion';
 
 /**
@@ -41,6 +42,7 @@ export type ControlValues = {
   rulePreset: string;
   birthDigits: string;
   surviveDigits: string;
+  decayStates: number;
   ecologyProfile: EcologyProfileName;
   randomDensity: number;
   autoReseedOnStagnation: boolean;
@@ -131,6 +133,7 @@ export function createControlDefaults(): ControlValues {
     rulePreset: 'Conway',
     birthDigits: '3',
     surviveDigits: '23',
+    decayStates: DEFAULT_DECAY_STATES,
     ecologyProfile: 'Garden World',
     randomDensity: 0.14,
     autoReseedOnStagnation: false,
@@ -213,6 +216,7 @@ const WORLD_PRESET_DEPENDENTS: ReadonlySet<ControlKey> = new Set([
   'rulePreset',
   'birthDigits',
   'surviveDigits',
+  'decayStates',
   'randomDensity',
   'gameMode',
   'ecologyProfile',
@@ -249,6 +253,7 @@ function presetSideEffects(patch: Partial<ControlValues>): Partial<ControlValues
         rulePreset: 'Custom',
         birthDigits: p.birth,
         surviveDigits: p.survive,
+        decayStates: p.decayStates ?? DEFAULT_DECAY_STATES,
         randomDensity: p.randomDensity,
         gameMode: p.gameMode,
         ecologyProfile: p.ecologyProfile,
@@ -267,7 +272,13 @@ function presetSideEffects(patch: Partial<ControlValues>): Partial<ControlValues
   }
   if (patch.rulePreset !== undefined && patch.rulePreset !== 'Custom') {
     const p = RULE_PRESETS[patch.rulePreset];
-    if (p) Object.assign(extra, { birthDigits: p.birth, surviveDigits: p.survive });
+    if (p) {
+      Object.assign(extra, {
+        birthDigits: p.birth,
+        surviveDigits: p.survive,
+        decayStates: p.decayStates ?? DEFAULT_DECAY_STATES,
+      });
+    }
   }
   return extra;
 }
@@ -302,7 +313,8 @@ export const useControlsStore = create<ControlsState>((set, get) => ({
       patch.worldPreset === undefined &&
       state.rulePreset !== 'Custom' &&
       ((patch.birthDigits !== undefined && patch.birthDigits !== state.birthDigits) ||
-        (patch.surviveDigits !== undefined && patch.surviveDigits !== state.surviveDigits))
+        (patch.surviveDigits !== undefined && patch.surviveDigits !== state.surviveDigits) ||
+        (patch.decayStates !== undefined && patch.decayStates !== state.decayStates))
     ) {
       next.rulePreset = 'Custom';
     }

@@ -2,6 +2,7 @@ import { SIM_CONSTRAINTS } from '../sim/constants';
 import { ECOLOGY_PROFILE_NAMES, type EcologyProfileName } from '../sim/ecology';
 import { BUILTIN_PATTERN_NAMES } from '../sim/patterns';
 import { COLOR_THEME_NAMES, WORLD_PRESET_NAMES } from '../sim/presets';
+import { MAX_DECAY_STATES, MIN_DECAY_STATES, normalizeDecayStates } from '../sim/rules';
 import { parseWorldSeed } from '../sim/seededRng';
 import type { ControlValues } from '../store/useControlsStore';
 
@@ -41,7 +42,15 @@ export function decodeWorld(hash: string): SharedWorld {
   const s = digits(params.get('s'));
   if (b !== undefined) controls.birthDigits = b;
   if (s !== undefined) controls.surviveDigits = s;
-  if (b !== undefined || s !== undefined) controls.rulePreset = 'Custom';
+
+  const gs = params.get('G');
+  if (gs !== null && /^\d+$/.test(gs)) {
+    controls.decayStates = clampInt(Number(gs), MIN_DECAY_STATES, MAX_DECAY_STATES);
+  }
+
+  if (b !== undefined || s !== undefined || controls.decayStates !== undefined) {
+    controls.rulePreset = 'Custom';
+  }
 
   const t = params.get('t');
   if (t && COLOR_THEME_NAMES.includes(t)) controls.theme = t;
@@ -88,6 +97,7 @@ export function encodeWorld(state: ControlValues, seed: number): string {
   p.set('m', state.gameMode);
   p.set('b', state.birthDigits);
   p.set('s', state.surviveDigits);
+  p.set('G', String(normalizeDecayStates(state.decayStates)));
   p.set('t', state.theme);
   p.set('e', state.ecologyProfile);
   p.set('sp', state.seedPattern);

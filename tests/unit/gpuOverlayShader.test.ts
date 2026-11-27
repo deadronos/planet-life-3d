@@ -14,4 +14,9 @@ describe('gpuOverlayFragmentShader', () => {
     expect(gpuOverlayFragmentShader).toContain('uniform float uNightGlowIntensity;');
     expect(gpuOverlayFragmentShader).toContain('-dot(normalize(vWorldNormal), uLightDir)');
   });
+
+  it('applies a cooling fade gradient for Generations refractory states', () => {
+    expect(gpuOverlayFragmentShader).toContain('uniform int uDecayStates;');
+    expect(gpuOverlayFragmentShader).toContain('if (uDecayStates > 2 && state <= 0.92)');
+  });
 });

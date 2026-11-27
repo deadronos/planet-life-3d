@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 
+import { normalizeDecayStates } from '../../sim/rules';
 import {
   AGE_FADE_BASE,
   AGE_FADE_MAX,
@@ -27,9 +28,14 @@ export function useCellColorResolver(params: {
   heatMidColor: string;
   heatHighColor: string;
   gameMode: 'Classic' | 'Colony';
+  decayStates?: number;
   colonyColorA: string;
   colonyColorB: string;
 }): { resolveCellColor: ResolveCellColor; colorScratch: THREE.Color } {
+  const safeDecayStates = useMemo(
+    () => normalizeDecayStates(params.decayStates),
+    [params.decayStates],
+  );
   const solidColor = useMemo(() => new THREE.Color(params.cellColor), [params.cellColor]);
   const colColorA = useMemo(() => new THREE.Color(params.colonyColorA), [params.colonyColorA]);
   const colColorB = useMemo(() => new THREE.Color(params.colonyColorB), [params.colonyColorB]);
@@ -84,6 +90,13 @@ export function useCellColorResolver(params: {
             target.copy(solidColor);
             break;
         }
+
+        const state = gridView[idx];
+        if (safeDecayStates > 2 && state >= 2) {
+          const cool = clamp01((safeDecayStates - state) / (safeDecayStates - 1));
+          const fade = 0.2 + 0.65 * cool;
+          target.lerp(heatLowColorObj, 1 - cool).multiplyScalar(fade);
+        }
       }
 
       target.r = Math.min(1, target.r);
@@ -94,6 +107,7 @@ export function useCellColorResolver(params: {
     [
       params.cellColorMode,
       params.gameMode,
+      safeDecayStates,
       ageHalfLife,
       heatHighColorObj,
       heatLowColorObj,

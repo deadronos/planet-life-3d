@@ -2,7 +2,7 @@ import { SIM_CONSTRAINTS, SIM_DEFAULTS } from './constants';
 import type { EcologyProfileName } from './ecology';
 import { calculateNextCellState, type LifeGridStepContext } from './LifeGridHelper';
 import { type Offset, transformOffsets } from './patterns';
-import type { Rules } from './rules';
+import { normalizeDecayStates, type Rules } from './rules';
 import type { GameMode, SeedMode } from './types';
 import { clampInt, safeInt } from './utils';
 
@@ -65,15 +65,36 @@ export class LifeGridSimBase {
 
   setRules(rules: Rules) {
     this.rules = rules;
+    if (this.gameMode === 'Classic') {
+      const maxState = normalizeDecayStates(rules.decayStates);
+      let changed = false;
+      for (let i = 0; i < this.cellCount; i++) {
+        if (this.grid[i] >= maxState) {
+          this.grid[i] = 0;
+          this.age[i] = 0;
+          this.neighborHeat[i] = 0;
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.rebuildAliveIndices();
+      }
+    }
   }
 
   setGameMode(mode: GameMode) {
+    const prevMode = this.gameMode;
     this.gameMode = mode;
-    if (mode === 'Classic') {
+    if (mode === 'Classic' && prevMode !== 'Classic') {
       // Normalize Colony B (2) cells to Classic alive (1) so Classic neighbor
       // sums don't double-count Colony B cells.
       for (let i = 0; i < this.cellCount; i++) {
         if (this.grid[i] > 1) this.grid[i] = 1;
+      }
+    } else if (mode === 'Colony' && prevMode !== 'Colony') {
+      // Normalize any Generations refractory states (> 2) to Colony B (2).
+      for (let i = 0; i < this.cellCount; i++) {
+        if (this.grid[i] > 2) this.grid[i] = 2;
       }
     }
   }

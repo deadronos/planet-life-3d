@@ -15,6 +15,7 @@ export type SimSlice = {
   worldPreset: string;
   birthDigits: string;
   surviveDigits: string;
+  decayStates: number;
   ecologyProfile: EcologyProfileName;
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
@@ -132,6 +133,7 @@ function toSlices(p: FlatControls): PlanetLifeControls {
       worldPreset: p.worldPreset,
       birthDigits: p.birthDigits,
       surviveDigits: p.surviveDigits,
+      decayStates: p.decayStates,
       ecologyProfile: p.ecologyProfile,
       randomDensity: p.randomDensity,
       gameMode: p.gameMode,

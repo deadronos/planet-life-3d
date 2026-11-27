@@ -18,6 +18,7 @@ export const gpuOverlayFragmentShader = /* glsl */ `
   uniform float uCellOverlayOpacity;
   uniform int uColorMode; // 0=Solid, 1=Age Fade, 2=Neighbor Heat
   uniform bool uColonyMode;
+  uniform int uDecayStates; // Generations state count (2 = classic binary, 3..16 = refractory fade)
   // Night-side glow: emissive boost on live cells past the terminator
   uniform vec3 uLightDir;
   uniform vec3 uNightGlowColor;
@@ -98,6 +99,13 @@ export const gpuOverlayFragmentShader = /* glsl */ `
         }
       }
       // else Solid mode - use uCellColor as-is
+
+      // Generations refractory cooling/fade gradient for states 2..G-1 (encoded in [0.15, 0.90])
+      if (uDecayStates > 2 && state <= 0.92) {
+        float cool = clamp((state - 0.15) / 0.75, 0.0, 1.0);
+        float fade = 0.2 + 0.65 * cool;
+        finalColor = mix(uHeatLowColor, finalColor, cool) * fade;
+      }
     }
     
     // Clamp colors

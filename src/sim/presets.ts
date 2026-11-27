@@ -4,15 +4,18 @@ import type { GameMode } from './types';
 export type RulePreset = {
   birth: string;
   survive: string;
+  decayStates?: number;
 };
 
 export const RULE_PRESETS: Record<string, RulePreset> = {
-  Conway: { birth: '3', survive: '23' },
-  HighLife: { birth: '36', survive: '23' },
-  'Day & Night': { birth: '3678', survive: '34678' },
-  Seeds: { birth: '2', survive: '' },
-  'Life without Death': { birth: '3', survive: '012345678' },
-  Morley: { birth: '368', survive: '245' },
+  Conway: { birth: '3', survive: '23', decayStates: 2 },
+  HighLife: { birth: '36', survive: '23', decayStates: 2 },
+  'Day & Night': { birth: '3678', survive: '34678', decayStates: 2 },
+  Seeds: { birth: '2', survive: '', decayStates: 2 },
+  'Life without Death': { birth: '3', survive: '012345678', decayStates: 2 },
+  Morley: { birth: '368', survive: '245', decayStates: 2 },
+  "Brian's Brain": { birth: '2', survive: '', decayStates: 3 },
+  'Star Wars': { birth: '2', survive: '345', decayStates: 4 },
 };
 
 export type ColorTheme = {
@@ -74,6 +77,7 @@ export type WorldPreset = {
   description: string;
   birth: string;
   survive: string;
+  decayStates?: number;
   randomDensity: number;
   gameMode: GameMode;
   ecologyProfile: EcologyProfileName;

@@ -6,7 +6,7 @@ import { gpuStatsFragmentShader } from '../../shaders/gpuStats.frag';
 import { simulationFragmentShader } from '../../shaders/simulation.frag';
 import { simulationVertexShader } from '../../shaders/simulation.vert';
 import { ECOLOGY_PROFILES, type EcologyProfileName } from '../../sim/ecology';
-import type { Rules } from '../../sim/rules';
+import { normalizeDecayStates, type Rules } from '../../sim/rules';
 import {
   createFullscreenPass,
   type FullscreenPass,
@@ -65,6 +65,7 @@ export function useGpuSimMaterials({
         uResolution: { value: new THREE.Vector2(resolution.width, resolution.height) },
         uBirthRules: { value: rulesToFloatArray(rules.birth) },
         uSurviveRules: { value: rulesToFloatArray(rules.survive) },
+        uDecayStates: { value: normalizeDecayStates(rules.decayStates) },
         uColonyMode: { value: gameMode === 'Colony' },
         uPolarWrap: { value: polarWrap },
         uEcologyEnabled: { value: ecologyProfile !== 'None' },
@@ -183,6 +184,7 @@ export function useGpuSimMaterials({
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so editing rule digits does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uBirthRules.value = birthRules;
     simMaterial.uniforms.uSurviveRules.value = surviveRules;
+    simMaterial.uniforms.uDecayStates.value = normalizeDecayStates(rules.decayStates);
     simMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling gameMode does not recreate seedMaterial.
     seedMaterial.uniforms.uColonyMode.value = gameMode === 'Colony';

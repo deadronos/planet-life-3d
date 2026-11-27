@@ -306,4 +306,62 @@ describe('Worker vs main simulation equivalence', () => {
       expect(snap.population).toBe(sim.population);
     }
   });
+
+  it('matches main sim across multiple Generations (Star Wars) steps', () => {
+    const lat = 8;
+    const lon = 8;
+    const starWarsRules = {
+      birth: parseRuleDigits('2'),
+      survive: parseRuleDigits('345'),
+      decayStates: 4,
+    };
+
+    const sim = new LifeGridSim({ latCells: lat, lonCells: lon, rules: starWarsRules });
+    const out: unknown[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+    handler.onMessage({
+      type: 'init',
+      latCells: lat,
+      lonCells: lon,
+      rules: starWarsRules,
+    });
+
+    const offsets: [number, number][] = [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+    ];
+    sim.seedAtCell({
+      lat: 4,
+      lon: 4,
+      offsets,
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+    out.length = 0;
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 4,
+      lon: 4,
+      offsets,
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+
+    for (let t = 0; t < 6; t++) {
+      sim.step();
+      out.length = 0;
+      handler.onMessage({ type: 'tick', steps: 1 });
+      const snap = findSnapshot(out)!;
+      expect(snap).toBeTruthy();
+      expect(new Uint8Array(snap.grid)).toEqual(sim.getGridView());
+      expect(snap.population).toBe(sim.population);
+      expect(snap.birthsLastTick).toBe(sim.birthsLastTick);
+      expect(snap.deathsLastTick).toBe(sim.deathsLastTick);
+    }
+  });
 });
