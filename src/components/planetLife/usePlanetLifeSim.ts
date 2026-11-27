@@ -44,6 +44,7 @@ export function usePlanetLifeSim({
 }) {
   const { running, tickMs, ecologyProfile, randomDensity, gameMode } = sim;
   const polarWrap = sim.polarWrap ?? false;
+  const colonyBiomeAffinity = sim.colonyBiomeAffinity ?? false;
   const { planetRadius } = planet;
   const { cellLift, cellRenderMode } = cells;
   const { workerSim, gpuSim, debugLogs } = debug;
@@ -106,6 +107,7 @@ export function usePlanetLifeSim({
     rules,
     ecologyProfile,
     polarWrap,
+    colonyBiomeAffinity,
     randomDensity,
     gameMode,
     debugLogs,
@@ -281,6 +283,7 @@ export function usePlanetLifeSim({
       geometrySimRef.current.setGameMode(gameMode);
       geometrySimRef.current.setEcologyProfile(ecologyProfile);
       geometrySimRef.current.setPolarWrap(polarWrap);
+      geometrySimRef.current.setColonyBiomeAffinity(colonyBiomeAffinity);
       simRef.current = null;
       updateInstancesRef.current();
       return;
@@ -296,6 +299,7 @@ export function usePlanetLifeSim({
     });
     sim.setGameMode(gameMode);
     sim.setEcologyProfile(ecologyProfile);
+    sim.setColonyBiomeAffinity(colonyBiomeAffinity);
 
     simRef.current = sim;
     geometrySimRef.current = sim;
@@ -345,6 +349,12 @@ export function usePlanetLifeSim({
       simRef.current?.setPolarWrap(polarWrap);
     }
   }, [polarWrap, workerEnabled]);
+
+  useEffect(() => {
+    if (!workerEnabled) {
+      simRef.current?.setColonyBiomeAffinity(colonyBiomeAffinity);
+    }
+  }, [colonyBiomeAffinity, workerEnabled]);
 
   const documentHidden = useDocumentHidden();
 

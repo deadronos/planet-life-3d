@@ -44,6 +44,7 @@ export function PlanetLife({
 
   const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits, decayStates } = sim;
   const { ecologyProfile, gameMode, randomDensity, polarWrap, autoReseedOnStagnation } = sim;
+  const colonyBiomeAffinity = sim.colonyBiomeAffinity ?? false;
   const {
     planetRadius,
     planetWireframe,
@@ -412,6 +413,7 @@ export function PlanetLife({
           gameMode={gameMode}
           ecologyProfile={ecologyProfile}
           polarWrap={polarWrap}
+          colonyBiomeAffinity={colonyBiomeAffinity}
           onTextureUpdate={onGpuTexture}
           onStats={publishStats}
           simRef={gpuSimRef}

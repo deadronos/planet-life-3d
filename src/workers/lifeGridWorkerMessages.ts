@@ -11,6 +11,7 @@ export type LifeGridWorkerInit = {
   gameMode?: GameMode;
   ecologyProfile?: EcologyProfileName;
   polarWrap?: boolean;
+  colonyBiomeAffinity?: boolean;
   randomDensity?: number;
   /** uint32 world seed for the initial randomize. */
   seed?: number;
@@ -39,6 +40,11 @@ export type LifeGridWorkerSetEcologyProfile = {
 export type LifeGridWorkerSetPolarWrap = {
   type: 'setPolarWrap';
   polarWrap: boolean;
+};
+
+export type LifeGridWorkerSetColonyBiomeAffinity = {
+  type: 'setColonyBiomeAffinity';
+  enabled: boolean;
 };
 
 export type LifeGridWorkerClear = { type: 'clear' };
@@ -77,6 +83,7 @@ export type LifeGridWorkerInMessage =
   | LifeGridWorkerSetGameMode
   | LifeGridWorkerSetEcologyProfile
   | LifeGridWorkerSetPolarWrap
+  | LifeGridWorkerSetColonyBiomeAffinity
   | LifeGridWorkerClear
   | LifeGridWorkerRandomize
   | LifeGridWorkerSeedAtCell

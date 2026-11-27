@@ -9,6 +9,13 @@ export type EcologySample = {
   fertility: number;
   viability: number;
   neighborBias: -1 | 0 | 1;
+  /**
+   * Complementary Colony species habitat preference:
+   *  +1 = warm/wet lowlands (favors Colony A),
+   *  -1 = cold/highland ridges (favors Colony B),
+   *   0 = neutral transition zone.
+   */
+  colonyAffinity: -1 | 0 | 1;
   biome: string;
 };
 
@@ -257,6 +264,7 @@ export function computeEcologySample(params: {
       fertility: 0.5,
       viability: 0.5,
       neighborBias: 0,
+      colonyAffinity: 0,
       biome: 'Temperate Cells',
     };
   }
@@ -303,6 +311,9 @@ export function computeEcologySample(params: {
   );
 
   const neighborBias: -1 | 0 | 1 = viability >= 0.68 ? 1 : viability <= 0.28 ? -1 : 0;
+  const affinityScore =
+    (temperature - 0.4) * 0.45 + (moisture - 0.5) * 0.2 + (0.5 - altitude) * 0.35;
+  const colonyAffinity: -1 | 0 | 1 = affinityScore >= 0.08 ? 1 : affinityScore <= -0.08 ? -1 : 0;
 
   let biome = 'Temperate Belt';
   if (altitude > 0.74) biome = moisture > 0.45 ? 'Cloud Mountains' : 'Dry Highlands';
@@ -319,8 +330,37 @@ export function computeEcologySample(params: {
     fertility,
     viability,
     neighborBias,
+    colonyAffinity,
     biome,
   };
+}
+
+export function buildEcologyTables(
+  latCells: number,
+  lonCells: number,
+  profile: EcologyProfileName,
+): { bias: Int8Array; affinity: Int8Array } {
+  const cellCount = latCells * lonCells;
+  const bias = new Int8Array(cellCount);
+  const affinity = new Int8Array(cellCount);
+  const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
+  if (resolved === 'None') return { bias, affinity };
+
+  for (let lat = 0; lat < latCells; lat++) {
+    const rowOffset = lat * lonCells;
+    for (let lon = 0; lon < lonCells; lon++) {
+      const sample = computeEcologySample({
+        lat,
+        lon,
+        latCells,
+        lonCells,
+        profile: resolved,
+      });
+      bias[rowOffset + lon] = sample.neighborBias;
+      affinity[rowOffset + lon] = sample.colonyAffinity;
+    }
+  }
+  return { bias, affinity };
 }
 
 export function buildEcologyBiasTable(
@@ -328,23 +368,7 @@ export function buildEcologyBiasTable(
   lonCells: number,
   profile: EcologyProfileName,
 ): Int8Array {
-  const table = new Int8Array(latCells * lonCells);
-  const resolved = ECOLOGY_PROFILES[profile]?.name ?? 'None';
-  if (resolved === 'None') return table;
-
-  for (let lat = 0; lat < latCells; lat++) {
-    const rowOffset = lat * lonCells;
-    for (let lon = 0; lon < lonCells; lon++) {
-      table[rowOffset + lon] = computeEcologySample({
-        lat,
-        lon,
-        latCells,
-        lonCells,
-        profile: resolved,
-      }).neighborBias;
-    }
-  }
-  return table;
+  return buildEcologyTables(latCells, lonCells, profile).bias;
 }
 
 export function adjustNeighborsForEcology(

@@ -75,9 +75,13 @@ describe('GPUSimulation initialization invariants', () => {
     expect(glMock.clear).toHaveBeenCalledTimes(2);
   });
 
-  it('does NOT re-initialize when ecologyProfile changes', () => {
-    const { rerender } = render(<GPUSimulation rules={RULES_A} ecologyProfile="None" />);
-    rerender(<GPUSimulation rules={RULES_A} ecologyProfile="Garden World" />);
+  it('does NOT re-initialize when ecologyProfile or colonyBiomeAffinity changes', () => {
+    const { rerender } = render(
+      <GPUSimulation rules={RULES_A} ecologyProfile="None" colonyBiomeAffinity={false} />,
+    );
+    rerender(
+      <GPUSimulation rules={RULES_A} ecologyProfile="Garden World" colonyBiomeAffinity={true} />,
+    );
     expect(glMock.clear).toHaveBeenCalledTimes(2);
   });
 

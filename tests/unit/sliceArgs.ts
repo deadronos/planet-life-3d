@@ -16,6 +16,7 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'randomDensity',
     'gameMode',
     'autoReseedOnStagnation',
+    'colonyBiomeAffinity',
   ],
   planet: [
     'planetRadius',

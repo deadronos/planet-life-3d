@@ -141,6 +141,7 @@ describe('Overlay component', () => {
           fertility: 0.7,
           viability: 0.75,
           neighborBias: 0,
+          colonyAffinity: 0,
         },
       });
     });

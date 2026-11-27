@@ -137,6 +137,10 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
     Simulation: folder(
       inFolder('Simulation', {
         gameMode: { label: 'Game Mode', options: ['Classic', 'Colony'] },
+        colonyBiomeAffinity: {
+          label: 'Biome Affinity',
+          hint: 'In Colony mode with active Ecology, Colony A favors warm/wet lowlands and Colony B favors cold/highland ridges.',
+        },
         running: {},
         tickMs: { min: 10, max: 1500, step: 1 },
         latCells: { min: SIM_CONSTRAINTS.latCells.min, max: 140, step: 1 },

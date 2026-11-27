@@ -17,7 +17,10 @@ export interface LifeGridStepContext {
   readonly nextAliveIndices: Int32Array;
   readonly rules: Rules;
   readonly ecologyBias: Int8Array | null;
+  readonly ecologyAffinity: Int8Array | null;
   readonly polarWrap: boolean;
+  readonly generation: number;
+  readonly colonyBiomeAffinity: boolean;
   birthsLastTick: number;
   deathsLastTick: number;
   population: number;

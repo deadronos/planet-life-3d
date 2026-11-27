@@ -24,10 +24,20 @@ These are easy to break accidentally; please preserve them unless you are intent
 ## CPU / GPU parity invariants
 
 - The GPU sim (`src/shaders/simulation.frag.ts`) must mirror the CPU's
-  `adjustNeighborsForEcology` (profile biases + neighbor-count bias) or the two sims run
-  different rules. When changing `computeEcologySample`, port the same formulas to the shader.
-- Colony birth typing must match: a new cell becomes Colony A when at least 2 neighbors are
-  Colony A (`LifeGridSimColony` and the GPU shader agree on `countA >= 2`).
+  `computeEcologySample` (profile biases, `neighborBias`, and `colonyAffinity`) or the two sims
+  run different rules. When changing `computeEcologySample`, port the same formulas to
+  `ecologySample()` in the shader.
+- Colony birth typing must match across CPU (`LifeGridSimColony`), Worker (`lifeGridWorkerImpl`),
+  and GPU (`simulation.frag.ts`):
+  - Majority-wins: `countA > countB` births Colony A, `countB > countA` births Colony B.
+  - When `countA === countB`, if `colonyBiomeAffinity` is active with ecology (`colonyAffinity !== 0`),
+    warm/wet lowlands (`colonyAffinity > 0`) break ties toward Colony A and cold/highland ridges
+    (`colonyAffinity < 0`) break ties toward Colony B; otherwise a deterministic parity tie-breaker
+    `((lat + lon + generation) & 1) === 0` selects Colony A vs Colony B (passed to the GPU via
+    `uGeneration`).
+  - When `colonyBiomeAffinity` is active with ecology, effective neighbor counts are shifted by
+    `clamp(baseBias + speciesSign * colonyAffinity, -1, 1)` (`+1` for Colony A, `-1` for Colony B)
+    for both survival and candidate birth checks.
 - When `gpuSim` is enabled the CPU/worker sim is paused and its stats are never published;
   HUD stats come from the GPU sim's readback pass (`gpuStats.frag.ts`).
 

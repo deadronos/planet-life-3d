@@ -1,15 +1,46 @@
 import {
   applyCellUpdate,
-  applyEcologyBias,
   type ColonyStats,
   countNeighborsColony,
   type LifeGridStepContext,
 } from './LifeGridHelper';
 import { LifeGridSimBase } from './LifeGridSimBase';
 
+function clampNeighbors(value: number): number {
+  return value < 0 ? 0 : value > 8 ? 8 : value;
+}
+
+function resolveSpeciesNeighbors(
+  rawNeighbors: number,
+  baseBias: -1 | 0 | 1,
+  affinity: -1 | 0 | 1,
+  species: 1 | 2,
+): number {
+  if (affinity === 0) return clampNeighbors(rawNeighbors + baseBias);
+  const combined = baseBias + (species === 1 ? affinity : -affinity);
+  const clampedBias = combined < -1 ? -1 : combined > 1 ? 1 : combined;
+  return clampNeighbors(rawNeighbors + clampedBias);
+}
+
+function resolveBirthCandidate(
+  countA: number,
+  countB: number,
+  affinity: -1 | 0 | 1,
+  la: number,
+  lo: number,
+  generation: number,
+): 1 | 2 {
+  if (countA > countB) return 1;
+  if (countB > countA) return 2;
+  if (affinity > 0) return 1;
+  if (affinity < 0) return 2;
+  return ((la + lo + generation) & 1) === 0 ? 1 : 2;
+}
+
 function stepColonyCell(
   ctx: LifeGridStepContext,
   stats: ColonyStats,
+  la: number,
   rowOffset: number,
   rTop: number,
   rMid: number,
@@ -22,7 +53,15 @@ function stepColonyCell(
   topShift: number,
   botShift: number,
 ): void {
-  const { grid, lonCells: W, ecologyBias, rules } = ctx;
+  const {
+    grid,
+    lonCells: W,
+    ecologyBias,
+    ecologyAffinity,
+    rules,
+    generation,
+    colonyBiomeAffinity,
+  } = ctx;
   stats.neighbors = 0;
   stats.countA = 0;
   countNeighborsColony(
@@ -43,13 +82,25 @@ function stepColonyCell(
 
   const idx = rowOffset + lo;
   const current = grid[idx];
-  const effectiveNeighbors = applyEcologyBias(stats.neighbors, idx, ecologyBias);
+  const rawNeighbors = stats.neighbors;
+
+  const baseBias = (ecologyBias === null ? 0 : ecologyBias[idx]) as -1 | 0 | 1;
+  const affinity = (colonyBiomeAffinity && ecologyAffinity !== null ? ecologyAffinity[idx] : 0) as
+    -1 | 0 | 1;
+
+  let effectiveNeighbors: number;
   let nextVal = 0;
 
   if (current > 0) {
-    if (rules.survive[effectiveNeighbors]) nextVal = current;
+    const species: 1 | 2 = current === 1 ? 1 : 2;
+    effectiveNeighbors = resolveSpeciesNeighbors(rawNeighbors, baseBias, affinity, species);
+    if (rules.survive[effectiveNeighbors]) nextVal = species;
   } else {
-    if (rules.birth[effectiveNeighbors]) nextVal = stats.countA >= 2 ? 1 : 2;
+    const countA = stats.countA;
+    const countB = rawNeighbors - countA;
+    const candidate = resolveBirthCandidate(countA, countB, affinity, la, lo, generation);
+    effectiveNeighbors = resolveSpeciesNeighbors(rawNeighbors, baseBias, affinity, candidate);
+    if (rules.birth[effectiveNeighbors]) nextVal = candidate;
   }
 
   applyCellUpdate(ctx, idx, current, nextVal, effectiveNeighbors);
@@ -84,6 +135,7 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
     stepColonyCell(
       ctx,
       stats,
+      la,
       rowOffset,
       rTop,
       rMid,
@@ -101,6 +153,7 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
       stepColonyCell(
         ctx,
         stats,
+        la,
         rowOffset,
         rTop,
         rMid,
@@ -118,6 +171,7 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
     stepColonyCell(
       ctx,
       stats,
+      la,
       rowOffset,
       rTop,
       rMid,

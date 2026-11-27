@@ -89,6 +89,9 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
           });
           if (msg.gameMode) sim.setGameMode(msg.gameMode);
           if (msg.ecologyProfile) sim.setEcologyProfile(msg.ecologyProfile);
+          if (typeof msg.colonyBiomeAffinity === 'boolean') {
+            sim.setColonyBiomeAffinity(msg.colonyBiomeAffinity);
+          }
           pool = [];
           if (typeof msg.randomDensity === 'number')
             sim.randomize(
@@ -117,6 +120,11 @@ export function createLifeGridWorkerHandler(postMessage: PostMessage) {
         case 'setPolarWrap': {
           if (!sim) return sendError('Worker not initialized');
           sim.setPolarWrap(msg.polarWrap);
+          return;
+        }
+        case 'setColonyBiomeAffinity': {
+          if (!sim) return sendError('Worker not initialized');
+          sim.setColonyBiomeAffinity(msg.enabled);
           return;
         }
         case 'clear': {

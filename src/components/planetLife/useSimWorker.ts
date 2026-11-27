@@ -27,6 +27,7 @@ export interface UseSimWorkerOptions {
   rules: import('../../sim/rules').Rules;
   ecologyProfile: import('../../sim/ecology').EcologyProfileName;
   polarWrap: boolean;
+  colonyBiomeAffinity?: boolean;
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   debugLogs: boolean;
@@ -40,6 +41,7 @@ export function useSimWorker({
   rules,
   ecologyProfile,
   polarWrap,
+  colonyBiomeAffinity = false,
   randomDensity,
   gameMode,
   debugLogs,
@@ -153,6 +155,7 @@ export function useSimWorker({
       gameMode,
       ecologyProfile,
       polarWrap,
+      colonyBiomeAffinity,
       randomDensity,
       seed: useUIStore.getState().worldSeed,
     } satisfies LifeGridWorkerInMessage);
@@ -210,6 +213,15 @@ export function useSimWorker({
       } satisfies LifeGridWorkerInMessage);
     }
   }, [polarWrap]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setColonyBiomeAffinity',
+        enabled: colonyBiomeAffinity,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [colonyBiomeAffinity]);
 
   // (randomDensity is intentionally NOT pushed to the worker on change —
   // it only applies when the user explicitly clicks "Randomize", which

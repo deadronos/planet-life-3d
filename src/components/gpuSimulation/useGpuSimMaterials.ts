@@ -47,12 +47,14 @@ export function useGpuSimMaterials({
   gameMode,
   ecologyProfile,
   polarWrap = false,
+  colonyBiomeAffinity = false,
 }: {
   resolution: Resolution;
   rules: Rules;
   gameMode: 'Classic' | 'Colony';
   ecologyProfile: EcologyProfileName;
   polarWrap?: boolean;
+  colonyBiomeAffinity?: boolean;
 }): GpuSimMaterials {
   const { width, height } = resolution;
   const ecologyBiasTexture = useMemo(
@@ -75,6 +77,8 @@ export function useGpuSimMaterials({
         uDecayStates: { value: normalizeDecayStates(rules.decayStates) },
         uColonyMode: { value: gameMode === 'Colony' },
         uPolarWrap: { value: polarWrap },
+        uColonyBiomeAffinity: { value: colonyBiomeAffinity },
+        uGeneration: { value: 0 },
         uEcologyEnabled: { value: ecologyProfile !== 'None' },
         uEcologyBiasTexture: { value: null },
       },
@@ -193,7 +197,8 @@ export function useGpuSimMaterials({
     // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so changing the ecology profile does not recreate the material and wipe the simulation.
     simMaterial.uniforms.uEcologyEnabled.value = ecologyProfile !== 'None';
     simMaterial.uniforms.uEcologyBiasTexture.value = ecologyBiasTexture;
-  }, [ecologyProfile, ecologyBiasTexture, simMaterial]);
+    simMaterial.uniforms.uColonyBiomeAffinity.value = colonyBiomeAffinity;
+  }, [ecologyProfile, ecologyBiasTexture, colonyBiomeAffinity, simMaterial]);
 
   useEffect(() => {
     return () => {

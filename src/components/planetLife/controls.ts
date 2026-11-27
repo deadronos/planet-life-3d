@@ -20,6 +20,7 @@ export type SimSlice = {
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   autoReseedOnStagnation: boolean;
+  colonyBiomeAffinity?: boolean;
 };
 
 /** Rendering + Upgrades (look) controls for the planet body and its lighting. */
@@ -138,6 +139,7 @@ function toSlices(p: FlatControls): PlanetLifeControls {
       randomDensity: p.randomDensity,
       gameMode: p.gameMode,
       autoReseedOnStagnation: p.autoReseedOnStagnation,
+      colonyBiomeAffinity: p.colonyBiomeAffinity,
     },
     planet: {
       planetRadius: p.planetRadius,
