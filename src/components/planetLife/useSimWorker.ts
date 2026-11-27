@@ -26,6 +26,7 @@ export interface UseSimWorkerOptions {
   safeLonCells: number;
   rules: import('../../sim/rules').Rules;
   ecologyProfile: import('../../sim/ecology').EcologyProfileName;
+  polarWrap: boolean;
   randomDensity: number;
   gameMode: 'Classic' | 'Colony';
   debugLogs: boolean;
@@ -38,6 +39,7 @@ export function useSimWorker({
   safeLonCells,
   rules,
   ecologyProfile,
+  polarWrap,
   randomDensity,
   gameMode,
   debugLogs,
@@ -150,6 +152,7 @@ export function useSimWorker({
       rules,
       gameMode,
       ecologyProfile,
+      polarWrap,
       randomDensity,
       seed: useUIStore.getState().worldSeed,
     } satisfies LifeGridWorkerInMessage);
@@ -198,6 +201,15 @@ export function useSimWorker({
       } satisfies LifeGridWorkerInMessage);
     }
   }, [ecologyProfile]);
+
+  useEffect(() => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'setPolarWrap',
+        polarWrap,
+      } satisfies LifeGridWorkerInMessage);
+    }
+  }, [polarWrap]);
 
   // (randomDensity is intentionally NOT pushed to the worker on change —
   // it only applies when the user explicitly clicks "Randomize", which

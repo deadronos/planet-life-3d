@@ -194,4 +194,81 @@ describe('lifeGridWorkerImpl', () => {
     const snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
     expect(snap).toBeTruthy();
   });
+
+  it('supports polarWrap in init and setPolarWrap', () => {
+    const out: LifeGridWorkerOutMessage[] = [];
+    const handler = createLifeGridWorkerHandler((m) => out.push(m));
+
+    handler.onMessage({
+      type: 'init',
+      latCells: 8,
+      lonCells: 10,
+      rules: GOL_RULES,
+      polarWrap: true,
+      randomDensity: 0,
+    });
+    out.length = 0;
+
+    // Seed antipodal polar neighbors at (0, 6), (0, 8) and south neighbor (1, 2)
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 0,
+      lon: 6,
+      offsets: [
+        [0, 0],
+        [0, 2],
+      ],
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 1,
+      lon: 2,
+      offsets: [[0, 0]],
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+    out.length = 0;
+
+    handler.onMessage({ type: 'tick', steps: 1 });
+    let snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
+    expect(new Uint8Array(snap!.grid)[0 * 10 + 2]).toBe(1);
+
+    // Disable polarWrap via setPolarWrap and verify (0, 4) does not birth from antipodal neighbors
+    handler.onMessage({ type: 'clear' });
+    handler.onMessage({ type: 'setPolarWrap', polarWrap: false });
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 0,
+      lon: 8,
+      offsets: [
+        [0, 0],
+        [0, 2],
+      ],
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+    handler.onMessage({
+      type: 'seedAtCell',
+      lat: 1,
+      lon: 4,
+      offsets: [[0, 0]],
+      mode: 'set',
+      scale: 1,
+      jitter: 0,
+      probability: 1,
+    });
+    out.length = 0;
+
+    handler.onMessage({ type: 'tick', steps: 1 });
+    snap = (out.filter((m) => m.type === 'snapshot') as any[]).pop();
+    expect(new Uint8Array(snap!.grid)[0 * 10 + 4]).toBe(0);
+  });
 });

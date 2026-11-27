@@ -91,4 +91,10 @@ describe('GPU Simulation Shaders', () => {
       'gridOffset.x = mod(gridOffset.x + uResolution.x * 1.5, uResolution.x) - uResolution.x * 0.5;',
     );
   });
+
+  it('supports uPolarWrap antipodal pole wrapping in simulation fragment shader (#219)', () => {
+    expect(simulationFragmentShader).toContain('uniform bool uPolarWrap;');
+    expect(simulationFragmentShader).toContain('if (!uPolarWrap)');
+    expect(simulationFragmentShader).toContain('floor(uResolution.x * 0.5) * pixelSize.x');
+  });
 });

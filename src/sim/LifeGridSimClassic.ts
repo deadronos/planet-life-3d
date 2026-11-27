@@ -16,9 +16,24 @@ function stepClassicEdgeCell(
   right: number,
   birthMask: number,
   surviveMask: number,
+  topShift: number,
+  botShift: number,
 ): void {
   const { grid, latCells: L, lonCells: W, ecologyProfile } = ctx;
-  const rawNeighbors = sumNeighborsEdge(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right);
+  const rawNeighbors = sumNeighborsEdge(
+    grid,
+    rTop,
+    rMid,
+    rBot,
+    hasTop,
+    hasBot,
+    left,
+    lo,
+    right,
+    topShift,
+    botShift,
+    W,
+  );
   const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
 
   const idx = rowOffset + lo;
@@ -37,6 +52,8 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
   const { birth, survive } = ctx.rules;
   const grid = ctx.grid;
   const ecologyProfile = ctx.ecologyProfile;
+  const polarWrap = ctx.polarWrap;
+  const halfW = polarWrap ? Math.floor(W / 2) : 0;
 
   let birthMask = 0;
   let surviveMask = 0;
@@ -47,13 +64,17 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
 
   for (let la = 0; la < L; la++) {
     const rowOffset = la * W;
+    const atTop = la === 0;
+    const atBot = la === L - 1;
 
-    const rTop = (la - 1) * W;
+    const rTop = atTop ? 0 : (la - 1) * W;
     const rMid = rowOffset;
-    const rBot = (la + 1) * W;
+    const rBot = atBot ? (L - 1) * W : (la + 1) * W;
 
-    const hasTop = la > 0;
-    const hasBot = la < L - 1;
+    const hasTop = !atTop || polarWrap;
+    const hasBot = !atBot || polarWrap;
+    const topShift = atTop && polarWrap ? halfW : 0;
+    const botShift = atBot && polarWrap ? halfW : 0;
 
     stepClassicEdgeCell(
       ctx,
@@ -69,35 +90,59 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
       1,
       birthMask,
       surviveMask,
+      topShift,
+      botShift,
     );
 
     const centerEnd = W - 1;
 
-    let sLeft = grid[rMid];
-    if (hasTop) sLeft += grid[rTop];
-    if (hasBot) sLeft += grid[rBot];
+    if (topShift === 0 && botShift === 0) {
+      let sLeft = grid[rMid];
+      if (hasTop) sLeft += grid[rTop];
+      if (hasBot) sLeft += grid[rBot];
 
-    let sCurr = grid[rMid + 1];
-    if (hasTop) sCurr += grid[rTop + 1];
-    if (hasBot) sCurr += grid[rBot + 1];
+      let sCurr = grid[rMid + 1];
+      if (hasTop) sCurr += grid[rTop + 1];
+      if (hasBot) sCurr += grid[rBot + 1];
 
-    for (let lo = 1; lo < centerEnd; lo++) {
-      const nextCol = lo + 1;
-      let sRight = grid[rMid + nextCol];
-      if (hasTop) sRight += grid[rTop + nextCol];
-      if (hasBot) sRight += grid[rBot + nextCol];
+      for (let lo = 1; lo < centerEnd; lo++) {
+        const nextCol = lo + 1;
+        let sRight = grid[rMid + nextCol];
+        if (hasTop) sRight += grid[rTop + nextCol];
+        if (hasBot) sRight += grid[rBot + nextCol];
 
-      const rawNeighbors = sLeft + sCurr + sRight - grid[rMid + lo];
-      const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
+        const rawNeighbors = sLeft + sCurr + sRight - grid[rMid + lo];
+        const neighbors = adjustNeighborsForEcology(rawNeighbors, la, lo, L, W, ecologyProfile);
 
-      const idx = rowOffset + lo;
-      const alive = grid[idx];
-      const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
+        const idx = rowOffset + lo;
+        const alive = grid[idx];
+        const nextAlive = ((alive ? surviveMask : birthMask) >> neighbors) & 1;
 
-      applyCellUpdate(ctx, idx, alive, nextAlive, neighbors);
+        applyCellUpdate(ctx, idx, alive, nextAlive, neighbors);
 
-      sLeft = sCurr;
-      sCurr = sRight;
+        sLeft = sCurr;
+        sCurr = sRight;
+      }
+    } else {
+      for (let lo = 1; lo < centerEnd; lo++) {
+        stepClassicEdgeCell(
+          ctx,
+          la,
+          rowOffset,
+          rTop,
+          rMid,
+          rBot,
+          hasTop,
+          hasBot,
+          lo - 1,
+          lo,
+          lo + 1,
+          birthMask,
+          surviveMask,
+          topShift,
+          botShift,
+        );
+      }
     }
 
     stepClassicEdgeCell(
@@ -114,6 +159,8 @@ export function stepClassicGrid(ctx: LifeGridStepContext): void {
       0,
       birthMask,
       surviveMask,
+      topShift,
+      botShift,
     );
   }
 }

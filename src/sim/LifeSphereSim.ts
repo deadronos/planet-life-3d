@@ -20,6 +20,7 @@ export class LifeSphereSim extends LifeGridSim {
     planetRadius: number;
     cellLift: number;
     rules: Rules;
+    polarWrap?: boolean;
   }) {
     super(opts);
 

@@ -1,11 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { LifeGridSim } from '../../src/sim/LifeGridSim';
-import { createLifeGridWorkerHandler } from '../../src/workers/lifeGridWorkerImpl';
-import type {
-  LifeGridWorkerInMessage,
-  LifeGridWorkerSnapshot,
-} from '../../src/workers/lifeGridWorkerMessages';
 import { parseRuleDigits } from '../../src/sim/rules';
+import { createLifeGridWorkerHandler } from '../../src/workers/lifeGridWorkerImpl';
+import type { LifeGridWorkerSnapshot } from '../../src/workers/lifeGridWorkerMessages';
 
 const GOL_RULES = {
   birth: parseRuleDigits('3'),
@@ -13,12 +11,7 @@ const GOL_RULES = {
 };
 
 function isSnapshot(m: unknown): m is LifeGridWorkerSnapshot {
-  return (
-    typeof m === 'object' &&
-    m !== null &&
-    'type' in m &&
-    (m as { type: unknown }).type === 'snapshot'
-  );
+  return typeof m === 'object' && m !== null && 'type' in m && m.type === 'snapshot';
 }
 
 function findSnapshot(out: unknown[]): LifeGridWorkerSnapshot | undefined {
@@ -46,7 +39,7 @@ describe('Worker vs main simulation equivalence', () => {
       latCells: lat,
       lonCells: lon,
       rules: GOL_RULES,
-    } as LifeGridWorkerInMessage);
+    });
 
     const baseLat = 3;
     const baseLon = 4;
@@ -60,7 +53,7 @@ describe('Worker vs main simulation equivalence', () => {
     sim.seedAtCell({
       lat: baseLat,
       lon: baseLon,
-      offsets: offsets as any,
+      offsets: offsets,
       mode: 'set',
       scale: 1,
       jitter: 0,
@@ -77,7 +70,7 @@ describe('Worker vs main simulation equivalence', () => {
       scale: 1,
       jitter: 0,
       probability: 1,
-    } as LifeGridWorkerInMessage);
+    });
 
     const snap0 = findSnapshot(out);
     expect(snap0).toBeTruthy();
@@ -90,7 +83,7 @@ describe('Worker vs main simulation equivalence', () => {
       sim.step();
 
       out.length = 0;
-      handler.onMessage({ type: 'tick', steps: 1 } as LifeGridWorkerInMessage);
+      handler.onMessage({ type: 'tick', steps: 1 });
 
       const snap = findSnapshot(out);
       expect(snap).toBeTruthy();
@@ -115,12 +108,12 @@ describe('Worker vs main simulation equivalence', () => {
       latCells: lat,
       lonCells: lon,
       rules: GOL_RULES,
-    } as LifeGridWorkerInMessage);
+    });
 
     // density = 1 (all alive)
     sim.randomize(1);
     out.length = 0;
-    handler.onMessage({ type: 'randomize', density: 1 } as LifeGridWorkerInMessage);
+    handler.onMessage({ type: 'randomize', density: 1 });
     const snap1 = findSnapshot(out)!;
     expect(snap1).toBeTruthy();
     expect(new Uint8Array(snap1.grid)).toEqual(sim.getGridView());
@@ -128,7 +121,7 @@ describe('Worker vs main simulation equivalence', () => {
     // density = 0 (all dead)
     sim.randomize(0);
     out.length = 0;
-    handler.onMessage({ type: 'randomize', density: 0 } as LifeGridWorkerInMessage);
+    handler.onMessage({ type: 'randomize', density: 0 });
     const snap0 = findSnapshot(out)!;
     expect(snap0).toBeTruthy();
     expect(new Uint8Array(snap0.grid)).toEqual(sim.getGridView());
@@ -145,7 +138,7 @@ describe('Worker vs main simulation equivalence', () => {
       latCells: lat,
       lonCells: lon,
       rules: GOL_RULES,
-    } as LifeGridWorkerInMessage);
+    });
 
     const baseLat = 2;
     const baseLon = lon - 1; // last column
@@ -154,7 +147,7 @@ describe('Worker vs main simulation equivalence', () => {
     sim.seedAtCell({
       lat: baseLat,
       lon: baseLon,
-      offsets: offsets as any,
+      offsets: offsets,
       mode: 'set',
       scale: 1,
       jitter: 0,
@@ -171,7 +164,7 @@ describe('Worker vs main simulation equivalence', () => {
       scale: 1,
       jitter: 0,
       probability: 1,
-    } as LifeGridWorkerInMessage);
+    });
 
     const snap = findSnapshot(out)!;
     expect(snap).toBeTruthy();
@@ -189,7 +182,7 @@ describe('Worker vs main simulation equivalence', () => {
       latCells: lat,
       lonCells: lon,
       rules: GOL_RULES,
-    } as LifeGridWorkerInMessage);
+    });
 
     // seed initial pattern
     const baseLat = 3;
@@ -203,7 +196,7 @@ describe('Worker vs main simulation equivalence', () => {
     sim.seedAtCell({
       lat: baseLat,
       lon: baseLon,
-      offsets: offsets as any,
+      offsets: offsets,
       mode: 'set',
       scale: 1,
       jitter: 0,
@@ -219,20 +212,98 @@ describe('Worker vs main simulation equivalence', () => {
       scale: 1,
       jitter: 0,
       probability: 1,
-    } as LifeGridWorkerInMessage);
+    });
 
     // change rules to HighLife (B36/S23) and step
     const highLifeRules = { birth: parseRuleDigits('36'), survive: parseRuleDigits('23') };
     sim.setRules(highLifeRules);
     out.length = 0;
-    handler.onMessage({ type: 'setRules', rules: highLifeRules } as LifeGridWorkerInMessage);
+    handler.onMessage({ type: 'setRules', rules: highLifeRules });
 
     sim.step();
     out.length = 0;
-    handler.onMessage({ type: 'tick', steps: 1 } as LifeGridWorkerInMessage);
+    handler.onMessage({ type: 'tick', steps: 1 });
 
     const snap = findSnapshot(out)!;
     expect(snap).toBeTruthy();
     expect(new Uint8Array(snap.grid)).toEqual(sim.getGridView());
+  });
+
+  it('polarWrap parity between worker and main sim in Classic and Colony modes', () => {
+    const lat = 8;
+    const lon = 10;
+    for (const mode of ['Classic', 'Colony'] as const) {
+      const sim = new LifeGridSim({
+        latCells: lat,
+        lonCells: lon,
+        rules: GOL_RULES,
+        polarWrap: true,
+      });
+      sim.setGameMode(mode);
+
+      const out: unknown[] = [];
+      const handler = createLifeGridWorkerHandler((m) => out.push(m));
+      handler.onMessage({
+        type: 'init',
+        latCells: lat,
+        lonCells: lon,
+        rules: GOL_RULES,
+        gameMode: mode,
+        polarWrap: true,
+      });
+
+      const seeds: [number, number][] = [
+        [0, 6],
+        [0, 8],
+        [1, 2],
+        [lat - 1, 6],
+        [lat - 1, 8],
+        [lat - 2, 2],
+      ];
+      for (const [sLat, sLon] of seeds) {
+        sim.setCell(sLat, sLon, mode === 'Colony' ? (sLat === 0 ? 1 : 2) : 1);
+        handler.onMessage({
+          type: 'seedAtCell',
+          lat: sLat,
+          lon: sLon,
+          offsets: [[0, 0]],
+          mode: 'set',
+          scale: 1,
+          jitter: 0,
+          probability: 1,
+        });
+      }
+
+      if (mode === 'Colony') {
+        // Ensure deterministic matching state before stepping
+        sim.clear();
+        handler.onMessage({ type: 'clear' });
+        for (const [sLat, sLon] of seeds) {
+          sim.setCell(sLat, sLon, 1);
+        }
+        // Seed via offsets in worker with toggle so Colony A (1) is deterministic
+        for (const [sLat, sLon] of seeds) {
+          handler.onMessage({
+            type: 'seedAtCell',
+            lat: sLat,
+            lon: sLon,
+            offsets: [[0, 0]],
+            mode: 'toggle',
+            scale: 1,
+            jitter: 0,
+            probability: 1,
+          });
+        }
+      }
+
+      sim.step();
+      out.length = 0;
+      handler.onMessage({ type: 'tick', steps: 1 });
+
+      const snap = findSnapshot(out)!;
+      expect(snap).toBeTruthy();
+      expect(new Uint8Array(snap.grid)).toEqual(sim.getGridView());
+      expect(snap.population).toBe(sim.population);
+    }
   });
 });

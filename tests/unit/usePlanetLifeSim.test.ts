@@ -709,4 +709,41 @@ describe('usePlanetLifeSim worker settings sync deduplication', () => {
     expect(sim!.gameMode).toBe('Colony');
     expect((sim as unknown as { rules: Rules }).rules).toEqual(HIGHLIFE);
   });
+
+  it('updates polarWrap in place in CPU mode without recreating the sim', () => {
+    const { result, rerender } = renderHook(
+      (props: { polarWrap: boolean }) =>
+        usePlanetLifeSim(
+          sliced({
+            running: false,
+            tickMs: 100,
+            safeLatCells: 3,
+            safeLonCells: 4,
+            planetRadius: 2,
+            cellLift: 0.015,
+            cellRenderMode: 'Dots',
+            gameMode: 'Classic',
+            rules: RULES,
+            ecologyProfile: 'None',
+            polarWrap: props.polarWrap,
+            randomDensity: 0.5,
+            workerSim: false,
+            lifeTex: makeLifeTex(),
+            cellsRef: { current: makeMesh() },
+            resolveCellColor: () => 1,
+            colorScratch: new THREE.Color(),
+            debugLogs: false,
+          }),
+        ),
+      { initialProps: { polarWrap: false } },
+    );
+
+    const sim = result.current.simRef.current;
+    expect(sim).not.toBeNull();
+    expect(sim!.polarWrap).toBe(false);
+
+    rerender({ polarWrap: true });
+    expect(result.current.simRef.current).toBe(sim);
+    expect(sim!.polarWrap).toBe(true);
+  });
 });

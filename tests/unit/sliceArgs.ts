@@ -7,6 +7,7 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'tickMs',
     'latCells',
     'lonCells',
+    'polarWrap',
     'worldPreset',
     'birthDigits',
     'surviveDigits',

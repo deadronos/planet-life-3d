@@ -140,6 +140,10 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
         tickMs: { min: 10, max: 1500, step: 1 },
         latCells: { min: SIM_CONSTRAINTS.latCells.min, max: 140, step: 1 },
         lonCells: { min: SIM_CONSTRAINTS.lonCells.min, max: 240, step: 1 },
+        polarWrap: {
+          label: 'Polar Wrap',
+          hint: 'Wrap over the north and south poles to the antipodal longitude.',
+        },
         rulePreset: { label: 'Rule Preset', options: ['Custom', ...RULE_PRESET_NAMES] },
         birthDigits: {},
         surviveDigits: {},

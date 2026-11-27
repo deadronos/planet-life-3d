@@ -58,16 +58,25 @@ function callHook(initial: {
   rules?: Rules;
   gameMode?: 'Classic' | 'Colony';
   ecologyProfile?: EcologyProfileName;
+  polarWrap?: boolean;
   randomDensity?: number;
 }) {
   return renderHook(
-    (props) =>
+    (props: {
+      workerEnabled: boolean;
+      rules: Rules;
+      gameMode: 'Classic' | 'Colony';
+      ecologyProfile: EcologyProfileName;
+      polarWrap?: boolean;
+      randomDensity: number;
+    }) =>
       useSimWorker({
         workerEnabled: props.workerEnabled,
         safeLatCells: 10,
         safeLonCells: 16,
         rules: props.rules ?? GOL_RULES,
         ecologyProfile: props.ecologyProfile ?? 'None',
+        polarWrap: props.polarWrap ?? false,
         randomDensity: props.randomDensity ?? 0.1,
         gameMode: props.gameMode ?? 'Classic',
         debugLogs: false,
@@ -79,6 +88,7 @@ function callHook(initial: {
         rules: initial.rules ?? GOL_RULES,
         gameMode: initial.gameMode ?? ('Classic' as const),
         ecologyProfile: initial.ecologyProfile ?? 'None',
+        polarWrap: initial.polarWrap ?? false,
         randomDensity: initial.randomDensity ?? 0.1,
       },
     },
@@ -104,6 +114,7 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       rules: HIGHLIFE_RULES,
       gameMode: 'Classic',
       ecologyProfile: 'None',
+      polarWrap: false,
       randomDensity: 0.1,
     });
 
@@ -125,6 +136,7 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       rules: GOL_RULES,
       gameMode: 'Colony',
       ecologyProfile: 'None',
+      polarWrap: false,
       randomDensity: 0.1,
     });
 
@@ -148,6 +160,7 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       rules: GOL_RULES,
       gameMode: 'Classic',
       ecologyProfile: 'Garden World',
+      polarWrap: false,
       randomDensity: 0.1,
     });
 
@@ -158,6 +171,27 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       profile: EcologyProfileName;
     };
     expect(lastSetEcology.profile).toBe('Garden World');
+  });
+
+  it('does NOT re-create the worker when polarWrap changes', () => {
+    const { rerender } = callHook({ workerEnabled: true });
+    expect(FakeWorker.instances).toHaveLength(1);
+    const w = FakeWorker.instances[0];
+    const baselineCount = w.messages.filter((m) => m.type === 'setPolarWrap').length;
+
+    rerender({
+      workerEnabled: true,
+      rules: GOL_RULES,
+      gameMode: 'Classic',
+      ecologyProfile: 'None',
+      polarWrap: true,
+      randomDensity: 0.1,
+    });
+
+    expect(FakeWorker.instances).toHaveLength(1);
+    const msgs = w.messages.filter((m) => m.type === 'setPolarWrap');
+    expect(msgs).toHaveLength(baselineCount + 1);
+    expect((msgs[msgs.length - 1] as unknown as { polarWrap: boolean }).polarWrap).toBe(true);
   });
 
   it('does NOT re-create the worker when randomDensity slider moves (density applies on explicit Randomize)', () => {
@@ -174,6 +208,7 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       rules: GOL_RULES,
       gameMode: 'Classic',
       ecologyProfile: 'None',
+      polarWrap: false,
       randomDensity: 0.5,
     });
 
@@ -197,6 +232,7 @@ describe('useSimWorker (regression: do not re-create worker on Leva changes)', (
       rules: GOL_RULES,
       gameMode: 'Classic',
       ecologyProfile: 'None',
+      polarWrap: false,
       randomDensity: 0.1,
     });
 

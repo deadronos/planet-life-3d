@@ -20,11 +20,27 @@ function stepColonyCell(
   left: number,
   lo: number,
   right: number,
+  topShift: number,
+  botShift: number,
 ): void {
   const { grid, latCells: L, lonCells: W, ecologyProfile, rules } = ctx;
   stats.neighbors = 0;
   stats.countA = 0;
-  countNeighborsColony(grid, rTop, rMid, rBot, hasTop, hasBot, left, lo, right, stats);
+  countNeighborsColony(
+    grid,
+    rTop,
+    rMid,
+    rBot,
+    hasTop,
+    hasBot,
+    left,
+    lo,
+    right,
+    stats,
+    topShift,
+    botShift,
+    W,
+  );
 
   const idx = rowOffset + lo;
   const current = grid[idx];
@@ -57,16 +73,38 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
   const W = ctx.lonCells;
   const centerEnd = W - 1;
   const stats = SCRATCH_COLONY_STATS;
+  const polarWrap = ctx.polarWrap;
+  const halfW = polarWrap ? Math.floor(W / 2) : 0;
 
   for (let la = 0; la < L; la++) {
     const rowOffset = la * W;
-    const rTop = (la - 1) * W;
-    const rMid = rowOffset;
-    const rBot = (la + 1) * W;
-    const hasTop = la > 0;
-    const hasBot = la < L - 1;
+    const atTop = la === 0;
+    const atBot = la === L - 1;
 
-    stepColonyCell(ctx, stats, la, rowOffset, rTop, rMid, rBot, hasTop, hasBot, W - 1, 0, 1);
+    const rTop = atTop ? 0 : (la - 1) * W;
+    const rMid = rowOffset;
+    const rBot = atBot ? (L - 1) * W : (la + 1) * W;
+    const hasTop = !atTop || polarWrap;
+    const hasBot = !atBot || polarWrap;
+    const topShift = atTop && polarWrap ? halfW : 0;
+    const botShift = atBot && polarWrap ? halfW : 0;
+
+    stepColonyCell(
+      ctx,
+      stats,
+      la,
+      rowOffset,
+      rTop,
+      rMid,
+      rBot,
+      hasTop,
+      hasBot,
+      W - 1,
+      0,
+      1,
+      topShift,
+      botShift,
+    );
 
     for (let lo = 1; lo < centerEnd; lo++) {
       stepColonyCell(
@@ -82,10 +120,27 @@ export function stepColonyGrid(ctx: LifeGridStepContext): void {
         lo - 1,
         lo,
         lo + 1,
+        topShift,
+        botShift,
       );
     }
 
-    stepColonyCell(ctx, stats, la, rowOffset, rTop, rMid, rBot, hasTop, hasBot, W - 2, W - 1, 0);
+    stepColonyCell(
+      ctx,
+      stats,
+      la,
+      rowOffset,
+      rTop,
+      rMid,
+      rBot,
+      hasTop,
+      hasBot,
+      W - 2,
+      W - 1,
+      0,
+      topShift,
+      botShift,
+    );
   }
 }
 

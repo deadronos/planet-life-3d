@@ -46,6 +46,19 @@ describe('useGpuSimMaterials', () => {
     );
   });
 
+  it('syncs polarWrap uniform in place without recreating materials', () => {
+    const { result, rerender } = renderHook((p: Props) => useGpuSimMaterials(p), {
+      initialProps: base,
+    });
+    const sim = result.current.simMaterial;
+    expect(sim.uniforms.uPolarWrap.value).toBe(false);
+
+    rerender({ ...base, polarWrap: true });
+
+    expect(result.current.simMaterial).toBe(sim);
+    expect(sim.uniforms.uPolarWrap.value).toBe(true);
+  });
+
   it('recreates sim/seed materials only on resolution change and disposes the old ones', () => {
     const matSpy = vi.spyOn(THREE.ShaderMaterial.prototype, 'dispose');
     const geoSpy = vi.spyOn(THREE.PlaneGeometry.prototype, 'dispose');

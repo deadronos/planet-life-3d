@@ -45,11 +45,13 @@ export function useGpuSimMaterials({
   rules,
   gameMode,
   ecologyProfile,
+  polarWrap = false,
 }: {
   resolution: Resolution;
   rules: Rules;
   gameMode: 'Classic' | 'Colony';
   ecologyProfile: EcologyProfileName;
+  polarWrap?: boolean;
 }): GpuSimMaterials {
   // Create the simulation material exactly once per resolution. We mutate its
   // uniforms in place from a separate effect when rules/gameMode change, so the
@@ -64,6 +66,7 @@ export function useGpuSimMaterials({
         uBirthRules: { value: rulesToFloatArray(rules.birth) },
         uSurviveRules: { value: rulesToFloatArray(rules.survive) },
         uColonyMode: { value: gameMode === 'Colony' },
+        uPolarWrap: { value: polarWrap },
         uEcologyEnabled: { value: ecologyProfile !== 'None' },
         uEcologyFertilityBias: {
           value: (ECOLOGY_PROFILES[ecologyProfile] ?? ECOLOGY_PROFILES.None).fertilityBias,
@@ -196,6 +199,12 @@ export function useGpuSimMaterials({
     simMaterial.uniforms.uEcologyMountainBias.value = profile.mountainBias;
     simMaterial.uniforms.uEcologySunlightBias.value = profile.sunlightBias;
   }, [ecologyProfile, simMaterial]);
+
+  // Update polarWrap uniform in place without recreating simMaterial.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability -- Uniforms are updated in place so toggling polarWrap does not recreate the material and wipe the simulation.
+    simMaterial.uniforms.uPolarWrap.value = polarWrap;
+  }, [polarWrap, simMaterial]);
 
   // Dispose each material / quad geometry when it is replaced and on unmount.
   // Per-pass effects so the long-lived stats pass is not torn down by a

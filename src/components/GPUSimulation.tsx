@@ -24,6 +24,7 @@ export const GPUSimulation = ({
   randomDensity = 0.1,
   gameMode = 'Classic',
   ecologyProfile = 'None',
+  polarWrap = false,
   onTextureUpdate,
   onStats,
   simRef,
@@ -35,6 +36,7 @@ export const GPUSimulation = ({
   randomDensity?: number;
   gameMode?: 'Classic' | 'Colony';
   ecologyProfile?: EcologyProfileName;
+  polarWrap?: boolean;
   onTextureUpdate?: (texture: THREE.Texture) => void;
   onStats?: (stats: GpuStats) => void;
   simRef?: React.Ref<GPUSimulationHandle>;
@@ -58,7 +60,7 @@ export const GPUSimulation = ({
     copyScene,
     statsMaterial,
     statsScene,
-  } = useGpuSimMaterials({ resolution, rules, gameMode, ecologyProfile });
+  } = useGpuSimMaterials({ resolution, rules, gameMode, ecologyProfile, polarWrap });
   const { readStats } = useGpuStatsReadback({
     gl,
     resolution,

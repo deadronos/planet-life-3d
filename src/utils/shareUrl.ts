@@ -73,6 +73,10 @@ export function decodeWorld(hash: string): SharedWorld {
     controls.autoReseedOnStagnation = false;
   }
 
+  const pw = params.get('pw');
+  if (pw === '1' || pw === 'true') controls.polarWrap = true;
+  else if (pw === '0' || pw === 'false') controls.polarWrap = false;
+
   out.seed = parseWorldSeed(params.get('seed'));
   return out;
 }
@@ -90,6 +94,7 @@ export function encodeWorld(state: ControlValues, seed: number): string {
   p.set('g', `${state.latCells}x${state.lonCells}`);
   p.set('d', String(Math.round(state.randomDensity * 1000) / 1000));
   if (state.autoReseedOnStagnation) p.set('ar', '1');
+  if (state.polarWrap) p.set('pw', '1');
   p.set('seed', String(seed >>> 0));
   return p.toString();
 }
