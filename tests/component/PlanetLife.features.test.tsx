@@ -22,6 +22,7 @@ vi.mock('../../src/components/planetLife/controls', () => ({
       worldPreset: 'Custom',
       birthDigits: '3',
       surviveDigits: '23',
+      decayStates: 2,
       ecologyProfile: 'None',
       gameMode: 'Classic',
       randomDensity: 0.1,

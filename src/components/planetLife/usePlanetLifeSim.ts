@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useDocumentHidden } from '../../hooks/useDocumentHidden';
 import { LifeSphereSim } from '../../sim/LifeSphereSim';
 import type { Offset } from '../../sim/patterns';
-import type { Rules } from '../../sim/rules';
+import { normalizeDecayStates, type Rules } from '../../sim/rules';
 import { createSeededRng } from '../../sim/seededRng';
 import { spherePointToCell } from '../../sim/spherePointToCell';
 import type { SeedMode } from '../../sim/types';
@@ -123,6 +123,7 @@ export function usePlanetLifeSim({
     colorScratch,
     resolveCellColor,
     gameMode,
+    decayStates: normalizeDecayStates(rules.decayStates),
     debugLogs,
   });
 

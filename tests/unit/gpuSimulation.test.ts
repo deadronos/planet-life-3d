@@ -97,4 +97,10 @@ describe('GPU Simulation Shaders', () => {
     expect(simulationFragmentShader).toContain('if (!uPolarWrap)');
     expect(simulationFragmentShader).toContain('floor(uResolution.x * 0.5) * pixelSize.x');
   });
+
+  it('supports Generations multi-state decay and ignores refractory neighbors (#223)', () => {
+    expect(simulationFragmentShader).toContain('uniform int uDecayStates;');
+    expect(simulationFragmentShader).toContain('else if (uDecayStates > 2)');
+    expect(simulationFragmentShader).toContain('n1.r > 0.92 ? 1.0 : 0.0');
+  });
 });

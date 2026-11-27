@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
+import { normalizeDecayStates } from '../../sim/rules';
+
 export type LifeTexture = {
   data: Uint8Array;
   tex: THREE.DataTexture;
@@ -64,9 +66,11 @@ export function writeLifeTexture(params: {
   lifeTex: LifeTexture;
 
   gameMode: 'Classic' | 'Colony';
+  decayStates?: number;
   debugLogs: boolean;
 }): number {
   const { grid, ages, heat, lifeTex, gameMode, debugLogs } = params;
+  const decayStates = normalizeDecayStates(params.decayStates);
   const { data, w, h } = lifeTex;
 
   // The running total is the function's return value, so it is always
@@ -108,6 +112,17 @@ export function writeLifeTexture(params: {
         else if (val === 2)
           data[di] = 171; // ~0.67 * 255
         else data[di] = 0;
+      } else if (decayStates > 2) {
+        // Generations Mode: 0=Dead, 1=Firing (1.0), 2..G-1=Refractory cooling in [0.15, 0.90]
+        const val = grid[idx];
+        if (val === 1) {
+          data[di] = 255;
+        } else if (val >= 2 && val < decayStates) {
+          const cool = (decayStates - val) / (decayStates - 1);
+          data[di] = Math.round((0.15 + 0.75 * cool) * 255);
+        } else {
+          data[di] = 0;
+        }
       } else {
         // Classic Mode: 0=Dead, 1=Alive (1.0)
         data[di] = alive ? 255 : 0;

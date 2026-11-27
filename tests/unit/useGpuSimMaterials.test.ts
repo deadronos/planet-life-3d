@@ -33,11 +33,17 @@ describe('useGpuSimMaterials', () => {
 
     const profileName = (Object.keys(ECOLOGY_PROFILES).find((k) => k !== 'None') ??
       'None') as Props['ecologyProfile'];
-    rerender({ ...base, rules: rules([3, 6]), gameMode: 'Colony', ecologyProfile: profileName });
+    rerender({
+      ...base,
+      rules: { ...rules([3, 6]), decayStates: 4 },
+      gameMode: 'Colony',
+      ecologyProfile: profileName,
+    });
 
     expect(result.current.simMaterial).toBe(sim);
     expect(result.current.seedMaterial).toBe(seed);
     expect(sim.uniforms.uBirthRules.value[6]).toBe(1);
+    expect(sim.uniforms.uDecayStates.value).toBe(4);
     expect(sim.uniforms.uColonyMode.value).toBe(true);
     expect(seed.uniforms.uColonyMode.value).toBe(true);
     expect(sim.uniforms.uEcologyEnabled.value).toBe(profileName !== 'None');

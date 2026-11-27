@@ -1,7 +1,22 @@
+import { safeInt } from './utils';
+
+export const MIN_DECAY_STATES = 2;
+export const MAX_DECAY_STATES = 16;
+export const DEFAULT_DECAY_STATES = 2;
+
 export type Rules = {
   birth: boolean[]; // length 9, indexed by neighbor count
   survive: boolean[]; // length 9
+  /** Number of Generations states (2 = classic binary Life, 3..16 = refractory decay). */
+  decayStates?: number;
 };
+
+/**
+ * Clamp and normalize a Generations state count into the supported [2..16] integer range.
+ */
+export function normalizeDecayStates(value: unknown): number {
+  return safeInt(value, DEFAULT_DECAY_STATES, MIN_DECAY_STATES, MAX_DECAY_STATES);
+}
 
 /**
  * Parses rule digits like "3" or "23" into a boolean lookup table indexed by neighbor count [0..8].

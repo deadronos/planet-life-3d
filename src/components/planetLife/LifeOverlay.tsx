@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { gpuOverlayFragmentShader } from '../../shaders/gpuOverlay.frag';
 import { gpuOverlayVertexShader } from '../../shaders/gpuOverlay.vert';
+import { normalizeDecayStates } from '../../sim/rules';
 import { AGE_FADE_BASE, AGE_FADE_MAX, AGE_FADE_MIN, AGE_FADE_SCALE } from '../../sim/utils';
 import { PLANET_SPHERE_SEGMENTS } from './Atmosphere';
 
@@ -74,6 +75,7 @@ export function createGpuOverlayMaterial(params: {
   ageFadeHalfLife: number;
   cellOverlayOpacity: number;
   gameMode: 'Classic' | 'Colony';
+  decayStates?: number;
   nightGlowIntensity: number;
   nightGlowColor: string;
   lightPosition: [number, number, number];
@@ -102,6 +104,7 @@ export function createGpuOverlayMaterial(params: {
       uColorMode: { value: colorModeValue },
       uCellOverlayOpacity: { value: params.cellOverlayOpacity },
       uColonyMode: { value: params.gameMode === 'Colony' },
+      uDecayStates: { value: normalizeDecayStates(params.decayStates) },
       uLightDir: { value: new THREE.Vector3(...params.lightPosition).normalize() },
       uNightGlowColor: { value: new THREE.Color(params.nightGlowColor) },
       uNightGlowIntensity: { value: params.nightGlowIntensity },

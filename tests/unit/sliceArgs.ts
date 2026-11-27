@@ -11,6 +11,7 @@ const SLICE_FIELDS: Record<string, readonly string[]> = {
     'worldPreset',
     'birthDigits',
     'surviveDigits',
+    'decayStates',
     'ecologyProfile',
     'randomDensity',
     'gameMode',

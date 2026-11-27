@@ -8,6 +8,7 @@ export const simulationFragmentShader = /* glsl */ `
   uniform vec2 uResolution;           // Texture resolution (width, height)
   uniform float uBirthRules[9];       // Birth rules: array[neighborCount] = 1.0 if birth, 0.0 otherwise
   uniform float uSurviveRules[9];     // Survive rules: array[neighborCount] = 1.0 if survive, 0.0 otherwise
+  uniform int uDecayStates;           // Generations state count (2 = classic binary Life, 3..16 = refractory decay)
   uniform bool uColonyMode;           // Whether colony mode is enabled
   uniform bool uPolarWrap;            // Whether latitude wraps across poles to antipodal longitude
   // Ecology profile params (mirror of ECOLOGY_PROFILES in sim/ecology.ts).
@@ -132,6 +133,18 @@ export const simulationFragmentShader = /* glsl */ `
       if (n6.r > 0.1) { neighbors += 1.0; if (n6.r < 0.5 || n6.r > 0.85) neighborsColonyA += 1.0; }
       if (n7.r > 0.1) { neighbors += 1.0; if (n7.r < 0.5 || n7.r > 0.85) neighborsColonyA += 1.0; }
       if (n8.r > 0.1) { neighbors += 1.0; if (n8.r < 0.5 || n8.r > 0.85) neighborsColonyA += 1.0; }
+    } else if (uDecayStates > 2) {
+      // Generations mode: only firing cells (state 1 -> > 0.92) count as live neighbors;
+      // refractory cells (0.1..0.92) are ignored.
+      neighbors =
+        (n1.r > 0.92 ? 1.0 : 0.0) +
+        (n2.r > 0.92 ? 1.0 : 0.0) +
+        (n3.r > 0.92 ? 1.0 : 0.0) +
+        (n4.r > 0.92 ? 1.0 : 0.0) +
+        (n5.r > 0.92 ? 1.0 : 0.0) +
+        (n6.r > 0.92 ? 1.0 : 0.0) +
+        (n7.r > 0.92 ? 1.0 : 0.0) +
+        (n8.r > 0.92 ? 1.0 : 0.0);
     } else {
       // Classic mode: count any live neighbor (including 0.33/0.67 from Colony mode) as 1.0
       neighbors =
@@ -191,6 +204,44 @@ export const simulationFragmentShader = /* glsl */ `
         }
         nextAge = min(1.0, currentAge + 1.0 / 255.0);  // Increment age (normalized)
         nextHeat = neighbors / 8.0;  // Store neighbor count normalized
+      }
+    } else if (uDecayStates > 2) {
+      // Generations mode:
+      // - Firing cells (> 0.92) survive to 1.0 or enter refractory state 2
+      // - Refractory cells (0.1..0.92) advance s -> s + 1 until s >= uDecayStates (dead 0.0)
+      // - Dead cells (< 0.1) are born into firing state 1.0 when matching birth rules
+      float denom = float(uDecayStates - 1);
+      if (current > 0.92) {
+        bool survives = false;
+        if (neighborCount >= 0 && neighborCount <= 8) {
+          survives = uSurviveRules[neighborCount] > 0.5;
+        }
+        if (survives) {
+          nextState = 1.0;
+        } else {
+          nextState = 0.15 + 0.75 * (float(uDecayStates - 2) / denom);
+        }
+        nextAge = min(1.0, currentAge + 1.0 / 255.0);
+        nextHeat = neighbors / 8.0;
+      } else if (current >= 0.1) {
+        float cool = clamp((current - 0.15) / 0.75, 0.0, 1.0);
+        int s = uDecayStates - int(floor(cool * denom + 0.5));
+        if (s < 2) s = 2;
+        if (s >= uDecayStates) s = uDecayStates - 1;
+        int nextS = s + 1;
+        if (nextS >= uDecayStates) {
+          nextState = 0.0;
+        } else {
+          nextState = 0.15 + 0.75 * (float(uDecayStates - nextS) / denom);
+          nextAge = min(1.0, currentAge + 1.0 / 255.0);
+          nextHeat = neighbors / 8.0;
+        }
+      } else {
+        if (neighborCount >= 0 && neighborCount <= 8 && uBirthRules[neighborCount] > 0.5) {
+          nextState = 1.0;
+          nextAge = min(1.0, currentAge + 1.0 / 255.0);
+          nextHeat = neighbors / 8.0;
+        }
       }
     } else {
       // Classic mode logic: treat any live state (> 0.1, including Colony 0.33/0.67) as alive

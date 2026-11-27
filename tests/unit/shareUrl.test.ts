@@ -52,6 +52,7 @@ describe('share URL', () => {
       worldPreset: 'Garden World',
       birthDigits: '36',
       surviveDigits: '23',
+      decayStates: 4,
       latCells: 96,
       lonCells: 160,
       randomDensity: 0.14,
@@ -64,6 +65,7 @@ describe('share URL', () => {
     expect(w.controls).toMatchObject({
       birthDigits: '36',
       surviveDigits: '23',
+      decayStates: 4,
       latCells: 96,
       lonCells: 160,
       randomDensity: 0.14,
@@ -133,5 +135,12 @@ describe('share URL', () => {
     expect(decodeWorld('#pw=true').controls.polarWrap).toBe(true);
     expect(decodeWorld('#pw=false').controls.polarWrap).toBe(false);
     expect(decodeWorld('#pw=maybe').controls.polarWrap).toBeUndefined();
+  });
+
+  it('clamps and validates Generations G parameter in share URLs', () => {
+    expect(decodeWorld('#G=1').controls.decayStates).toBe(2);
+    expect(decodeWorld('#G=99').controls.decayStates).toBe(16);
+    expect(decodeWorld('#G=4').controls).toMatchObject({ decayStates: 4, rulePreset: 'Custom' });
+    expect(decodeWorld('#G=abc').controls.decayStates).toBeUndefined();
   });
 });

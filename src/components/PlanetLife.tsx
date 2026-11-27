@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useDocumentHidden } from '../hooks/useDocumentHidden';
 import { SIM_CONSTRAINTS, SIM_DEFAULTS } from '../sim/constants';
 import { computeEcologySample } from '../sim/ecology';
-import { parseRuleDigits } from '../sim/rules';
+import { normalizeDecayStates, parseRuleDigits } from '../sim/rules';
 import { spherePointToCell } from '../sim/spherePointToCell';
 import { useUIStore } from '../store/useUIStore';
 import { detectSimStatus } from '../utils/simStatus';
@@ -42,7 +42,7 @@ export function PlanetLife({
     debug,
   } = usePlanetLifeControls();
 
-  const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits } = sim;
+  const { running, tickMs, latCells, lonCells, birthDigits, surviveDigits, decayStates } = sim;
   const { ecologyProfile, gameMode, randomDensity, polarWrap, autoReseedOnStagnation } = sim;
   const {
     planetRadius,
@@ -81,12 +81,15 @@ export function PlanetLife({
   const simStatus = useUIStore((state) => detectSimStatus(state.statsHistory));
   const documentHidden = useDocumentHidden();
 
+  const safeDecayStates = useMemo(() => normalizeDecayStates(decayStates), [decayStates]);
+
   const rules = useMemo(() => {
     return {
       birth: parseRuleDigits(birthDigits),
       survive: parseRuleDigits(surviveDigits),
+      decayStates: safeDecayStates,
     };
-  }, [birthDigits, surviveDigits]);
+  }, [birthDigits, surviveDigits, safeDecayStates]);
 
   const cellsRef = useRef<THREE.InstancedMesh | null>(null);
 
@@ -132,6 +135,7 @@ export function PlanetLife({
     heatMidColor,
     heatHighColor,
     gameMode,
+    decayStates: safeDecayStates,
     colonyColorA,
     colonyColorB,
   });
@@ -149,6 +153,7 @@ export function PlanetLife({
         ageFadeHalfLife,
         cellOverlayOpacity,
         gameMode,
+        decayStates: safeDecayStates,
         nightGlowIntensity,
         nightGlowColor,
         lightPosition,
@@ -171,6 +176,7 @@ export function PlanetLife({
     u.uColorMode.value = cellColorMode === 'Solid' ? 0 : cellColorMode === 'Age Fade' ? 1 : 2;
     u.uCellOverlayOpacity.value = cellOverlayOpacity;
     u.uColonyMode.value = gameMode === 'Colony';
+    u.uDecayStates.value = safeDecayStates;
     (u.uLightDir.value as THREE.Vector3)
       .set(lightPosition[0], lightPosition[1], lightPosition[2])
       .normalize();
@@ -188,6 +194,7 @@ export function PlanetLife({
     ageFadeHalfLife,
     cellOverlayOpacity,
     gameMode,
+    safeDecayStates,
     nightGlowIntensity,
     nightGlowColor,
     lightPosition,

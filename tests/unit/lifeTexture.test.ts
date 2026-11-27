@@ -82,6 +82,25 @@ describe('writeLifeTexture state channel', () => {
     expect(lifeTex.data[4]).toBe(0);
   });
 
+  it('writes Generations refractory states as a smooth cooling gradient in [0.15, 0.90]', () => {
+    const lifeTex = makeLifeTex(4, 1);
+    const count = writeLifeTexture({
+      grid: new Uint8Array([0, 1, 2, 3]),
+      ages: new Uint8Array([0, 1, 2, 3]),
+      heat: new Uint8Array([0, 0, 0, 0]),
+      lifeTex,
+      gameMode: 'Classic',
+      decayStates: 4,
+      debugLogs: false,
+    });
+    expect(count).toBe(3);
+    expect(lifeTex.data[0]).toBe(0); // dead
+    expect(lifeTex.data[4]).toBe(255); // firing
+    expect(lifeTex.data[8]).toBe(Math.round((0.15 + 0.75 * (2 / 3)) * 255)); // state 2
+    expect(lifeTex.data[12]).toBe(Math.round((0.15 + 0.75 * (1 / 3)) * 255)); // state 3
+    expect(lifeTex.data[8]).toBeGreaterThan(lifeTex.data[12]);
+  });
+
   it('writes Colony states as 0/84/171', () => {
     const lifeTex = makeLifeTex(3, 1);
     writeLifeTexture({

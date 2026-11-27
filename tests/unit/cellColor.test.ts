@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useCellColorResolver } from '../../src/components/planetLife/cellColor';
 import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+
+import { useCellColorResolver } from '../../src/components/planetLife/cellColor';
 
 describe('cellColor', () => {
   describe('useCellColorResolver', () => {
@@ -271,6 +272,59 @@ describe('cellColor', () => {
       result.current.resolveCellColor(0, gridB, ageView, heatView, color);
       expect(color.r).toBeCloseTo(0, 2);
       expect(color.b).toBeCloseTo(1, 2);
+    });
+
+    it('should apply a smooth cooling/fade gradient for Generations refractory cells', () => {
+      const { result } = renderHook(() =>
+        useCellColorResolver({
+          cellColorMode: 'Solid',
+          cellColor: '#ff0000',
+          ageFadeHalfLife: 24,
+          heatLowColor: '#0000ff',
+          heatMidColor: '#ffff00',
+          heatHighColor: '#ff0000',
+          gameMode: 'Classic',
+          decayStates: 4,
+          colonyColorA: '#ff3333',
+          colonyColorB: '#3388ff',
+        }),
+      );
+
+      const ageView = new Uint8Array([1]);
+      const heatView = new Uint8Array([0]);
+      const cFiring = new THREE.Color();
+      const cState2 = new THREE.Color();
+      const cState3 = new THREE.Color();
+
+      const b1 = result.current.resolveCellColor(
+        0,
+        new Uint8Array([1]),
+        ageView,
+        heatView,
+        cFiring,
+      );
+      const b2 = result.current.resolveCellColor(
+        0,
+        new Uint8Array([2]),
+        ageView,
+        heatView,
+        cState2,
+      );
+      const b3 = result.current.resolveCellColor(
+        0,
+        new Uint8Array([3]),
+        ageView,
+        heatView,
+        cState3,
+      );
+
+      expect(b1).toBeCloseTo(1, 2);
+      expect(b1).toBeGreaterThan(b2);
+      expect(b2).toBeGreaterThan(b3);
+      expect(b3).toBeGreaterThan(0);
+      // Cooling shifts color toward heatLowColor (blue)
+      expect(cState2.b).toBeGreaterThan(cFiring.b);
+      expect(cState3.b).toBeGreaterThan(0);
     });
   });
 });

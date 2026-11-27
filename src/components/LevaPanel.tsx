@@ -5,6 +5,7 @@ import { SIM_CONSTRAINTS } from '../sim/constants';
 import { ECOLOGY_PROFILE_NAMES } from '../sim/ecology';
 import { BUILTIN_PATTERN_NAMES } from '../sim/patterns';
 import { COLOR_THEME_NAMES, RULE_PRESET_NAMES, WORLD_PRESET_NAMES } from '../sim/presets';
+import { MAX_DECAY_STATES, MIN_DECAY_STATES } from '../sim/rules';
 import { type ControlKey, type ControlValues, useControlsStore } from '../store/useControlsStore';
 import { useUIStore } from '../store/useUIStore';
 import { isDebugUiEnabled } from './planetLife/controls';
@@ -147,6 +148,12 @@ function buildSchema(values: ControlValues, paths: Map<ControlKey, string>, debu
         rulePreset: { label: 'Rule Preset', options: ['Custom', ...RULE_PRESET_NAMES] },
         birthDigits: {},
         surviveDigits: {},
+        decayStates: {
+          min: MIN_DECAY_STATES,
+          max: MAX_DECAY_STATES,
+          step: 1,
+          label: 'Decay States (G)',
+        },
         ecologyProfile: { label: 'Ecology', options: ECOLOGY_PROFILE_NAMES },
         randomDensity: { min: 0, max: 1, step: 0.01 },
         autoReseedOnStagnation: {
